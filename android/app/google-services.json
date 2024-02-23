@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "755339267599",
+    "firebase_url": "https://passenger-signuplogin-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "passenger-signuplogin",
+    "storage_bucket": "passenger-signuplogin.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:755339267599:android:13c3d99ae54b15d2e01d7a",
+        "android_client_info": {
+          "package_name": "com.signupLogin.passenger"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkLt8ILMXSFRP12xS8P7830kGNBeGn47s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
