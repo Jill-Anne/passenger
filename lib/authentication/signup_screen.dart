@@ -1,8 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/pages/home_page.dart';
@@ -59,8 +57,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             .createUserWithEmailAndPassword(
       email: emailTextEditingController.text.trim(),
       password: passwordTextEditingController.text.trim(),
-    )
-            .catchError((errorMsg) {
+    ).catchError((errorMsg) {
       Navigator.pop(context);
       cMethods.displaySnackBar(errorMsg.toString(), context);
     }))
