@@ -57,7 +57,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             .createUserWithEmailAndPassword(
       email: emailTextEditingController.text.trim(),
       password: passwordTextEditingController.text.trim(),
-    ).catchError((errorMsg) {
+    )
+            .catchError((errorMsg) {
       Navigator.pop(context);
       cMethods.displaySnackBar(errorMsg.toString(), context);
     }))
@@ -80,7 +81,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     usersRef.set(userDataMap); //Save to database
 
     //Go to Homepage
-    Navigator.push(context, MaterialPageRoute(builder: (c) => HomePage()));
+    Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
   }
 
   @override
