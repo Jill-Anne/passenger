@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/global/global_var.dart';
+import 'package:passenger/methods/common_methods.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,6 +23,7 @@ class _HomePageState extends State<HomePage> {
   final Completer<GoogleMapController> googleMapCompleterController = Completer<GoogleMapController>();
   GoogleMapController? controllerGoogleMap;
   GlobalKey<ScaffoldState> sKey = GlobalKey<ScaffoldState>();
+  CommonMethods cMethods = CommonMethods();
 
   void updateMapTheme(GoogleMapController controller) {
     getJsonFileFromThemes("themes/night_style.json")
@@ -52,10 +57,45 @@ class _HomePageState extends State<HomePage> {
 
     // await CommonMethods.convertGeoGraphicCoOrdinatesIntoHumanReadableAddress(currentPositionOfUser!, context);
 
-    // await getUserInfoAndCheckBlockStatus();
+     await getUserInfoAndCheckBlockStatus();
 
     // await initializeGeoFireListener();
   }
+
+
+  getUserInfoAndCheckBlockStatus() async
+  {
+    DatabaseReference usersRef = FirebaseDatabase.instance.ref()
+        .child("users")
+        .child(FirebaseAuth.instance.currentUser!.uid);
+
+    await usersRef.once().then((snap)
+    {
+      if(snap.snapshot.value != null)
+      {
+        if((snap.snapshot.value as Map)["blockStatus"] == "no")
+        {
+          setState(() {
+            userName = (snap.snapshot.value as Map)["name"];
+          });
+        }
+        else
+        {
+          FirebaseAuth.instance.signOut();
+
+          Navigator.push(context, MaterialPageRoute(builder: (c)=> LoginScreen()));
+
+          cMethods.displaySnackBar("you are blocked. Contact admin: jill@gmail.com", context);
+        }
+      }
+      else
+      {
+        FirebaseAuth.instance.signOut();
+        Navigator.push(context, MaterialPageRoute(builder: (c)=> LoginScreen()));
+      }
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -140,22 +180,29 @@ class _HomePageState extends State<HomePage> {
                   onPressed: (){},
                   icon: const Icon(Icons.info, color: Colors.grey,),
                 ),
-                title: const Text("About", style: TextStyle(color: Colors.grey),),
+                title: const Text("About", 
+                style: TextStyle(
+                  color: Colors.grey
+                  ),
+                ),
               ),
 
               GestureDetector(
                 onTap: ()
                 {
-                  // FirebaseAuth.instance.signOut();
+                   FirebaseAuth.instance.signOut();
 
-                  // Navigator.push(context, MaterialPageRoute(builder: (c)=> LoginScreen()));
+                   Navigator.push(context, MaterialPageRoute(builder: (c)=> LoginScreen()));
                 },
                 child: ListTile(
                   leading: IconButton(
                     onPressed: (){},
                     icon: const Icon(Icons.logout, color: Colors.grey,),
                   ),
-                  title: const Text("Logout", style: TextStyle(color: Colors.grey),),
+                  title: const Text("Logout",       
+                  style: TextStyle(
+                    color: Colors.grey),
+                  ),
                 ),
               ),
 
@@ -166,10 +213,11 @@ class _HomePageState extends State<HomePage> {
       ),
 
 
-
+  //GOOGLE MAP THEMES
       body: Stack(
         children: [
           GoogleMap(
+            padding: const EdgeInsets.only(top: 26),
             mapType: MapType.normal,
             myLocationEnabled: true,
             initialCameraPosition: googlePlexInitialPosition,
@@ -183,9 +231,6 @@ class _HomePageState extends State<HomePage> {
               getCurrentLiveLocationOfUser();
             },
           ),
-
-
-
 
    //drawer button
           Positioned(
