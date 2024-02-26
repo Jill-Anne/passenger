@@ -1,8 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/material.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/methods/common_methods.dart';
+import 'package:passenger/methods/reusable_widgets.dart';
 import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
 
@@ -31,15 +32,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   signUpFormValidation() {
     if (userNameTextEditingController.text.trim().length < 3) {
       cMethods.displaySnackBar(
-          "your name must be atleast 4 or more characters.", context);
+          "Your name must be at least 4 or more characters.", context);
     } else if (userPhoneTextEditingController.text.trim().length < 7) {
       cMethods.displaySnackBar(
-          "your phone number must be atleast 8 or more characters.", context);
+          "Your phone number must be at least 8 or more characters.", context);
     } else if (!emailTextEditingController.text.contains("@")) {
-      cMethods.displaySnackBar("please write valid email.", context);
+      cMethods.displaySnackBar("Please write a valid email.", context);
     } else if (passwordTextEditingController.text.trim().length < 5) {
       cMethods.displaySnackBar(
-          "your password must be atleast 6 or more characters.", context);
+          "Your password must be at least 6 or more characters.", context);
     } else {
       registerNewUser();
     }
@@ -67,8 +68,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (!context.mounted) return;
     Navigator.pop(context);
 
-    //DATABASE FIREBASE CREATING USER
-
     DatabaseReference usersRef =
         FirebaseDatabase.instance.ref().child("users").child(userFirebase!.uid);
     Map userDataMap = {
@@ -78,143 +77,139 @@ class _SignUpScreenState extends State<SignUpScreen> {
       "id": userFirebase.uid,
       "blockStatus": "no",
     };
-    usersRef.set(userDataMap); //Save to database
+    usersRef.set(userDataMap); 
 
-    //Go to Homepage
     Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: [
-              Image.asset("assets/images/LOGO.png"),
-
-              Text(
-                "Create a User\'s Account",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              //TEXT FIELDS + SIGN UP BUTONS
-              Padding(
-                  padding: const EdgeInsets.all(22),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: userNameTextEditingController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                            labelText: "User Name",
-                            labelStyle: TextStyle(
-                              fontSize: 14,
-                            )),
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 15,
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: 22,
-                      ),
-
-                      TextField(
-                        controller: userPhoneTextEditingController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                            labelText: "User Phone",
-                            labelStyle: TextStyle(
-                              fontSize: 14,
-                            )),
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 15,
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: 22,
-                      ),
-
-                      TextField(
-                        controller: emailTextEditingController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                            labelText: "User Email",
-                            labelStyle: TextStyle(
-                              fontSize: 14,
-                            )),
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: 22,
-                      ),
-
-                      TextField(
-                        controller: passwordTextEditingController,
-                        obscureText: true,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                            labelText: "User Password",
-                            labelStyle: TextStyle(
-                              fontSize: 14,
-                            )),
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 15,
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: 32,
-                      ),
-
-                      ElevatedButton(
-                        onPressed: () {
-                          checkIfNetworkIsAvailable();
-                        },
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Color.fromARGB(255, 39, 17, 72),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 80, vertical: 10)),
-                        child: const Text("Sign Up"),
-                      ),
-
-                      const SizedBox(
-                        height: 12,
-                      ),
-
-                      //TEXT BUTTON
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (c) => const LoginScreen()));
-                        },
-                        child: const Text(
-                          "Already have an Account? Login Here",
-                          style: TextStyle(
-                            color: Colors.grey,
+      body: Stack(
+        children: [
+          CustomColumnWithLogo(), // Logo on the left side
+          Positioned(
+            left: 0,
+            bottom: -10,
+            child: logowidget("assets/images/LOGO.png"),
+          ),
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: [
+                  SizedBox(height: 50), 
+                  Positioned(
+                    top: 100,
+                    left: 30,
+                    right: 30,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 0, left: 20), // Adjust the left padding here
+                          child: Text(
+                            "Sign up with email or phone number.",
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ))
-            ],
+
+                        Padding(
+                          padding: const EdgeInsets.all(22),
+                          child: Column(
+                            children: [
+                              customTextField(
+                                "Name",
+                                Icons.person,
+                                false,
+                                userNameTextEditingController,
+                              ),
+
+                              const SizedBox(
+                                height: 22,
+                              ),
+
+                              customTextField(
+                                "User Phone",
+                                Icons.phone,
+                                false,
+                                userPhoneTextEditingController,
+                              ),
+
+                              const SizedBox(
+                                height: 22,
+                              ),
+
+                              customTextField(
+                                "User Email",
+                                Icons.email,
+                                false,
+                                emailTextEditingController,
+                              ),
+
+                              const SizedBox(
+                                height: 22,
+                              ),
+
+                              customTextField(
+                                "User Password",
+                                Icons.lock,
+                                true,
+                                passwordTextEditingController,
+                                obscureText: true,
+                              ),
+
+                              const SizedBox(
+                                height: 32,
+                              ),
+
+                              signInSignUpButton(context, false, () {
+                                checkIfNetworkIsAvailable();
+                              }),
+
+                              const SizedBox(
+                                height: 12,
+                              ),
+                              signUpOption()
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Row signUpOption() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          "Already have an account?",
+          style: TextStyle(color: Color.fromARGB(179, 11, 11, 11)),
+        ),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+          },
+          child: const Text(
+            " Log In",
+            style: TextStyle(
+              color: Color(0xFF2E3192),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
