@@ -11,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
+import 'package:passenger/pages/search_destination%20_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,9 +25,11 @@ class _HomePageState extends State<HomePage> {
   GoogleMapController? controllerGoogleMap;
   GlobalKey<ScaffoldState> sKey = GlobalKey<ScaffoldState>();
   CommonMethods cMethods = CommonMethods();
+  double searchContainerHeight = 276;
+  double bottomMapPadding = 0;
 
   void updateMapTheme(GoogleMapController controller) {
-    getJsonFileFromThemes("themes/night_style.json")
+    getJsonFileFromThemes("themes/standard_style.json")
         .then((value) => setGoogleMapStyle(value, controller));
   }
 
@@ -57,45 +60,39 @@ class _HomePageState extends State<HomePage> {
 
     // await CommonMethods.convertGeoGraphicCoOrdinatesIntoHumanReadableAddress(currentPositionOfUser!, context);
 
-     await getUserInfoAndCheckBlockStatus();
+    await getUserInfoAndCheckBlockStatus();
 
     // await initializeGeoFireListener();
   }
 
-
-  getUserInfoAndCheckBlockStatus() async
-  {
-    DatabaseReference usersRef = FirebaseDatabase.instance.ref()
+  getUserInfoAndCheckBlockStatus() async {
+    DatabaseReference usersRef = FirebaseDatabase.instance
+        .ref()
         .child("users")
         .child(FirebaseAuth.instance.currentUser!.uid);
 
-    await usersRef.once().then((snap)
-    {
-      if(snap.snapshot.value != null)
-      {
-        if((snap.snapshot.value as Map)["blockStatus"] == "no")
-        {
+    await usersRef.once().then((snap) {
+      if (snap.snapshot.value != null) {
+        if ((snap.snapshot.value as Map)["blockStatus"] == "no") {
           setState(() {
             userName = (snap.snapshot.value as Map)["name"];
           });
-        }
-        else
-        {
+        } else {
           FirebaseAuth.instance.signOut();
 
-          Navigator.push(context, MaterialPageRoute(builder: (c)=> LoginScreen()));
+          Navigator.push(
+              context, MaterialPageRoute(builder: (c) => LoginScreen()));
 
-          cMethods.displaySnackBar("you are blocked. Contact admin: jill@gmail.com", context);
+          cMethods.displaySnackBar(
+              "you are blocked. Contact admin: jill@gmail.com", context);
         }
-      }
-      else
-      {
+      } else {
         FirebaseAuth.instance.signOut();
-        Navigator.push(context, MaterialPageRoute(builder: (c)=> LoginScreen()));
+        Navigator.push(
+            context, MaterialPageRoute(builder: (c) => LoginScreen()));
       }
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -104,20 +101,17 @@ class _HomePageState extends State<HomePage> {
       drawer: Container(
         width: 255,
         color: Colors.black87,
-
         child: Drawer(
           backgroundColor: Colors.white10,
-          
           child: ListView(
             children: [
-
               const Divider(
                 height: 1,
                 color: Colors.grey,
                 thickness: 1,
               ),
 
-    //header
+              //header
               Container(
                 color: Colors.black54,
                 height: 160,
@@ -127,19 +121,17 @@ class _HomePageState extends State<HomePage> {
                   ),
                   child: Row(
                     children: [
-
                       Image.asset(
                         "assets/images/avatarman.png",
                         width: 60,
                         height: 60,
                       ),
-
-                      const SizedBox(width: 16,),
-
+                      const SizedBox(
+                        width: 16,
+                      ),
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-
                           Text(
                             userName,
                             style: const TextStyle(
@@ -148,19 +140,17 @@ class _HomePageState extends State<HomePage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-
-                          const SizedBox(height: 4,),
-
+                          const SizedBox(
+                            height: 4,
+                          ),
                           const Text(
                             "Profile",
                             style: TextStyle(
                               color: Colors.white38,
                             ),
                           ),
-
                         ],
                       ),
-
                     ],
                   ),
                 ),
@@ -172,52 +162,56 @@ class _HomePageState extends State<HomePage> {
                 thickness: 1,
               ),
 
-              const SizedBox(height: 10,),
+              const SizedBox(
+                height: 10,
+              ),
 
-  //body
+              //body
               ListTile(
                 leading: IconButton(
-                  onPressed: (){},
-                  icon: const Icon(Icons.info, color: Colors.grey,),
-                ),
-                title: const Text("About", 
-                style: TextStyle(
-                  color: Colors.grey
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.info,
+                    color: Colors.grey,
                   ),
+                ),
+                title: const Text(
+                  "About",
+                  style: TextStyle(color: Colors.grey),
                 ),
               ),
 
               GestureDetector(
-                onTap: ()
-                {
-                   FirebaseAuth.instance.signOut();
+                onTap: () {
+                  FirebaseAuth.instance.signOut();
 
-                   Navigator.push(context, MaterialPageRoute(builder: (c)=> LoginScreen()));
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (c) => LoginScreen()));
                 },
                 child: ListTile(
                   leading: IconButton(
-                    onPressed: (){},
-                    icon: const Icon(Icons.logout, color: Colors.grey,),
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.logout,
+                      color: Colors.grey,
+                    ),
                   ),
-                  title: const Text("Logout",       
-                  style: TextStyle(
-                    color: Colors.grey),
+                  title: const Text(
+                    "Logout",
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
               ),
-
-
             ],
           ),
         ),
       ),
 
-
-  //GOOGLE MAP THEMES
+      //GOOGLE MAP THEMES
       body: Stack(
         children: [
           GoogleMap(
-            padding: const EdgeInsets.only(top: 26),
+            padding: EdgeInsets.only(top: 26, bottom: bottomMapPadding),
             mapType: MapType.normal,
             myLocationEnabled: true,
             initialCameraPosition: googlePlexInitialPosition,
@@ -228,25 +222,27 @@ class _HomePageState extends State<HomePage> {
 
               googleMapCompleterController.complete(controllerGoogleMap);
 
+              setState(() {
+                bottomMapPadding = 300;
+              });
+
               getCurrentLiveLocationOfUser();
             },
           ),
 
-   //drawer button
+          //drawer button
           Positioned(
             top: 36,
             left: 19,
             child: GestureDetector(
-              onTap: ()
-              {
+              onTap: () {
                 sKey.currentState!.openDrawer();
               },
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: const
-                  [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black26,
                       blurRadius: 5,
@@ -267,7 +263,67 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
+          ///search location icon button
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: -80,
+            child: Container(
+              height: searchContainerHeight,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+//  Search Icon
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(context,
+                        MaterialPageRoute(
+                          builder: (c) => SearchDestinationPage()
+                        )  
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(24)),
+                    child: const Icon(
+                      Icons.search,
+                      color: Colors.white,
+                      size: 25,
+                    ),
+                  ),
 
+//  Home Icon
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(24)),
+                    child: const Icon(
+                      Icons.home,
+                      color: Colors.white,
+                      size: 25,
+                    ),
+                  ),
+
+//  Work Icon
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(24)),
+                    child: const Icon(
+                      Icons.work,
+                      color: Colors.white,
+                      size: 25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

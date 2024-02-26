@@ -1,207 +1,164 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:passenger/authentication/signup_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
+import 'package:passenger/methods/reusable_widgets.dart';
 import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
 
-
-
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({Key? key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-
   TextEditingController emailTextEditingController = TextEditingController();
   TextEditingController passwordTextEditingController = TextEditingController();
   CommonMethods cMethods = CommonMethods();
 
-
-
-  checkIfNetworkIsAvailable()
-  {
+  void checkIfNetworkIsAvailable() {
     cMethods.checkConnectivity(context);
-
     signInFormValidation();
   }
 
-  signInFormValidation()
-  {
-    if(!emailTextEditingController.text.contains("@"))
-    {
-      cMethods.displaySnackBar("please write valid email.", context);
-    }
-    else if(passwordTextEditingController.text.trim().length < 5)
-    {
-      cMethods.displaySnackBar("your password must be atleast 6 or more characters.", context);
-    }
-    else
-    {
+  void signInFormValidation() {
+    if (!emailTextEditingController.text.contains("@")) {
+      cMethods.displaySnackBar("Please write a valid email.", context);
+    } else if (passwordTextEditingController.text.trim().length < 5) {
+      cMethods.displaySnackBar(
+          "Your password must be at least 6 or more characters.", context);
+    } else {
       signInUser();
     }
   }
 
-  signInUser() async
-  {
+  Future<void> signInUser() async {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) => LoadingDialog(messageText: "Allowing you to Login..."),
+      builder: (BuildContext context) =>
+          LoadingDialog(messageText: "Allowing you to Login..."),
     );
 
-    final User? userFirebase = (
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: emailTextEditingController.text.trim(),
-          password: passwordTextEditingController.text.trim(),
-        ).catchError((errorMsg)
-        {
-          Navigator.pop(context);
-          cMethods.displaySnackBar(errorMsg.toString(), context);
-        })
-    ).user;
+    final User? userFirebase =
+        (await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: emailTextEditingController.text.trim(),
+      password: passwordTextEditingController.text.trim(),
+    ).catchError((errorMsg) {
+      Navigator.pop(context);
+      cMethods.displaySnackBar(errorMsg.toString(), context);
+    })).user;
 
-    if(!context.mounted) return;
-    Navigator.pop(context); 
+    if (!context.mounted) return;
+    Navigator.pop(context);
 
-
-    if(userFirebase != null)
-    {
-      DatabaseReference usersRef = FirebaseDatabase.instance.ref().child("users").child(userFirebase.uid);
-      await usersRef.once().then((snap)
-      {
-        if(snap.snapshot.value != null)
-        {
-          if((snap.snapshot.value as Map)["blockStatus"] == "no")
-          {
+    if (userFirebase != null) {
+      DatabaseReference usersRef = FirebaseDatabase.instance
+          .ref()
+          .child("users")
+          .child(userFirebase.uid);
+      await usersRef.once().then((snap) {
+        if (snap.snapshot.value != null) {
+          if ((snap.snapshot.value as Map)["blockStatus"] == "no") {
             userName = (snap.snapshot.value as Map)["name"];
-            // userPhone = (snap.snapshot.value as Map)["phone"];
-            Navigator.push(context, MaterialPageRoute(builder: (c)=> HomePage()));
-          }
-          else
-          {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (c) => HomePage()));
+          } else {
             FirebaseAuth.instance.signOut();
-            cMethods.displaySnackBar("you are blocked. Contact admin: coloongToda@gmail.com", context);
+            cMethods.displaySnackBar(
+                "You are blocked. Contact admin: coloongToda@gmail.com",
+                context);
           }
-        }
-        else
-        {
+        } else {
           FirebaseAuth.instance.signOut();
-          cMethods.displaySnackBar("your record do not exists as a User.", context);
+          cMethods.displaySnackBar(
+              "Your record does not exist as a User.", context);
         }
       });
-    } 
+    }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: [
-              Image.asset(
-                "assets/images/LOGO.png"
-              ),
-
-              Text(
-                "Login as a User",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          CustomColumnWithLogo(), // Logo on the left side
+          Positioned(
+            left: 0,
+            bottom: -10,
+            child: logowidget("assets/images/LOGO.png"),
+          ),
+          Positioned(
+            top: 100,
+            left: 30,
+            right: 30,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Sign in with email or phone number.",
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 26,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
                 ),
-              ),
+                SizedBox(height: 20),
+                customTextField(
+                  "User Email",
+                  Icons.email,
+                  false,
+                  emailTextEditingController,
+                ),
+                const SizedBox(height: 20),
+                customTextField(
+                  "User Password",
+                  Icons.lock,
+                  true,
+                  passwordTextEditingController,
+                  obscureText: true,
+                ),
+                const SizedBox(height: 30),
+                signInSignUpButton(context, true, () {
+                  checkIfNetworkIsAvailable();
+                }),
+                signUpOption()
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    
-          //TEXT FIELDS + SIGN UP BUTONS
-              Padding(
-                padding: const EdgeInsets.all(22),
-                child: Column(
-                  children: [
-
-
-                    TextField(
-                      controller: emailTextEditingController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: "User Email",
-                        labelStyle: TextStyle(
-                          fontSize: 14,
-                        )
-                      ),
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 15,
-                      ),
-                    ),                    
-                    const SizedBox(height: 22,),
-
-                    TextField(
-                      controller: passwordTextEditingController,
-                      obscureText: true,
-                      keyboardType: TextInputType.text,
-                      decoration: const InputDecoration(
-                        labelText: "User Password",
-                        labelStyle: TextStyle(
-                          fontSize: 14,
-                        )
-                      ),
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 15,
-                      ),
-                    ),
-
-                    const SizedBox(height: 32,),
-
-                    ElevatedButton(
-                      onPressed: ()
-                      {
-                        checkIfNetworkIsAvailable();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple,
-                        padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10)
-                      ),
-                      child: const Text(
-                        "Login"
-                      ),
-                    ),    
-
-                    const SizedBox(height: 12,),
-     
-                //TEXT BUTTON
-                    TextButton(
-                      onPressed: ()
-                      {
-                        Navigator.push(context, MaterialPageRoute(builder: (c)=> SignUpScreen()));
-                      },
-                      child: const Text(
-                        "Don\'t have an Account? Register Here",
-                        style: TextStyle(
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-
-
-
-                  ],
-                )
-              )
-
-            ],
+  Row signUpOption() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          "Don't have an account?",
+          style: TextStyle(color: Color.fromARGB(179, 11, 11, 11)),
+        ),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => SignUpScreen()));
+          },
+          child: const Text(
+            " Sign Up",
+            style: TextStyle(
+              color: Color(0xFF2E3192),
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
