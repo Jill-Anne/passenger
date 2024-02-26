@@ -29,42 +29,40 @@ class _HomePageState extends State<HomePage> {
   double bottomMapPadding = 0;
 
   void updateMapTheme(GoogleMapController controller) {
+// Function to update the map theme
     getJsonFileFromThemes("themes/standard_style.json")
         .then((value) => setGoogleMapStyle(value, controller));
   }
 
-//Return the the style
+// Function to get JSON file containing map theme
   Future<String> getJsonFileFromThemes(String mapStylePath) async {
     ByteData byteData = await rootBundle.load(mapStylePath);
     var list = byteData.buffer
         .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
     return utf8.decode(list);
   }
-
+  
+// Function to set Google Map style
   setGoogleMapStyle(String googleMapStyle, GoogleMapController controller) {
     controller.setMapStyle(googleMapStyle);
   }
 
+// Function to get current live location of user
   getCurrentLiveLocationOfUser() async {
-    Position positionOfUser = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.bestForNavigation);
+    Position positionOfUser = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.bestForNavigation);
     var currentPositionOfUser = positionOfUser;
 
-    LatLng positionOfUserInLatLng = LatLng(
-        currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+    LatLng positionOfUserInLatLng = LatLng(currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
 
-    CameraPosition cameraPosition =
-        CameraPosition(target: positionOfUserInLatLng, zoom: 15);
-    controllerGoogleMap!
-        .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+    CameraPosition cameraPosition = CameraPosition(target: positionOfUserInLatLng, zoom: 15);
+    controllerGoogleMap!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
-    // await CommonMethods.convertGeoGraphicCoOrdinatesIntoHumanReadableAddress(currentPositionOfUser!, context);
-
+    await CommonMethods.convertGeoGraphicCoOrdinatesIntoHumanReadableAddress(currentPositionOfUser!, context);
     await getUserInfoAndCheckBlockStatus();
-
     // await initializeGeoFireListener();
   }
 
+// Function to get user info and check block status
   getUserInfoAndCheckBlockStatus() async {
     DatabaseReference usersRef = FirebaseDatabase.instance
         .ref()
@@ -94,6 +92,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+// Build the UI of the home page
   @override
   Widget build(BuildContext context) {
     return Scaffold(
