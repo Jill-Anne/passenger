@@ -10,9 +10,11 @@ Image logowidget(String imageName) {
 }
 
 TextField customTextField(String labelText, IconData prefixIcon, bool isPasswordType, TextEditingController controller, {bool obscureText = false}) {
+  bool _isPasswordVisible = obscureText; // Track password visibility
+
   return TextField(
     controller: controller,
-    obscureText: obscureText,
+    obscureText: _isPasswordVisible, // Use the tracked variable for password visibility
     enableSuggestions: !isPasswordType,
     autocorrect: !isPasswordType,
     cursorColor: const Color.fromARGB(255, 19, 19, 19),
@@ -22,10 +24,10 @@ TextField customTextField(String labelText, IconData prefixIcon, bool isPassword
       prefixIcon: Icon(prefixIcon, color: const Color.fromARGB(179, 40, 39, 39)),
       suffixIcon: obscureText ? IconButton(
         icon: Icon(
-          isPasswordType ? Icons.visibility : Icons.visibility_off,
+          _isPasswordVisible ? Icons.visibility : Icons.visibility_off, // Toggle icon based on password visibility
         ),
         onPressed: () {
-          // Toggle password visibility
+          _isPasswordVisible = !_isPasswordVisible; // Toggle password visibility state
         },
       ) : null,
       border: const OutlineInputBorder(),
@@ -33,6 +35,7 @@ TextField customTextField(String labelText, IconData prefixIcon, bool isPassword
     keyboardType: isPasswordType ? TextInputType.visiblePassword : TextInputType.emailAddress,
   );
 }
+
 
 Container signInSignUpButton(BuildContext context, bool isLogin, Function onTap) {
   return Container(

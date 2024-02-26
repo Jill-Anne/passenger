@@ -22,6 +22,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   TextEditingController passwordTextEditingController = TextEditingController();
 
   CommonMethods cMethods = CommonMethods();
+  bool _isPasswordVisible = false; // Flag to track whether the password is visible or not
 
   checkIfNetworkIsAvailable() {
     cMethods.checkConnectivity(context);
@@ -154,12 +155,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 height: 22,
                               ),
 
-                              customTextField(
-                                "User Password",
-                                Icons.lock,
-                                true,
-                                passwordTextEditingController,
-                                obscureText: true,
+                              TextField(
+                                controller: passwordTextEditingController,
+                                obscureText: !_isPasswordVisible,
+                                enableSuggestions: false,
+                                autocorrect: false,
+                                cursorColor: const Color.fromARGB(255, 19, 19, 19),
+                                style: const TextStyle(color: Color.fromARGB(255, 14, 13, 13)),
+                                decoration: InputDecoration(
+                                  labelText: "User Password",
+                                  prefixIcon: Icon(Icons.lock, color: const Color.fromARGB(179, 40, 39, 39)),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isPasswordVisible = !_isPasswordVisible; // Toggle password visibility state
+                                      });
+                                    },
+                                  ),
+                                  border: const OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.visiblePassword,
                               ),
 
                               const SizedBox(
