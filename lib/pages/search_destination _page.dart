@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:passenger/appInfo/app_info.dart';
+import 'package:passenger/global/global_var.dart';
+import 'package:passenger/methods/common_methods.dart';
+import 'package:passenger/models/prediction_model.dart';
 import 'package:provider/provider.dart';
 
 class SearchDestinationPage extends StatefulWidget {
@@ -9,34 +12,62 @@ class SearchDestinationPage extends StatefulWidget {
   State<SearchDestinationPage> createState() => _SearchDestinationPageState();
 }
 
-
-
-class _SearchDestinationPageState extends State<SearchDestinationPage>
-{
+class _SearchDestinationPageState extends State<SearchDestinationPage> {
   TextEditingController pickUpTextEditingController = TextEditingController();
-  TextEditingController destinationTextEditingController = TextEditingController();
+  TextEditingController destinationTextEditingController =
+      TextEditingController();
+  List<PredictionModel> dropOffPredictionsPlacesList = [];
 
+  ///Places API - Place AutoComplete
+  searchLocation(String locationName) async {
+    if (locationName.length > 1) {
+      String apiPlacesUrl =
+          "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$locationName&key=$googleMapKey&components=country:ph";
 
+//SEND REQUEST TO API
+      var responseFromPlacesAPI =
+          await CommonMethods.sendRequestToAPI(apiPlacesUrl);
+//check if its error
+      if (responseFromPlacesAPI == "error") {
+        return;
+        //do nothing
+      }
+//No error occured
+      if (responseFromPlacesAPI["status"] == "OK") {
+        var predictionResultInJson = responseFromPlacesAPI["predictions"];
+        var predictionsList = (predictionResultInJson as List)
+            .map((eachPlacePrediction) =>
+                PredictionModel.fromJson(eachPlacePrediction))
+            .toList();
+
+        setState(() {
+          dropOffPredictionsPlacesList = predictionsList;
+        });
+
+        print("predictionResultinJSON = " + predictionResultInJson.toString());
+      }
+    }
+  }
 
   @override
-  Widget build(BuildContext context)
-  {
-    String userAddress = Provider.of<AppInfo>(context, listen: false).pickUpLocation!.humanReadableAddress ?? "";
+  Widget build(BuildContext context) {
+    String userAddress = Provider.of<AppInfo>(context, listen: false)
+            .pickUpLocation!
+            .humanReadableAddress ??
+        "";
     pickUpTextEditingController.text = userAddress;
 
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
           children: [
-
             Card(
               elevation: 10,
               child: Container(
                 height: 230,
                 decoration: const BoxDecoration(
                   color: Colors.black12,
-                  boxShadow:
-                  [
+                  boxShadow: [
                     BoxShadow(
                       color: Colors.black12,
                       blurRadius: 5.0,
@@ -46,24 +77,26 @@ class _SearchDestinationPageState extends State<SearchDestinationPage>
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 24, top: 48, right: 24, bottom: 20),
+                  padding: const EdgeInsets.only(
+                      left: 24, top: 48, right: 24, bottom: 20),
                   child: Column(
                     children: [
-
-                      const SizedBox(height: 6,),
+                      const SizedBox(
+                        height: 6,
+                      ),
 
                       //icon button - title
                       Stack(
                         children: [
-
                           GestureDetector(
-                            onTap: ()
-                            {
+                            onTap: () {
                               Navigator.pop(context);
                             },
-                            child: const Icon(Icons.arrow_back, color: Colors.white,),
+                            child: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.white,
+                            ),
                           ),
-
                           const Center(
                             child: Text(
                               "Set Dropoff Location",
@@ -73,24 +106,24 @@ class _SearchDestinationPageState extends State<SearchDestinationPage>
                               ),
                             ),
                           ),
-
                         ],
                       ),
 
-                      const SizedBox(height: 18,),
+                      const SizedBox(
+                        height: 18,
+                      ),
 
                       //pickup text field
                       Row(
                         children: [
-
                           Image.asset(
                             "assets/images/initial.png",
                             height: 16,
                             width: 16,
                           ),
-
-                          const SizedBox(width: 18,),
-
+                          const SizedBox(
+                            width: 18,
+                          ),
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
@@ -102,35 +135,35 @@ class _SearchDestinationPageState extends State<SearchDestinationPage>
                                 child: TextField(
                                   controller: pickUpTextEditingController,
                                   decoration: const InputDecoration(
-                                    hintText: "Pickup Address",
-                                    fillColor: Colors.white12,
-                                    filled: true,
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.only(left: 11, top: 9, bottom: 9)
-                                  ),
+                                      hintText: "Pickup Address",
+                                      fillColor: Colors.white12,
+                                      filled: true,
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.only(
+                                          left: 11, top: 9, bottom: 9)),
                                 ),
                               ),
                             ),
                           ),
-
                         ],
                       ),
 
-                      const SizedBox(height: 11,),
+                      const SizedBox(
+                        height: 11,
+                      ),
 
                       //destination text field
                       Row(
                         children: [
-
                           Image.asset(
                             "assets/images/final.png",
                             height: 16,
                             width: 16,
                           ),
-
-                          const SizedBox(width: 18,),
-
+                          const SizedBox(
+                            width: 18,
+                          ),
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
@@ -141,28 +174,28 @@ class _SearchDestinationPageState extends State<SearchDestinationPage>
                                 padding: const EdgeInsets.all(3),
                                 child: TextField(
                                   controller: destinationTextEditingController,
+                                  onChanged: (inputText) {
+                                    searchLocation(inputText);
+                                  },
                                   decoration: const InputDecoration(
                                       hintText: "Destination Address",
                                       fillColor: Colors.white12,
                                       filled: true,
                                       border: InputBorder.none,
                                       isDense: true,
-                                      contentPadding: EdgeInsets.only(left: 11, top: 9, bottom: 9)
-                                  ),
+                                      contentPadding: EdgeInsets.only(
+                                          left: 11, top: 9, bottom: 9)),
                                 ),
                               ),
                             ),
                           ),
-
                         ],
                       ),
-
                     ],
                   ),
                 ),
               ),
             ),
-
           ],
         ),
       ),

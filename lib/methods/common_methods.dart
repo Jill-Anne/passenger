@@ -32,7 +32,9 @@ class CommonMethods {
     ScaffoldMessenger.of(context).showSnackBar(snackBar); // Displaying the snackbar.
   }
 
-  // Method for sending a request to an API.
+
+//send GET requests to an API and handle the response
+// Method for sending a request to an API.
   static sendRequestToAPI(String apiUrl) async {
     http.Response responseFromAPI = await http.get(Uri.parse(apiUrl)); // Sending a GET request to the specified API URL.
 
@@ -53,6 +55,7 @@ class CommonMethods {
   // Method for converting geographic coordinates into human-readable address.
   static Future<String> convertGeoGraphicCoOrdinatesIntoHumanReadableAddress(Position position, BuildContext context) async {
     String humanReadableAddress = ""; // Initializing a variable to store the human-readable address.
+
     String apiGeoCodingUrl = "https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$googleMapKey"; // Constructing the API URL for reverse geocoding.
 
     var responseFromAPI = await sendRequestToAPI(apiGeoCodingUrl); // Sending a request to the API for reverse geocoding.
@@ -61,6 +64,8 @@ class CommonMethods {
       humanReadableAddress = responseFromAPI["results"][0]["formatted_address"]; // Extracting the human-readable address from the API response.
       print("humanReadableAddress = " + humanReadableAddress); // Printing the human-readable address.
     }
+
+
 
     AddressModel model = AddressModel();
     model.humanReadableAddress = humanReadableAddress;
