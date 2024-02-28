@@ -8,10 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/pages/search_destination%20_page.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -274,12 +276,15 @@ class _HomePageState extends State<HomePage> {
                 children: [
 //  Search Icon
                   ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(context,
-                        MaterialPageRoute(
-                          builder: (c) => SearchDestinationPage()
-                        )  
-                      );
+                    onPressed: () async
+                    {
+                      var responseFromSearchPage = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchDestinationPage()));
+
+                      if(responseFromSearchPage == "placeSelected")
+                      {
+                        String dropOffLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation!.placeName ?? "";
+                        print("dropOffLocation = " + dropOffLocation);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey,

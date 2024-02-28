@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:passenger/appInfo/app_info.dart';
+import 'package:passenger/global/global_var.dart';
+import 'package:passenger/methods/common_methods.dart';
+import 'package:passenger/models/address_model.dart';
 import 'package:passenger/models/prediction_model.dart';
+import 'package:passenger/widgets/loading_dialog.dart';
+import 'package:provider/provider.dart';
 
 class PredictionPlaceUI extends StatefulWidget {
   PredictionModel? predictedPlaceData;
@@ -14,12 +20,52 @@ class PredictionPlaceUI extends StatefulWidget {
 }
 
 class _PredictionPlaceUIState extends State<PredictionPlaceUI> {
+  ///Place Details - Places API
+  fetchClickedPlaceDetails(String placeID) async
+  {
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) => LoadingDialog(messageText: "Getting details..."),
+    );
+
+    String urlPlaceDetailsAPI = "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeID&key=$googleMapKey";
+
+    var responseFromPlaceDetailsAPI = await CommonMethods.sendRequestToAPI(urlPlaceDetailsAPI);
+
+    Navigator.pop(context);
+
+    if(responseFromPlaceDetailsAPI == "error")
+    {
+      return;
+    }
+
+    if(responseFromPlaceDetailsAPI["status"] == "OK")
+    {
+      AddressModel dropOffLocation = AddressModel();
+
+      dropOffLocation.placeName = responseFromPlaceDetailsAPI["result"]["name"];
+      dropOffLocation.latitudePosition = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lat"];
+      dropOffLocation.longitudePosition = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lng"];
+      dropOffLocation.placeID = placeID;
+
+      Provider.of<AppInfo>(context, listen: false).updateDropOffLocation(dropOffLocation);
+      
+      Navigator.pop(context, "placeSelected");
+    }
+  }
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 10), // Add space at the top
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          fetchClickedPlaceDetails(widget.predictedPlaceData!.place_id.toString());
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
         ),
