@@ -11,7 +11,7 @@ import 'package:passenger/models/address_model.dart';
 import 'package:passenger/models/direction_details.dart';
 import 'package:provider/provider.dart'; // Importing global variables.
 
-// Declaring a Dart class named CommonMethods.
+
 class CommonMethods {
   // Method for checking connectivity.
   checkConnectivity(BuildContext context) async {
