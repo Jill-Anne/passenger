@@ -470,6 +470,16 @@ retrieveDirectionDetails() async {
                                     ),
                                   ),
 
+                                  Flexible(
+                                    child: Text(
+                                      (tripDirectionDetailsInfo != null) ? "\PHP ${(cMethods.calculateFareAmount(tripDirectionDetailsInfo!)).toString()}" : "",
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
 
 
                                 ],
