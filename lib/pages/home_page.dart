@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:passenger/appInfo/app_info.dart';
@@ -33,7 +34,15 @@ class _HomePageState extends State<HomePage> {
   double searchContainerHeight = 276;
   double bottomMapPadding = 0;
   double rideDetailsContainerHeight = 0;
+  double requestContainerHeight = 0;
+  double tripContainerHeight = 0;
   DirectionDetails? tripDirectionDetailsInfo;
+  List<LatLng> polylineCoOrdinates = [];
+  Set<Polyline> polylineSet = {};
+  Set<Marker> markerSet = {};
+  Set<Circle> circleSet = {};
+  bool isDrawerOpened = true;
+  String stateOfApp = "normal";
 
   void updateMapTheme(GoogleMapController controller) {
 // Function to update the map theme
@@ -112,45 +121,186 @@ class _HomePageState extends State<HomePage> {
       searchContainerHeight = 0;
       bottomMapPadding = 240;
       rideDetailsContainerHeight = 242;
+      isDrawerOpened = false;
     });
   }
 
-retrieveDirectionDetails() async {
-  var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-  var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+  retrieveDirectionDetails() async {
+    var pickUpLocation =
+        Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+    var dropOffDestinationLocation =
+        Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-  if (pickUpLocation == null || dropOffDestinationLocation == null) {
-    print('Pickup or drop-off location is null');
-    return;
-  }
+    var pickupGeoGraphicCoOrdinates = LatLng(
+        pickUpLocation!.latitudePosition!, pickUpLocation.longitudePosition!);
+    var dropOffDestinationGeoGraphicCoOrdinates = LatLng(
+        dropOffDestinationLocation!.latitudePosition!,
+        dropOffDestinationLocation.longitudePosition!);
 
-  var pickupGeoGraphicCoOrdinates = LatLng(pickUpLocation.latitudePosition!, pickUpLocation.longitudePosition!);
-  var dropOffDestinationGeoGraphicCoOrdinates = LatLng(dropOffDestinationLocation.latitudePosition!, dropOffDestinationLocation.longitudePosition!);
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) =>
+          LoadingDialog(messageText: "Getting direction..."),
+    );
 
-  showDialog(
-    barrierDismissible: false,
-    context: context,
-    builder: (BuildContext context) => LoadingDialog(messageText: "Getting direction..."),
-  );
-
-  // Directions API
-  var detailsFromDirectionAPI = await CommonMethods.getDirectionDetailsFromAPI(pickupGeoGraphicCoOrdinates, dropOffDestinationGeoGraphicCoOrdinates);
-
-  Navigator.of(context).pop(); // This line dismisses the loading dialog.
-
-  if (detailsFromDirectionAPI != null) {
+    ///Directions API
+    var detailsFromDirectionAPI =
+        await CommonMethods.getDirectionDetailsFromAPI(
+            pickupGeoGraphicCoOrdinates,
+            dropOffDestinationGeoGraphicCoOrdinates);
     setState(() {
       tripDirectionDetailsInfo = detailsFromDirectionAPI;
-      searchContainerHeight = 0;
-      bottomMapPadding = 240;
-      rideDetailsContainerHeight = 242;
     });
-  } else {
-    // Handle the error, e.g., by showing an error message.
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to get directions.")));
-  }
-}
 
+    Navigator.pop(context);
+
+    //draw route from pickup to dropOffDestination
+    PolylinePoints pointsPolyline = PolylinePoints();
+    List<PointLatLng> latLngPointsFromPickUpToDestination =
+        pointsPolyline.decodePolyline(tripDirectionDetailsInfo!.encodedPoints!);
+
+    polylineCoOrdinates.clear();
+    if (latLngPointsFromPickUpToDestination.isNotEmpty) {
+      latLngPointsFromPickUpToDestination.forEach((PointLatLng latLngPoint) {
+        polylineCoOrdinates
+            .add(LatLng(latLngPoint.latitude, latLngPoint.longitude));
+      });
+    }
+
+    polylineSet.clear();
+    setState(() {
+      Polyline polyline = Polyline(
+        polylineId: const PolylineId("polylineID"),
+        color: Colors.pink,
+        points: polylineCoOrdinates,
+        jointType: JointType.round,
+        width: 4,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        geodesic: true,
+      );
+
+      polylineSet.add(polyline);
+    });
+
+    //fit the polyline into the map
+    LatLngBounds boundsLatLng;
+    if (pickupGeoGraphicCoOrdinates.latitude >
+            dropOffDestinationGeoGraphicCoOrdinates.latitude &&
+        pickupGeoGraphicCoOrdinates.longitude >
+            dropOffDestinationGeoGraphicCoOrdinates.longitude) {
+      boundsLatLng = LatLngBounds(
+        southwest: dropOffDestinationGeoGraphicCoOrdinates,
+        northeast: pickupGeoGraphicCoOrdinates,
+      );
+    } else if (pickupGeoGraphicCoOrdinates.longitude >
+        dropOffDestinationGeoGraphicCoOrdinates.longitude) {
+      boundsLatLng = LatLngBounds(
+        southwest: LatLng(pickupGeoGraphicCoOrdinates.latitude,
+            dropOffDestinationGeoGraphicCoOrdinates.longitude),
+        northeast: LatLng(dropOffDestinationGeoGraphicCoOrdinates.latitude,
+            pickupGeoGraphicCoOrdinates.longitude),
+      );
+    } else if (pickupGeoGraphicCoOrdinates.latitude >
+        dropOffDestinationGeoGraphicCoOrdinates.latitude) {
+      boundsLatLng = LatLngBounds(
+        southwest: LatLng(dropOffDestinationGeoGraphicCoOrdinates.latitude,
+            pickupGeoGraphicCoOrdinates.longitude),
+        northeast: LatLng(pickupGeoGraphicCoOrdinates.latitude,
+            dropOffDestinationGeoGraphicCoOrdinates.longitude),
+      );
+    } else {
+      boundsLatLng = LatLngBounds(
+        southwest: pickupGeoGraphicCoOrdinates,
+        northeast: dropOffDestinationGeoGraphicCoOrdinates,
+      );
+    }
+
+    controllerGoogleMap!
+        .animateCamera(CameraUpdate.newLatLngBounds(boundsLatLng, 72));
+
+    //add markers to pickup and dropOffDestination points
+    Marker pickUpPointMarker = Marker(
+      markerId: const MarkerId("pickUpPointMarkerID"),
+      position: pickupGeoGraphicCoOrdinates,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      infoWindow: InfoWindow(
+          title: pickUpLocation.placeName, snippet: "Pickup Location"),
+    );
+
+    Marker dropOffDestinationPointMarker = Marker(
+      markerId: const MarkerId("dropOffDestinationPointMarkerID"),
+      position: dropOffDestinationGeoGraphicCoOrdinates,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      infoWindow: InfoWindow(
+          title: dropOffDestinationLocation.placeName,
+          snippet: "Destination Location"),
+    );
+
+    setState(() {
+      markerSet.add(pickUpPointMarker);
+      markerSet.add(dropOffDestinationPointMarker);
+    });
+
+    //add circles to pickup and dropOffDestination points
+    Circle pickUpPointCircle = Circle(
+      circleId: const CircleId('pickupCircleID'),
+      strokeColor: Colors.blue,
+      strokeWidth: 4,
+      radius: 14,
+      center: pickupGeoGraphicCoOrdinates,
+      fillColor: Colors.pink,
+    );
+
+    Circle dropOffDestinationPointCircle = Circle(
+      circleId: const CircleId('dropOffDestinationCircleID'),
+      strokeColor: Colors.blue,
+      strokeWidth: 4,
+      radius: 14,
+      center: dropOffDestinationGeoGraphicCoOrdinates,
+      fillColor: Colors.pink,
+    );
+
+    setState(() {
+      circleSet.add(pickUpPointCircle);
+      circleSet.add(dropOffDestinationPointCircle);
+    });
+  }
+
+  resetAppNow() {
+    setState(() {
+      polylineCoOrdinates.clear();
+      polylineSet.clear();
+      markerSet.clear();
+      circleSet.clear();
+      rideDetailsContainerHeight = 0;
+      requestContainerHeight = 0;
+      tripContainerHeight = 0;
+      searchContainerHeight = 276;
+      bottomMapPadding = 300;
+      isDrawerOpened = true;
+    });
+  }
+
+  cancelRideRequest() {
+    //remove ride request from database
+
+    setState(() {
+      stateOfApp = "normal";
+    });
+  }
+
+  displayRequestContainer() {
+    setState(() {
+      rideDetailsContainerHeight = 0;
+      requestContainerHeight = 220;
+      bottomMapPadding = 200;
+      isDrawerOpened = true;
+    });
+  }
+
+  //send ride request
 
 // Build the UI of the home page
   @override
@@ -170,7 +320,7 @@ retrieveDirectionDetails() async {
                 thickness: 1,
               ),
 
-              //header
+//header
               Container(
                 color: Colors.black54,
                 height: 160,
@@ -273,6 +423,9 @@ retrieveDirectionDetails() async {
             padding: EdgeInsets.only(top: 26, bottom: bottomMapPadding),
             mapType: MapType.normal,
             myLocationEnabled: true,
+            polylines: polylineSet,
+            markers: markerSet,
+            circles: circleSet,
             initialCameraPosition: googlePlexInitialPosition,
             onMapCreated: (GoogleMapController mapController) {
               controllerGoogleMap = mapController;
@@ -288,13 +441,17 @@ retrieveDirectionDetails() async {
             },
           ),
 
-//drawer button
+//drawer button HAMBURGER
           Positioned(
             top: 36,
             left: 19,
             child: GestureDetector(
               onTap: () {
-                sKey.currentState!.openDrawer();
+                if (isDrawerOpened == true) {
+                  sKey.currentState!.openDrawer();
+                } else {
+                  resetAppNow();
+                }
               },
               child: Container(
                 decoration: BoxDecoration(
@@ -309,11 +466,11 @@ retrieveDirectionDetails() async {
                     ),
                   ],
                 ),
-                child: const CircleAvatar(
+                child: CircleAvatar(
                   backgroundColor: Colors.grey,
                   radius: 20,
                   child: Icon(
-                    Icons.menu,
+                    isDrawerOpened == true ? Icons.menu : Icons.close,
                     color: Colors.black87,
                   ),
                 ),
@@ -389,111 +546,147 @@ retrieveDirectionDetails() async {
             ),
           ),
 
-//RIDE DETAILS CONTAINER
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: rideDetailsContainerHeight,
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(15),
-                    topRight: Radius.circular(15)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white12,
-                    blurRadius: 15.0,
-                    spreadRadius: 0.5,
-                    offset: Offset(.7, .7),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16, right: 16),
-                      child: SizedBox(
-                        height: 190,
-                        child: Card(
-                          elevation: 10,
-                          child: Container(
-                            width: MediaQuery.of(context).size.width * .70,
-                            color: Colors.black45,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 8, bottom: 8),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 8, right: 8),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          (tripDirectionDetailsInfo != null)
-                                              ? tripDirectionDetailsInfo!
-                                                  .distanceTextString!
-                                              : "",
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.white70,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          (tripDirectionDetailsInfo != null)
-                                              ? tripDirectionDetailsInfo!
-                                                  .durationTextString!
-                                              : "",
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.white70,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () {},
-                                    child: Image.asset(
-                                      "assets/images/LOGO.png",
-                                      height: 122,
-                                      width: 122,
-                                    ),
-                                  ),
-
-                                  Flexible(
-                                    child: Text(
-                                      (tripDirectionDetailsInfo != null) ? "\PHP ${(cMethods.calculateFareAmount(tripDirectionDetailsInfo!)).toString()}" : "",
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.white70,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-
-
-                                ],
-                              ),
+Positioned(
+  left: 0,
+  right: 0,
+  bottom: 0,
+  child: Container(
+    height: rideDetailsContainerHeight,
+    decoration: const BoxDecoration(
+      color: Colors.white, // Set background color to white
+      borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(0),
+          topRight: Radius.circular(0)),
+      boxShadow: [
+        BoxShadow(
+          color: Color.fromARGB(31, 130, 91, 91),
+          blurRadius: 15.0,
+          spreadRadius: 0.5,
+          offset: Offset(0.7, 0.7),
+        ),
+      ],
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Card(
+              elevation: 10,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.90, // Adjusted width for better visibility
+                color: Colors.white, // Adjusted for consistency with background
+                child: Padding(
+                  padding: const EdgeInsets.all(16), // Increased padding for better layout
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Total Distance:",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
+                          Text(
+                            tripDirectionDetailsInfo?.distanceTextString ?? "",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 8), // Added for spacing
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Estimated Travel Time:",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            tripDirectionDetailsInfo?.durationTextString ?? "",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8), // Added for spacing
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Total Fare:",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            tripDirectionDetailsInfo != null ? "\PHP ${cMethods.calculateFareAmount(tripDirectionDetailsInfo!).toString()}" : "",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
+          // Confirm Booking button
+          Container(
+            width: MediaQuery.of(context).size.width,
+            height: 50,
+            margin: const EdgeInsets.fromLTRB(0, 10, 0, 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(90),
+            ),
+            child: ElevatedButton(
+              onPressed: () {
+                // Implement your confirm booking functionality here
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                primary: const Color(0xFF2E3192), // Use the color from your reusable widget
+              ),
+              child: Text(
+                'Confirm Booking', // Custom text for the booking action
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+),
+
+
+
         ],
       ),
     );
