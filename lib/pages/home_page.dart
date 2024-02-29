@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
@@ -12,7 +11,9 @@ import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
+import 'package:passenger/models/direction_details.dart';
 import 'package:passenger/pages/search_destination%20_page.dart';
+import 'package:passenger/widgets/loading_dialog.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -23,12 +24,16 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final Completer<GoogleMapController> googleMapCompleterController = Completer<GoogleMapController>();
+  final Completer<GoogleMapController> googleMapCompleterController =
+      Completer<GoogleMapController>();
   GoogleMapController? controllerGoogleMap;
+  Position? currentPositionOfUser;
   GlobalKey<ScaffoldState> sKey = GlobalKey<ScaffoldState>();
   CommonMethods cMethods = CommonMethods();
   double searchContainerHeight = 276;
   double bottomMapPadding = 0;
+  double rideDetailsContainerHeight = 0;
+  DirectionDetails? tripDirectionDetailsInfo;
 
   void updateMapTheme(GoogleMapController controller) {
 // Function to update the map theme
@@ -43,7 +48,7 @@ class _HomePageState extends State<HomePage> {
         .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
     return utf8.decode(list);
   }
-  
+
 // Function to set Google Map style
   setGoogleMapStyle(String googleMapStyle, GoogleMapController controller) {
     controller.setMapStyle(googleMapStyle);
@@ -51,15 +56,20 @@ class _HomePageState extends State<HomePage> {
 
 // Function to get current live location of user
   getCurrentLiveLocationOfUser() async {
-    Position positionOfUser = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.bestForNavigation);
-    var currentPositionOfUser = positionOfUser;
+    Position positionOfUser = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.bestForNavigation);
+    currentPositionOfUser = positionOfUser;
 
-    LatLng positionOfUserInLatLng = LatLng(currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+    LatLng positionOfUserInLatLng = LatLng(
+        currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
 
-    CameraPosition cameraPosition = CameraPosition(target: positionOfUserInLatLng, zoom: 15);
-    controllerGoogleMap!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+    CameraPosition cameraPosition =
+        CameraPosition(target: positionOfUserInLatLng, zoom: 15);
+    controllerGoogleMap!
+        .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
-    await CommonMethods.convertGeoGraphicCoOrdinatesIntoHumanReadableAddress(currentPositionOfUser!, context);
+    await CommonMethods.convertGeoGraphicCoOrdinatesIntoHumanReadableAddress(
+        currentPositionOfUser!, context);
     await getUserInfoAndCheckBlockStatus();
     // await initializeGeoFireListener();
   }
@@ -93,6 +103,54 @@ class _HomePageState extends State<HomePage> {
       }
     });
   }
+
+  displayUserRideDetailsContainer() async {
+    ///Directions API
+    await retrieveDirectionDetails();
+
+    setState(() {
+      searchContainerHeight = 0;
+      bottomMapPadding = 240;
+      rideDetailsContainerHeight = 242;
+    });
+  }
+
+retrieveDirectionDetails() async {
+  var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+  var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+
+  if (pickUpLocation == null || dropOffDestinationLocation == null) {
+    print('Pickup or drop-off location is null');
+    return;
+  }
+
+  var pickupGeoGraphicCoOrdinates = LatLng(pickUpLocation.latitudePosition!, pickUpLocation.longitudePosition!);
+  var dropOffDestinationGeoGraphicCoOrdinates = LatLng(dropOffDestinationLocation.latitudePosition!, dropOffDestinationLocation.longitudePosition!);
+
+  showDialog(
+    barrierDismissible: false,
+    context: context,
+    builder: (BuildContext context) => LoadingDialog(messageText: "Getting direction..."),
+  );
+
+  // Directions API
+  var detailsFromDirectionAPI = await CommonMethods.getDirectionDetailsFromAPI(pickupGeoGraphicCoOrdinates, dropOffDestinationGeoGraphicCoOrdinates);
+
+  Navigator.of(context).pop(); // This line dismisses the loading dialog.
+
+  if (detailsFromDirectionAPI != null) {
+    setState(() {
+      tripDirectionDetailsInfo = detailsFromDirectionAPI;
+      searchContainerHeight = 0;
+      bottomMapPadding = 240;
+      rideDetailsContainerHeight = 242;
+    });
+  } else {
+    // Handle the error, e.g., by showing an error message.
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to get directions.")));
+  }
+}
+
 
 // Build the UI of the home page
   @override
@@ -208,7 +266,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      //GOOGLE MAP THEMES
+//GOOGLE MAP THEMES
       body: Stack(
         children: [
           GoogleMap(
@@ -218,7 +276,6 @@ class _HomePageState extends State<HomePage> {
             initialCameraPosition: googlePlexInitialPosition,
             onMapCreated: (GoogleMapController mapController) {
               controllerGoogleMap = mapController;
-
               updateMapTheme(controllerGoogleMap!);
 
               googleMapCompleterController.complete(controllerGoogleMap);
@@ -231,7 +288,7 @@ class _HomePageState extends State<HomePage> {
             },
           ),
 
-          //drawer button
+//drawer button
           Positioned(
             top: 36,
             left: 19,
@@ -276,14 +333,17 @@ class _HomePageState extends State<HomePage> {
                 children: [
 //  Search Icon
                   ElevatedButton(
-                    onPressed: () async
-                    {
-                      var responseFromSearchPage = await Navigator.push(context, MaterialPageRoute(builder: (c)=> SearchDestinationPage()));
+                    onPressed: () async {
+                      var responseFromSearchPage = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (c) => SearchDestinationPage()));
 
-                      if(responseFromSearchPage == "placeSelected")
-                      {
-                        String dropOffLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation!.placeName ?? "";
-                        print("dropOffLocation = " + dropOffLocation);
+                      if (responseFromSearchPage == "placeSelected") {
+                        // String dropOffLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation!.placeName ?? "";
+                        // print("dropOffLocation = " + dropOffLocation);
+
+                        displayUserRideDetailsContainer();
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -325,6 +385,102 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+
+//RIDE DETAILS CONTAINER
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: rideDetailsContainerHeight,
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(15),
+                    topRight: Radius.circular(15)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white12,
+                    blurRadius: 15.0,
+                    spreadRadius: 0.5,
+                    offset: Offset(.7, .7),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16, right: 16),
+                      child: SizedBox(
+                        height: 190,
+                        child: Card(
+                          elevation: 10,
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * .70,
+                            color: Colors.black45,
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 8, bottom: 8),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                        left: 8, right: 8),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          (tripDirectionDetailsInfo != null)
+                                              ? tripDirectionDetailsInfo!
+                                                  .distanceTextString!
+                                              : "",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white70,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          (tripDirectionDetailsInfo != null)
+                                              ? tripDirectionDetailsInfo!
+                                                  .durationTextString!
+                                              : "",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white70,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {},
+                                    child: Image.asset(
+                                      "assets/images/LOGO.png",
+                                      height: 122,
+                                      width: 122,
+                                    ),
+                                  ),
+
+
+
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

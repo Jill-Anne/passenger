@@ -2,10 +2,12 @@ import 'dart:convert'; // Importing dart:convert for JSON encoding/decoding.
 import 'package:connectivity_plus/connectivity_plus.dart'; // Importing a package for checking network connectivity.
 import 'package:flutter/material.dart'; // Importing Flutter material package for UI components.
 import 'package:geolocator/geolocator.dart'; // Importing geolocator package for getting device's location.
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http; // Importing http package for making HTTP requests.
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/models/address_model.dart';
+import 'package:passenger/models/direction_details.dart';
 import 'package:provider/provider.dart'; // Importing global variables.
 
 // Declaring a Dart class named CommonMethods.
@@ -65,8 +67,6 @@ class CommonMethods {
       print("humanReadableAddress = " + humanReadableAddress); // Printing the human-readable address.
     }
 
-
-
     AddressModel model = AddressModel();
     model.humanReadableAddress = humanReadableAddress;
     model.longitudePosition = position.longitude;
@@ -76,4 +76,38 @@ class CommonMethods {
 
     return humanReadableAddress; // Returning the human-readable address.
   }
+
+
+//DIRECTION API
+  static Future<DirectionDetails?> getDirectionDetailsFromAPI(LatLng source, LatLng destination) async
+  {
+//SENT REQUEST TO DIRECTION API
+    String urlDirectionsAPI = "https://maps.googleapis.com/maps/api/directions/json?destination=${destination.latitude},${destination.longitude}&origin=${source.latitude},${source.longitude}&mode=driving&key=$googleMapKey";
+
+//JSON FORMAT = WE GET RESPONSE FROM DIRECTION API
+    var responseFromDirectionsAPI = await sendRequestToAPI(urlDirectionsAPI);
+
+    if(responseFromDirectionsAPI == "error")
+    {
+      return null;
+    }
+
+//IF RESPONSE SUCCESS WE GET THIS:
+//MAKE IT NOT JSON FORMAT OR FORMAL THRU DIRECTON DETAILS MODELS
+    DirectionDetails detailsModel = DirectionDetails();
+
+    detailsModel.distanceTextString = responseFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["text"];
+    detailsModel.distanceValueDigits = responseFromDirectionsAPI["routes"][0]["legs"][0]["distance"]["value"];
+
+    detailsModel.durationTextString = responseFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["text"];
+    detailsModel.durationValueDigits = responseFromDirectionsAPI["routes"][0]["legs"][0]["duration"]["value"];
+
+    detailsModel.encodedPoints = responseFromDirectionsAPI["routes"][0]["overview_polyline"]["points"];
+
+    return detailsModel;
+  }
+
+//CALCULATE FARE
+
+
 }
