@@ -663,11 +663,10 @@ Positioned(
                 // Implement your confirm booking functionality here
               },
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10), backgroundColor: const Color(0xFF2E3192),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
-                ),
-                primary: const Color(0xFF2E3192), // Use the color from your reusable widget
+                ), // Use the color from your reusable widget
               ),
               child: Text(
                 'Confirm Booking', // Custom text for the booking action
