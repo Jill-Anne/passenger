@@ -50,11 +50,10 @@ Container signInSignUpButton(BuildContext context, bool isLogin, Function onTap)
         onTap();
       },
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10), backgroundColor: const Color(0xFF2E3192),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),
         ),
-        primary: const Color(0xFF2E3192),
       ),
       child: Text(
         isLogin ? 'LOG IN' : 'SIGN UP',

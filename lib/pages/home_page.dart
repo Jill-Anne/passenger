@@ -479,17 +479,34 @@ class _HomePageState extends State<HomePage> {
           ),
 
           ///search location icon button
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: -80,
-            child: Container(
-              height: searchContainerHeight,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-//  Search Icon
-                  ElevatedButton(
+Positioned(
+  left: 0,
+  right: 0,
+  bottom: -80,
+  child: Container(
+    height: searchContainerHeight,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        // Blue Background
+        Container(
+          width: MediaQuery.of(context).size.width * 0.85, // 95% of screen width
+          decoration: BoxDecoration(
+            color: const Color(0xFF2E3192), // Blue background color
+            borderRadius: BorderRadius.circular(8), // Rounded corners
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                // White Container
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.8, // 85% of screen width
+                  decoration: BoxDecoration(
+                    color: Colors.white, // White background color
+                    borderRadius: BorderRadius.circular(8), // Rounded corners
+                  ),
+                  child: ElevatedButton(
                     onPressed: () async {
                       var responseFromSearchPage = await Navigator.push(
                           context,
@@ -497,54 +514,51 @@ class _HomePageState extends State<HomePage> {
                               builder: (c) => SearchDestinationPage()));
 
                       if (responseFromSearchPage == "placeSelected") {
-                        // String dropOffLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation!.placeName ?? "";
-                        // print("dropOffLocation = " + dropOffLocation);
-
+                        // Once a place is selected, display user ride details container
                         displayUserRideDetailsContainer();
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey,
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(24)),
-                    child: const Icon(
-                      Icons.search,
-                      color: Colors.white,
-                      size: 25,
+                      backgroundColor: Colors.transparent, // Transparent background
+                      elevation: 0, // No shadow
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8), // Rounded corners
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        // Search Icon
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(
+                            Icons.search, // Search icon
+                            color: Colors.grey, // Grey color
+                            size: 25,
+                          ),
+                        ),
+                        // Hint Text
+                        Text(
+                          'Where do you want to go', // Hint text
+                          style: TextStyle(
+                            color: Colors.grey, // Grey color
+                            fontSize: 16, // Adjust font size as needed
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-
-//  Home Icon
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey,
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(24)),
-                    child: const Icon(
-                      Icons.home,
-                      color: Colors.white,
-                      size: 25,
-                    ),
-                  ),
-
-//  Work Icon
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey,
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(24)),
-                    child: const Icon(
-                      Icons.work,
-                      color: Colors.white,
-                      size: 25,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ),
+      ],
+    ),
+  ),
+),
+
+
+
 
 Positioned(
   left: 0,
@@ -566,124 +580,149 @@ Positioned(
         ),
       ],
     ),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Card(
-              elevation: 10,
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.90, // Adjusted width for better visibility
-                color: Colors.white, // Adjusted for consistency with background
-                child: Padding(
-                  padding: const EdgeInsets.all(16), // Increased padding for better layout
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Total Distance:",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.bold,
+    child: SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  "assets/images/LOGO.png",
+                  height: 35,
+                  width: 35,
+                ),
+                const SizedBox(width: 8), // Added for spacing
+                const Text(
+                  'Ride Now',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Icon(Icons.arrow_forward), // Icon indicating that clicking will lead to another page
+              ],
+            ),
+            SizedBox(height: 0), // Added for spacing
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                elevation: 10,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.90, // Adjusted width for better visibility
+                  color: Colors.white, // Adjusted for consistency with background
+                  child: Padding(
+                    padding: const EdgeInsets.all(16), // Increased padding for better layout
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Total Distance:",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            tripDirectionDetailsInfo?.distanceTextString ?? "",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black,
+                            Text(
+                              tripDirectionDetailsInfo?.distanceTextString ?? "",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8), // Added for spacing
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Estimated Travel Time:",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.bold,
+                          ],
+                        ),
+                        SizedBox(height: 8), // Added for spacing
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Estimated Travel Time:",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            tripDirectionDetailsInfo?.durationTextString ?? "",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black,
+                            Text(
+                              tripDirectionDetailsInfo?.durationTextString ?? "",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8), // Added for spacing
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Total Fare:",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.bold,
+                          ],
+                        ),
+                        SizedBox(height: 8), // Added for spacing
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Total Fare:",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            tripDirectionDetailsInfo != null ? "\PHP ${cMethods.calculateFareAmount(tripDirectionDetailsInfo!).toString()}" : "",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black,
+                            Text(
+                              tripDirectionDetailsInfo != null ? "\PHP ${cMethods.calculateFareAmount(tripDirectionDetailsInfo!).toString()}" : "",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          // Confirm Booking button
-          Container(
-            width: MediaQuery.of(context).size.width,
-            height: 50,
-            margin: const EdgeInsets.fromLTRB(0, 10, 0, 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(90),
-            ),
-            child: ElevatedButton(
-              onPressed: () {
-                // Implement your confirm booking functionality here
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                primary: const Color(0xFF2E3192), // Use the color from your reusable widget
+            // Confirm Booking button
+            Container(
+              width: MediaQuery.of(context).size.width,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Adjusted margin for better spacing
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
               ),
-              child: Text(
-                'Confirm Booking', // Custom text for the booking action
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Implement your confirm booking functionality here
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10), backgroundColor: const Color(0xFF2E3192), // Use the color from your reusable widget
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Text(
+                      'Confirm Booking', // Custom text for the booking action
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-        ],
+   //         SizedBox(height: 100), // Add extra space for scrolling
+          ],
+        ),
       ),
     ),
   ),
 ),
+
 
 
 
