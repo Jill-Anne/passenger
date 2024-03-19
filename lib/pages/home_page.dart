@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -12,7 +13,9 @@ import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
+import 'package:passenger/methods/manage_drivers_methods.dart';
 import 'package:passenger/models/direction_details.dart';
+import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/search_destination%20_page.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
 import 'package:provider/provider.dart';
@@ -44,6 +47,20 @@ class _HomePageState extends State<HomePage> {
   Set<Circle> circleSet = {};
   bool isDrawerOpened = true;
   String stateOfApp = "normal";
+  bool nearbyOnlineDriversKeysLoaded = false;
+  BitmapDescriptor? carIconNearbyDriver;
+
+  makeDriverNearbyCarIcon() {
+    if (carIconNearbyDriver == null) {
+      ImageConfiguration configuration =
+          createLocalImageConfiguration(context, size: Size(0.5, 0.5));
+      BitmapDescriptor.fromAssetImage(
+              configuration, "assets/images/tracking.png")
+          .then((iconImage) {
+        carIconNearbyDriver = iconImage;
+      });
+    }
+  }
 
   void updateMapTheme(GoogleMapController controller) {
 // Function to update the map theme
@@ -82,6 +99,8 @@ class _HomePageState extends State<HomePage> {
         currentPositionOfUser!, context);
     await getUserInfoAndCheckBlockStatus();
     // await initializeGeoFireListener();
+
+    await initializeGeoFireListener();
   }
 
 // Function to get user info and check block status
@@ -305,9 +324,95 @@ class _HomePageState extends State<HomePage> {
 
   //send ride request
 
+  updateAvailableNearbyOnlineDriversOnMap() {
+    setState(() {
+      markerSet.clear();
+    });
+
+    Set<Marker> markersTempSet = Set<Marker>();
+
+    for (OnlineNearbyDrivers eachOnlineNearbyDriver
+        in ManageDriversMethods.nearbyOnlineDriversList) {
+      LatLng driverCurrentPosition = LatLng(
+          eachOnlineNearbyDriver.latDriver!, eachOnlineNearbyDriver.lngDriver!);
+
+      Marker driverMarker = Marker(
+        markerId: MarkerId(
+            "driver ID = " + eachOnlineNearbyDriver.uidDriver.toString()),
+        position: driverCurrentPosition,
+        icon: carIconNearbyDriver!,
+      );
+
+      markersTempSet.add(driverMarker);
+    }
+
+    setState(() {
+      markerSet = markersTempSet;
+    });
+  }
+
+  initializeGeoFireListener() {
+    Geofire.initialize("onlineDrivers");
+    Geofire.queryAtLocation(currentPositionOfUser!.latitude,
+            currentPositionOfUser!.longitude, 50)!
+        .listen((driverEvent) {
+      if (driverEvent != null) {
+        var onlineDriverChild = driverEvent["callBack"];
+
+        switch (onlineDriverChild) {
+          case Geofire.onKeyEntered:
+            OnlineNearbyDrivers onlineNearbyDrivers = OnlineNearbyDrivers();
+            onlineNearbyDrivers.uidDriver = driverEvent["key"];
+            onlineNearbyDrivers.latDriver = driverEvent["latitude"];
+            onlineNearbyDrivers.lngDriver = driverEvent["longitude"];
+            ManageDriversMethods.nearbyOnlineDriversList
+                .add(onlineNearbyDrivers);
+
+            if (nearbyOnlineDriversKeysLoaded == true) {
+              //update drivers on google map
+              updateAvailableNearbyOnlineDriversOnMap();
+            }
+
+            break;
+
+          case Geofire.onKeyExited:
+            ManageDriversMethods.removeDriverFromList(driverEvent["key"]);
+
+            //update drivers on google map
+            updateAvailableNearbyOnlineDriversOnMap();
+
+            break;
+
+          case Geofire.onKeyMoved:
+            OnlineNearbyDrivers onlineNearbyDrivers = OnlineNearbyDrivers();
+            onlineNearbyDrivers.uidDriver = driverEvent["key"];
+            onlineNearbyDrivers.latDriver = driverEvent["latitude"];
+            onlineNearbyDrivers.lngDriver = driverEvent["longitude"];
+            ManageDriversMethods.updateOnlineNearbyDriversLocation(
+                onlineNearbyDrivers);
+
+            //update drivers on google map
+            updateAvailableNearbyOnlineDriversOnMap();
+
+            break;
+
+          case Geofire.onGeoQueryReady:
+            nearbyOnlineDriversKeysLoaded = true;
+
+            //update drivers on google map
+            updateAvailableNearbyOnlineDriversOnMap();
+
+            break;
+        }
+      }
+    });
+  }
+
 // Build the UI of the home page
   @override
   Widget build(BuildContext context) {
+    makeDriverNearbyCarIcon();
+
     return Scaffold(
       key: sKey,
       drawer: Container(
@@ -757,7 +862,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-
 //REQUEST RIDE CONTAINER
           Positioned(
             left: 0,
@@ -767,9 +871,10 @@ class _HomePageState extends State<HomePage> {
               height: requestContainerHeight,
               decoration: const BoxDecoration(
                 color: Colors.black54,
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-                boxShadow:
-                [
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16)),
+                boxShadow: [
                   BoxShadow(
                     color: Colors.black26,
                     blurRadius: 15.0,
@@ -782,13 +887,14 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-
-                    const SizedBox(height: 12,),
-
+                    const SizedBox(
+                      height: 12,
+                    ),
                     SizedBox(
                       width: 200,
                       child: LoadingAnimationWidget.flickr(
@@ -797,12 +903,11 @@ class _HomePageState extends State<HomePage> {
                         size: 50,
                       ),
                     ),
-
-                    const SizedBox(height: 20,),
-
+                    const SizedBox(
+                      height: 20,
+                    ),
                     GestureDetector(
-                      onTap: ()
-                      {
+                      onTap: () {
                         resetAppNow();
                         cancelRideRequest();
                       },
@@ -821,15 +926,11 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ),
-
                   ],
                 ),
               ),
             ),
           ),
-
-
-
         ],
       ),
     );
