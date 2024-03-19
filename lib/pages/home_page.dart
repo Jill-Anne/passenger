@@ -14,12 +14,15 @@ import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/methods/manage_drivers_methods.dart';
+import 'package:passenger/methods/push_notification_service.dart';
 import 'package:passenger/models/direction_details.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/search_destination%20_page.dart';
+import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:restart_app/restart_app.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -49,6 +52,8 @@ class _HomePageState extends State<HomePage> {
   String stateOfApp = "normal";
   bool nearbyOnlineDriversKeysLoaded = false;
   BitmapDescriptor? carIconNearbyDriver;
+  DatabaseReference? tripRequestRef;
+  List<OnlineNearbyDrivers>? availableNearbyOnlineDriversList;
 
   makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
@@ -115,6 +120,7 @@ class _HomePageState extends State<HomePage> {
         if ((snap.snapshot.value as Map)["blockStatus"] == "no") {
           setState(() {
             userName = (snap.snapshot.value as Map)["name"];
+            userPhone = (snap.snapshot.value as Map)["phone"];
           });
         } else {
           FirebaseAuth.instance.signOut();
@@ -303,10 +309,13 @@ class _HomePageState extends State<HomePage> {
       bottomMapPadding = 300;
       isDrawerOpened = true;
     });
+
+    Restart.restartApp();
   }
 
   cancelRideRequest() {
     //remove ride request from database
+    tripRequestRef!.remove();
 
     setState(() {
       stateOfApp = "normal";
@@ -320,9 +329,12 @@ class _HomePageState extends State<HomePage> {
       bottomMapPadding = 200;
       isDrawerOpened = true;
     });
+
+//send ride request
+    makeTripRequest();
   }
 
-  //send ride request
+  
 
   updateAvailableNearbyOnlineDriversOnMap() {
     setState(() {
@@ -407,6 +419,145 @@ class _HomePageState extends State<HomePage> {
       }
     });
   }
+
+
+ makeTripRequest()
+  {
+    tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
+    
+
+    var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+    var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+
+    Map pickUpCoOrdinatesMap =
+    {
+      "latitude": pickUpLocation!.latitudePosition.toString(),
+      "longitude": pickUpLocation.longitudePosition.toString(),
+    };
+
+    Map dropOffDestinationCoOrdinatesMap =
+    {
+      "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
+      "longitude": dropOffDestinationLocation.longitudePosition.toString(),
+    };
+
+    Map driverCoOrdinates =
+    {
+      "latitude": "",
+      "longitude": "",
+    };
+
+    Map dataMap =
+    {
+      "tripID": tripRequestRef!.key,
+      "publishDateTime": DateTime.now().toString(),
+
+      "userName": userName,
+      "userPhone": userPhone,
+      "userID": userID,
+      "pickUpLatLng": pickUpCoOrdinatesMap,
+      "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
+      "pickUpAddress": pickUpLocation.placeName,
+      "dropOffAddress": dropOffDestinationLocation.placeName,
+
+      "driverID": "waiting",
+      "carDetails": "",
+      "driverLocation": driverCoOrdinates,
+      "driverName": "",
+      "driverPhone": "",
+      "driverPhoto": "",
+      "fareAmount": "",
+      "status": "new",
+    };
+
+    tripRequestRef!.set(dataMap).then((_) {
+  print('Trip request created successfully!');
+}).catchError((error) {
+  print('Error creating trip request: $error');
+});
+
+
+  }
+
+void noDriverAvailable() {
+  print('noDriverAvailable() has been called.'); // Debug print
+  showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        print('showDialog builder is being called.'); // Debug print
+        return InfoDialog(
+          title: "No Driver Available",
+          description: "No driver found in the nearby location. Please try again shortly.",
+        );
+      }
+  ).then((_) {
+    print('Dialog closed.'); // This will print when the dialog is dismissed
+  });
+}
+
+  searchDriver()
+  {
+    if(availableNearbyOnlineDriversList!.length == 0)
+    {
+      cancelRideRequest();
+      resetAppNow();
+      noDriverAvailable();
+      return;
+    }
+
+    var currentDriver = availableNearbyOnlineDriversList![0];
+
+    //send notification to this currentDriver
+    sendNotificationToDriver(currentDriver);
+
+    availableNearbyOnlineDriversList!.removeAt(0);
+  }
+
+void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
+  print('sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}'); // Debug print
+
+  // Update driver's newTripStatus - assign tripID to current driver
+  DatabaseReference currentDriverRef = FirebaseDatabase.instance
+      .ref()
+      .child("driversAccount")
+      .child(currentDriver.uidDriver.toString())
+      .child("newTripStatus");
+
+  currentDriverRef.set(tripRequestRef!.key).then((_) {
+    print('newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}'); // Debug print
+  }).catchError((error) {
+    print('Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
+  });
+
+  // Get current driver device recognition token
+  DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
+      .ref()
+      .child("driversAccount")
+      .child(currentDriver.uidDriver.toString())
+      .child("deviceToken");
+
+  tokenOfCurrentDriverRef.once().then((dataSnapshot) {
+    if (dataSnapshot.snapshot.value != null) {
+      String deviceToken = dataSnapshot.snapshot.value.toString();
+      print('Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken'); // Debug print
+
+      // Send notification
+      PushNotificationService.sendNotificationToSelectedDriver(
+        deviceToken,
+        context,
+        tripRequestRef!.key.toString(),
+      );
+    } else {
+      print('Device token not found for driver UID: ${currentDriver.uidDriver}'); // Debug print
+      return;
+    }
+  }).catchError((error) {
+    print('Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
+  });
+}
+
+
 
 // Build the UI of the home page
   @override
@@ -832,7 +983,10 @@ class _HomePageState extends State<HomePage> {
 
                             displayRequestContainer();
                             // get nearest avalable online drivers
+                            availableNearbyOnlineDriversList = ManageDriversMethods.nearbyOnlineDriversList;
+
                             //search driver
+                            searchDriver();
                           },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 10),
