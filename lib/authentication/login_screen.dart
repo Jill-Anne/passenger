@@ -19,7 +19,8 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController emailTextEditingController = TextEditingController();
   TextEditingController passwordTextEditingController = TextEditingController();
   CommonMethods cMethods = CommonMethods();
-  bool _isPasswordVisible = false; // Flag to track whether the password is visible or not
+  bool _isPasswordVisible =
+      false; // Flag to track whether the password is visible or not
 
   void checkIfNetworkIsAvailable() {
     cMethods.checkConnectivity(context);
@@ -45,14 +46,16 @@ class _LoginScreenState extends State<LoginScreen> {
           LoadingDialog(messageText: "Allowing you to Login..."),
     );
 
-    final User? userFirebase =
-        (await FirebaseAuth.instance.signInWithEmailAndPassword(
+    final User? userFirebase = (await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
       email: emailTextEditingController.text.trim(),
       password: passwordTextEditingController.text.trim(),
-    ).catchError((errorMsg) {
+    )
+            .catchError((errorMsg) {
       Navigator.pop(context);
       cMethods.displaySnackBar(errorMsg.toString(), context);
-    })).user;
+    }))
+        .user;
 
     if (!context.mounted) return;
     Navigator.pop(context);
@@ -86,12 +89,13 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
       body: Stack(
         children: [
           CustomColumnWithLogo(), // Logo on the left side
           Positioned(
             left: 0,
-            bottom: -10,
+            bottom: 0,
             child: logowidget("assets/images/LOGO.png"),
           ),
           Positioned(
@@ -124,17 +128,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   enableSuggestions: false,
                   autocorrect: false,
                   cursorColor: const Color.fromARGB(255, 19, 19, 19),
-                  style: const TextStyle(color: Color.fromARGB(255, 14, 13, 13)),
+                  style:
+                      const TextStyle(color: Color.fromARGB(255, 14, 13, 13)),
                   decoration: InputDecoration(
                     labelText: "User Password",
-                    prefixIcon: Icon(Icons.lock, color: const Color.fromARGB(179, 40, 39, 39)),
+                    prefixIcon: Icon(Icons.lock,
+                        color: const Color.fromARGB(179, 40, 39, 39)),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {
-                          _isPasswordVisible = !_isPasswordVisible; // Toggle password visibility state
+                          _isPasswordVisible =
+                              !_isPasswordVisible; // Toggle password visibility state
                         });
                       },
                     ),

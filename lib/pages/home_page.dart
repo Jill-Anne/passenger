@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
@@ -12,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/global/global_var.dart';
+import 'package:passenger/global/trip_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/methods/manage_drivers_methods.dart';
 import 'package:passenger/methods/push_notification_service.dart';
@@ -129,7 +129,7 @@ class _HomePageState extends State<HomePage> {
               context, MaterialPageRoute(builder: (c) => LoginScreen()));
 
           cMethods.displaySnackBar(
-              "you are blocked. Contact admin: jill@gmail.com", context);
+              "you are blocked. Contact admin: admin@gmail.com", context);
         }
       } else {
         FirebaseAuth.instance.signOut();
@@ -475,26 +475,22 @@ class _HomePageState extends State<HomePage> {
 }).catchError((error) {
   print('Error creating trip request: $error');
 });
-
-
   }
 
-void noDriverAvailable() {
-  print('noDriverAvailable() has been called.'); // Debug print
-  showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        print('showDialog builder is being called.'); // Debug print
-        return InfoDialog(
+
+  
+
+  noDriverAvailable()
+  {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) => InfoDialog(
           title: "No Driver Available",
           description: "No driver found in the nearby location. Please try again shortly.",
-        );
-      }
-  ).then((_) {
-    print('Dialog closed.'); // This will print when the dialog is dismissed
-  });
-}
+        )
+    );
+  }
 
   searchDriver()
   {
@@ -508,11 +504,14 @@ void noDriverAvailable() {
 
     var currentDriver = availableNearbyOnlineDriversList![0];
 
-    //send notification to this currentDriver
+    //send notification to this currentDriver - currentDriver means selected driver
     sendNotificationToDriver(currentDriver);
 
     availableNearbyOnlineDriversList!.removeAt(0);
   }
+
+
+
 
 void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
   print('sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}'); // Debug print
@@ -555,6 +554,46 @@ void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
   }).catchError((error) {
     print('Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
   });
+
+
+
+const oneTickPerSec = Duration(seconds: 1);
+
+var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
+  requestTimeoutDriver = requestTimeoutDriver - 1;
+
+  //when trip request is not requesting means trip request cancelled - stop timer
+  if (stateOfApp != "requesting") {
+    timer.cancel();
+    currentDriverRef.set("cancelled");
+    currentDriverRef.onDisconnect();
+    requestTimeoutDriver = 20;
+    return; // Exit the timer callback function
+  }
+
+  // If 20 seconds passed - send notification to next nearest online available driver
+  if (requestTimeoutDriver == 0) {
+    timer.cancel();
+    currentDriverRef.set("timeout");
+    currentDriverRef.onDisconnect();
+    requestTimeoutDriver = 20;
+
+    //send notification to next nearest online available driver
+    searchDriver();
+    return; // Exit the timer callback function
+  }
+});
+
+// Listen for changes in newTripStatus
+currentDriverRef.onValue.listen((dataSnapshot) {
+  var value = dataSnapshot.snapshot.value;
+  if (value != null && value.toString() == "accepted") {
+    timerCountDown.cancel(); // Cancel the timer when trip is accepted
+    currentDriverRef.onDisconnect(); // Disconnect the reference
+    requestTimeoutDriver = 20; // Reset request timeout
+  }
+});
+
 }
 
 
