@@ -23,6 +23,7 @@ import 'package:passenger/widgets/loading_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:restart_app/restart_app.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -54,6 +55,8 @@ class _HomePageState extends State<HomePage> {
   BitmapDescriptor? carIconNearbyDriver;
   DatabaseReference? tripRequestRef;
   List<OnlineNearbyDrivers>? availableNearbyOnlineDriversList;
+  StreamSubscription<DatabaseEvent>? tripStreamSubscription;
+  bool requestingDirectionDetailsInfo = false;
 
   makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
@@ -334,8 +337,6 @@ class _HomePageState extends State<HomePage> {
     makeTripRequest();
   }
 
-  
-
   updateAvailableNearbyOnlineDriversOnMap() {
     setState(() {
       markerSet.clear();
@@ -420,38 +421,33 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  makeTripRequest() {
+    tripRequestRef =
+        FirebaseDatabase.instance.ref().child("tripRequests").push();
 
- makeTripRequest()
-  {
-    tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
-    
+    var pickUpLocation =
+        Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+    var dropOffDestinationLocation =
+        Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-    var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-    var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
-
-    Map pickUpCoOrdinatesMap =
-    {
+    Map pickUpCoOrdinatesMap = {
       "latitude": pickUpLocation!.latitudePosition.toString(),
       "longitude": pickUpLocation.longitudePosition.toString(),
     };
 
-    Map dropOffDestinationCoOrdinatesMap =
-    {
+    Map dropOffDestinationCoOrdinatesMap = {
       "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
       "longitude": dropOffDestinationLocation.longitudePosition.toString(),
     };
 
-    Map driverCoOrdinates =
-    {
+    Map driverCoOrdinates = {
       "latitude": "",
       "longitude": "",
     };
 
-    Map dataMap =
-    {
+    Map dataMap = {
       "tripID": tripRequestRef!.key,
       "publishDateTime": DateTime.now().toString(),
-
       "userName": userName,
       "userPhone": userPhone,
       "userID": userID,
@@ -459,7 +455,6 @@ class _HomePageState extends State<HomePage> {
       "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
       "pickUpAddress": pickUpLocation.placeName,
       "dropOffAddress": dropOffDestinationLocation.placeName,
-
       "driverID": "waiting",
       "carDetails": "",
       "driverLocation": driverCoOrdinates,
@@ -468,34 +463,171 @@ class _HomePageState extends State<HomePage> {
       "driverPhoto": "",
       "fareAmount": "",
       "status": "new",
+      "firstName": "",
+      "lastName": "",
+      "idNumber": "",
+      "bodyNumber": "",
     };
 
     tripRequestRef!.set(dataMap).then((_) {
-  print('Trip request created successfully!');
-}).catchError((error) {
-  print('Error creating trip request: $error');
-});
+      print('Trip request created successfully!');
+    }).catchError((error) {
+      print('Error creating trip request: $error');
+    });
+
+tripStreamSubscription = tripRequestRef!.onValue.listen((eventSnapshot) async {
+  if (eventSnapshot.snapshot.value == null) {
+    return;
+  }
+
+  if ((eventSnapshot.snapshot.value as Map)["firstName"] != null) {
+    firstName = (eventSnapshot.snapshot.value as Map)["firstName"];
+    print('First Name: $firstName');
+  } else {
+    print('First Name not found in trip data.');
+  }
+
+  if ((eventSnapshot.snapshot.value as Map)["lastName"] != null) {
+    lastName = (eventSnapshot.snapshot.value as Map)["lastName"];
+    print('Last Name: $lastName');
+  } else {
+    print('Last Name not found in trip data.');
+}
+  if ((eventSnapshot.snapshot.value as Map)["idNumber"] != null) {
+    idNumber = (eventSnapshot.snapshot.value as Map)["idNumber"];
+     print('Last Name: $idNumber');
+  }
+    if ((eventSnapshot.snapshot.value as Map)["bodyNumber"] != null) {
+    bodyNumber = (eventSnapshot.snapshot.value as Map)["bodyNumber"];
+     print('Last Name: $bodyNumber');
   }
 
 
-  
+      if ((eventSnapshot.snapshot.value as Map)["driverPhoto"] != null) {
+        photoDriver = (eventSnapshot.snapshot.value as Map)["driverPhoto"];
+      }
 
-  noDriverAvailable()
-  {
+      if ((eventSnapshot.snapshot.value as Map)["carDetails"] != null) {
+        carDetailsDriver = (eventSnapshot.snapshot.value as Map)["carDetails"];
+      }
+
+      if ((eventSnapshot.snapshot.value as Map)["status"] != null) {
+        status = (eventSnapshot.snapshot.value as Map)["status"];
+      }
+
+      if ((eventSnapshot.snapshot.value as Map)["driverLocation"] != null) {
+        double driverLatitude = double.parse(
+            (eventSnapshot.snapshot.value as Map)["driverLocation"]["latitude"]
+                .toString());
+        double driverLongitude = double.parse(
+            (eventSnapshot.snapshot.value as Map)["driverLocation"]["longitude"]
+                .toString());
+        LatLng driverCurrentLocationLatLng =
+            LatLng(driverLatitude, driverLongitude);
+
+        if (status == "accepted") {
+          //update info for pickup to user on UI
+          //info from driver current location to user pickup location
+          updateFromDriverCurrentLocationToPickUp(driverCurrentLocationLatLng);
+        } else if (status == "arrived") {
+          //update info for arrived - when driver reach at the pickup point of user
+          setState(() {
+            tripStatusDisplay = 'Driver has Arrived';
+          });
+        } else if (status == "ontrip") {
+          //update info for dropoff to user on UI
+          //info from driver current location to user dropoff location
+          updateFromDriverCurrentLocationToDropOffDestination(
+              driverCurrentLocationLatLng);
+        }
+      }
+
+      if (status == "accepted") {
+        displayTripDetailsContainer();
+
+        Geofire.stopListener();
+
+        //remove drivers markers
+        setState(() {
+          markerSet.removeWhere(
+              (element) => element.markerId.value.contains("driver"));
+        });
+      }
+    });
+  }
+
+  displayTripDetailsContainer() {
+    setState(() {
+      requestContainerHeight = 0;
+      tripContainerHeight = 291;
+      bottomMapPadding = 281;
+    });
+  }
+
+  updateFromDriverCurrentLocationToPickUp(driverCurrentLocationLatLng) async {
+    if (!requestingDirectionDetailsInfo) {
+      requestingDirectionDetailsInfo = true;
+
+      var userPickUpLocationLatLng = LatLng(
+          currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+
+      var directionDetailsPickup =
+          await CommonMethods.getDirectionDetailsFromAPI(
+              driverCurrentLocationLatLng, userPickUpLocationLatLng);
+
+      if (directionDetailsPickup == null) {
+        return;
+      }
+
+      setState(() {
+        tripStatusDisplay =
+            "Driver is Coming - ${directionDetailsPickup.durationTextString}";
+      });
+
+      requestingDirectionDetailsInfo = false;
+    }
+  }
+
+  updateFromDriverCurrentLocationToDropOffDestination(
+      driverCurrentLocationLatLng) async {
+    if (!requestingDirectionDetailsInfo) {
+      requestingDirectionDetailsInfo = true;
+
+      var dropOffLocation =
+          Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+      var userDropOffLocationLatLng = LatLng(dropOffLocation!.latitudePosition!,
+          dropOffLocation.longitudePosition!);
+
+      var directionDetailsPickup =
+          await CommonMethods.getDirectionDetailsFromAPI(
+              driverCurrentLocationLatLng, userDropOffLocationLatLng);
+
+      if (directionDetailsPickup == null) {
+        return;
+      }
+
+      setState(() {
+        tripStatusDisplay =
+            "Driving to DropOff Location - ${directionDetailsPickup.durationTextString}";
+      });
+
+      requestingDirectionDetailsInfo = false;
+    }
+  }
+
+  noDriverAvailable() {
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) => InfoDialog(
-          title: "No Driver Available",
-          description: "No driver found in the nearby location. Please try again shortly.",
-        )
-    );
+              title: "No Driver Available",
+              description:
+                  "No driver found in the nearby location. Please try again shortly.",
+            ));
   }
 
-  searchDriver()
-  {
-    if(availableNearbyOnlineDriversList!.length == 0)
-    {
+  searchDriver() {
+    if (availableNearbyOnlineDriversList!.length == 0) {
       cancelRideRequest();
       resetAppNow();
       noDriverAvailable();
@@ -510,93 +642,91 @@ class _HomePageState extends State<HomePage> {
     availableNearbyOnlineDriversList!.removeAt(0);
   }
 
+  void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
+    print(
+        'sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}'); // Debug print
 
+    // Update driver's newTripStatus - assign tripID to current driver
+    DatabaseReference currentDriverRef = FirebaseDatabase.instance
+        .ref()
+        .child("driversAccount")
+        .child(currentDriver.uidDriver.toString())
+        .child("newTripStatus");
 
+    currentDriverRef.set(tripRequestRef!.key).then((_) {
+      print(
+          'newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}'); // Debug print
+    }).catchError((error) {
+      print(
+          'Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
+    });
 
-void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
-  print('sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}'); // Debug print
+    // Get current driver device recognition token
+    DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
+        .ref()
+        .child("driversAccount")
+        .child(currentDriver.uidDriver.toString())
+        .child("deviceToken");
 
-  // Update driver's newTripStatus - assign tripID to current driver
-  DatabaseReference currentDriverRef = FirebaseDatabase.instance
-      .ref()
-      .child("driversAccount")
-      .child(currentDriver.uidDriver.toString())
-      .child("newTripStatus");
+    tokenOfCurrentDriverRef.once().then((dataSnapshot) {
+      if (dataSnapshot.snapshot.value != null) {
+        String deviceToken = dataSnapshot.snapshot.value.toString();
+        print(
+            'Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken'); // Debug print
 
-  currentDriverRef.set(tripRequestRef!.key).then((_) {
-    print('newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}'); // Debug print
-  }).catchError((error) {
-    print('Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
-  });
+        // Send notification
+        PushNotificationService.sendNotificationToSelectedDriver(
+          deviceToken,
+          context,
+          tripRequestRef!.key.toString(),
+        );
+      } else {
+        print(
+            'Device token not found for driver UID: ${currentDriver.uidDriver}'); // Debug print
+        return;
+      }
+    }).catchError((error) {
+      print(
+          'Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
+    });
 
-  // Get current driver device recognition token
-  DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
-      .ref()
-      .child("driversAccount")
-      .child(currentDriver.uidDriver.toString())
-      .child("deviceToken");
+    const oneTickPerSec = Duration(seconds: 1);
 
-  tokenOfCurrentDriverRef.once().then((dataSnapshot) {
-    if (dataSnapshot.snapshot.value != null) {
-      String deviceToken = dataSnapshot.snapshot.value.toString();
-      print('Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken'); // Debug print
+    var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
+      requestTimeoutDriver = requestTimeoutDriver - 1;
 
-      // Send notification
-      PushNotificationService.sendNotificationToSelectedDriver(
-        deviceToken,
-        context,
-        tripRequestRef!.key.toString(),
-      );
-    } else {
-      print('Device token not found for driver UID: ${currentDriver.uidDriver}'); // Debug print
-      return;
-    }
-  }).catchError((error) {
-    print('Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
-  });
+      //when trip request is not requesting means trip request cancelled - stop timer
+      if (stateOfApp != "requesting") {
+        timer.cancel();
+        currentDriverRef.set("cancelled");
+        currentDriverRef.onDisconnect();
+        requestTimeoutDriver = 20;
+        return; // Exit the timer callback function
+      }
 
+      // If 20 seconds passed - send notification to next nearest online available driver
+      if (requestTimeoutDriver == 0) {
+        timer.cancel();
+        currentDriverRef.set("timeout");
+        currentDriverRef.onDisconnect();
+        requestTimeoutDriver = 20;
 
-
-const oneTickPerSec = Duration(seconds: 1);
-
-var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
-  requestTimeoutDriver = requestTimeoutDriver - 1;
-
-  //when trip request is not requesting means trip request cancelled - stop timer
-  if (stateOfApp != "requesting") {
-    timer.cancel();
-    currentDriverRef.set("cancelled");
-    currentDriverRef.onDisconnect();
-    requestTimeoutDriver = 20;
-    return; // Exit the timer callback function
-  }
-
-  // If 20 seconds passed - send notification to next nearest online available driver
-  if (requestTimeoutDriver == 0) {
-    timer.cancel();
-    currentDriverRef.set("timeout");
-    currentDriverRef.onDisconnect();
-    requestTimeoutDriver = 20;
-
-    //send notification to next nearest online available driver
-    searchDriver();
-    return; // Exit the timer callback function
-  }
-});
+        //send notification to next nearest online available driver
+        searchDriver();
+        return; // Exit the timer callback function
+      }
+    });
 
 // Listen for changes in newTripStatus
-currentDriverRef.onValue.listen((dataSnapshot) {
-  var value = dataSnapshot.snapshot.value;
-  if (value != null && value.toString() == "accepted") {
-    timerCountDown.cancel(); // Cancel the timer when trip is accepted
-    currentDriverRef.onDisconnect(); // Disconnect the reference
-    requestTimeoutDriver = 20; // Reset request timeout
+    currentDriverRef.onValue.listen((dataSnapshot) {
+      var value = dataSnapshot.snapshot.value;
+      if (value != null && value.toString() == "accepted") {
+        timerCountDown.cancel(); // Cancel the timer when trip is accepted
+        currentDriverRef.onDisconnect(); // Disconnect the reference
+        requestTimeoutDriver = 20; // Reset request timeout
+      }
+    });
   }
-});
-
-}
-
-
 
 // Build the UI of the home page
   @override
@@ -1022,7 +1152,8 @@ currentDriverRef.onValue.listen((dataSnapshot) {
 
                             displayRequestContainer();
                             // get nearest avalable online drivers
-                            availableNearbyOnlineDriversList = ManageDriversMethods.nearbyOnlineDriversList;
+                            availableNearbyOnlineDriversList =
+                                ManageDriversMethods.nearbyOnlineDriversList;
 
                             //search driver
                             searchDriver();
@@ -1124,6 +1255,179 @@ currentDriverRef.onValue.listen((dataSnapshot) {
               ),
             ),
           ),
+
+///trip details container
+Positioned(
+  left: 0,
+  right: 0,
+  bottom: 0,
+  child: Container(
+    height: tripContainerHeight,
+    decoration: const BoxDecoration(
+      color: Colors.black87,
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(16),
+        topRight: Radius.circular(16),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.white24,
+          blurRadius: 15.0,
+          spreadRadius: 0.5,
+          offset: Offset(
+            0.7,
+            0.7,
+          ),
+        ),
+      ],
+    ),
+    child: SingleChildScrollView( // Wrap with SingleChildScrollView
+      padding: EdgeInsets.only(bottom: 70), // Adjust bottom padding
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(
+              height: 5,
+            ),
+            //trip status display text
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  tripStatusDisplay,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(
+              height: 19,
+            ),
+            const Divider(
+              height: 1,
+              color: Colors.white70,
+              thickness: 1,
+            ),
+            const SizedBox(
+              height: 19,
+            ),
+            //image - driver name and driver car details
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ClipOval(
+                  child: Image.network(
+                    photoDriver == ''
+                        ? "https://firebasestorage.googleapis.com/v0/b/flutter-uber-clone-with-admin.appspot.com/o/avatarman.png?alt=media&token=7a04943c-a566-45d3-b820-d33da3b105c7"
+                        : photoDriver,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(
+                  width: 8,
+                ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      firstName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Text(
+                      lastName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Text(
+                      idNumber,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Text(
+                      bodyNumber,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(
+              height: 19,
+            ),
+            const Divider(
+              height: 1,
+              color: Colors.white70,
+              thickness: 1,
+            ),
+            const SizedBox(
+              height: 19,
+            ),
+            //call driver btn
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    launchUrl(Uri.parse("tel://$phoneNumberDriver"));
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        height: 50,
+                        width: 50,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.all(
+                              Radius.circular(25)),
+                          border: Border.all(
+                            width: 1,
+                            color: Colors.white,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.phone,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 11,
+                      ),
+                      const Text(
+                        "Call",
+                        style: TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  ),
+),
+
         ],
       ),
     );
