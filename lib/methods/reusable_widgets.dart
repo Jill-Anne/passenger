@@ -1,4 +1,3 @@
-
 // reusable_widgets.dart
 import 'package:flutter/material.dart';
 
@@ -9,35 +8,47 @@ Image logowidget(String imageName) {
   );
 }
 
-TextField customTextField(String labelText, IconData prefixIcon, bool isPasswordType, TextEditingController controller, {bool obscureText = false}) {
+TextField customTextField(String labelText, IconData prefixIcon,
+    bool isPasswordType, TextEditingController controller,
+    {bool obscureText = false}) {
   bool _isPasswordVisible = obscureText; // Track password visibility
 
   return TextField(
     controller: controller,
-    obscureText: _isPasswordVisible, // Use the tracked variable for password visibility
+    obscureText:
+        _isPasswordVisible, // Use the tracked variable for password visibility
     enableSuggestions: !isPasswordType,
     autocorrect: !isPasswordType,
     cursorColor: const Color.fromARGB(255, 19, 19, 19),
     style: const TextStyle(color: Color.fromARGB(255, 14, 13, 13)),
     decoration: InputDecoration(
       labelText: labelText,
-      prefixIcon: Icon(prefixIcon, color: const Color.fromARGB(179, 40, 39, 39)),
-      suffixIcon: obscureText ? IconButton(
-        icon: Icon(
-          _isPasswordVisible ? Icons.visibility : Icons.visibility_off, // Toggle icon based on password visibility
-        ),
-        onPressed: () {
-          _isPasswordVisible = !_isPasswordVisible; // Toggle password visibility state
-        },
-      ) : null,
+      prefixIcon:
+          Icon(prefixIcon, color: const Color.fromARGB(179, 40, 39, 39)),
+      suffixIcon: obscureText
+          ? IconButton(
+              icon: Icon(
+                _isPasswordVisible
+                    ? Icons.visibility
+                    : Icons
+                        .visibility_off, // Toggle icon based on password visibility
+              ),
+              onPressed: () {
+                _isPasswordVisible =
+                    !_isPasswordVisible; // Toggle password visibility state
+              },
+            )
+          : null,
       border: const OutlineInputBorder(),
     ),
-    keyboardType: isPasswordType ? TextInputType.visiblePassword : TextInputType.emailAddress,
+    keyboardType: isPasswordType
+        ? TextInputType.visiblePassword
+        : TextInputType.emailAddress,
   );
 }
 
-
-Container signInSignUpButton(BuildContext context, bool isLogin, Function onTap) {
+Container signInSignUpButton(
+    BuildContext context, bool isLogin, Function onTap) {
   return Container(
     width: MediaQuery.of(context).size.width,
     height: 50,
@@ -50,7 +61,8 @@ Container signInSignUpButton(BuildContext context, bool isLogin, Function onTap)
         onTap();
       },
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10), backgroundColor: const Color(0xFF2E3192),
+        padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 10),
+        backgroundColor: const Color(0xFF2E3192),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30),
         ),

@@ -469,39 +469,41 @@ class _HomePageState extends State<HomePage> {
       "bodyNumber": "",
     };
 
+    print("Drop-off address: ${dataMap["dropOffAddress"]}");
+
     tripRequestRef!.set(dataMap).then((_) {
       print('Trip request created successfully!');
     }).catchError((error) {
       print('Error creating trip request: $error');
     });
 
-tripStreamSubscription = tripRequestRef!.onValue.listen((eventSnapshot) async {
-  if (eventSnapshot.snapshot.value == null) {
-    return;
-  }
+    tripStreamSubscription =
+        tripRequestRef!.onValue.listen((eventSnapshot) async {
+      if (eventSnapshot.snapshot.value == null) {
+        return;
+      }
 
-  if ((eventSnapshot.snapshot.value as Map)["firstName"] != null) {
-    firstName = (eventSnapshot.snapshot.value as Map)["firstName"];
-    print('First Name: $firstName');
-  } else {
-    print('First Name not found in trip data.');
-  }
+      if ((eventSnapshot.snapshot.value as Map)["firstName"] != null) {
+        firstName = (eventSnapshot.snapshot.value as Map)["firstName"];
+        print('First Name: $firstName');
+      } else {
+        print('First Name not found in trip data.');
+      }
 
-  if ((eventSnapshot.snapshot.value as Map)["lastName"] != null) {
-    lastName = (eventSnapshot.snapshot.value as Map)["lastName"];
-    print('Last Name: $lastName');
-  } else {
-    print('Last Name not found in trip data.');
-}
-  if ((eventSnapshot.snapshot.value as Map)["idNumber"] != null) {
-    idNumber = (eventSnapshot.snapshot.value as Map)["idNumber"];
-     print('Last Name: $idNumber');
-  }
-    if ((eventSnapshot.snapshot.value as Map)["bodyNumber"] != null) {
-    bodyNumber = (eventSnapshot.snapshot.value as Map)["bodyNumber"];
-     print('Last Name: $bodyNumber');
-  }
-
+      if ((eventSnapshot.snapshot.value as Map)["lastName"] != null) {
+        lastName = (eventSnapshot.snapshot.value as Map)["lastName"];
+        print('Last Name: $lastName');
+      } else {
+        print('Last Name not found in trip data.');
+      }
+      if ((eventSnapshot.snapshot.value as Map)["idNumber"] != null) {
+        idNumber = (eventSnapshot.snapshot.value as Map)["idNumber"];
+        print('Last Name: $idNumber');
+      }
+      if ((eventSnapshot.snapshot.value as Map)["bodyNumber"] != null) {
+        bodyNumber = (eventSnapshot.snapshot.value as Map)["bodyNumber"];
+        print('Last Name: $bodyNumber');
+      }
 
       if ((eventSnapshot.snapshot.value as Map)["driverPhoto"] != null) {
         photoDriver = (eventSnapshot.snapshot.value as Map)["driverPhoto"];
@@ -615,31 +617,47 @@ tripStreamSubscription = tripRequestRef!.onValue.listen((eventSnapshot) async {
     }
   }
 
-  noDriverAvailable() {
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) => InfoDialog(
-              title: "No Driver Available",
-              description:
-                  "No driver found in the nearby location. Please try again shortly.",
-            ));
+  noDriverAvailable() async {
+    var result = await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text("No Driver Available"),
+        content: Text(
+            "No driver found in the nearby location. Do you want to try again?"),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context,
+                  false); // return false to indicate user doesn't want to reset
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(
+                  context, true); // return true to indicate user wants to reset
+            },
+            child: Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      resetAppNow();
+    }
   }
 
   searchDriver() {
-    if (availableNearbyOnlineDriversList!.length == 0) {
+    if (availableNearbyOnlineDriversList!.isEmpty) {
       cancelRideRequest();
-      resetAppNow();
       noDriverAvailable();
       return;
     }
 
-    var currentDriver = availableNearbyOnlineDriversList![0];
-
-    //send notification to this currentDriver - currentDriver means selected driver
+    var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
     sendNotificationToDriver(currentDriver);
-
-    availableNearbyOnlineDriversList!.removeAt(0);
   }
 
   void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
@@ -1256,178 +1274,179 @@ tripStreamSubscription = tripRequestRef!.onValue.listen((eventSnapshot) async {
             ),
           ),
 
-///trip details container
-Positioned(
-  left: 0,
-  right: 0,
-  bottom: 0,
-  child: Container(
-    height: tripContainerHeight,
-    decoration: const BoxDecoration(
-      color: Colors.black87,
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(16),
-        topRight: Radius.circular(16),
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.white24,
-          blurRadius: 15.0,
-          spreadRadius: 0.5,
-          offset: Offset(
-            0.7,
-            0.7,
-          ),
-        ),
-      ],
-    ),
-    child: SingleChildScrollView( // Wrap with SingleChildScrollView
-      padding: EdgeInsets.only(bottom: 70), // Adjust bottom padding
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(
-              height: 5,
-            ),
-            //trip status display text
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  tripStatusDisplay,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    color: Colors.grey,
+          ///trip details container
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: tripContainerHeight,
+              decoration: const BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white24,
+                    blurRadius: 15.0,
+                    spreadRadius: 0.5,
+                    offset: Offset(
+                      0.7,
+                      0.7,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(
-              height: 19,
-            ),
-            const Divider(
-              height: 1,
-              color: Colors.white70,
-              thickness: 1,
-            ),
-            const SizedBox(
-              height: 19,
-            ),
-            //image - driver name and driver car details
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ClipOval(
-                  child: Image.network(
-                    photoDriver == ''
-                        ? "https://firebasestorage.googleapis.com/v0/b/flutter-uber-clone-with-admin.appspot.com/o/avatarman.png?alt=media&token=7a04943c-a566-45d3-b820-d33da3b105c7"
-                        : photoDriver,
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(
-                  width: 8,
-                ),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      firstName,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    Text(
-                      lastName,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    Text(
-                      idNumber,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    Text(
-                      bodyNumber,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(
-              height: 19,
-            ),
-            const Divider(
-              height: 1,
-              color: Colors.white70,
-              thickness: 1,
-            ),
-            const SizedBox(
-              height: 19,
-            ),
-            //call driver btn
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    launchUrl(Uri.parse("tel://$phoneNumberDriver"));
-                  },
+                ],
+              ),
+              child: SingleChildScrollView(
+                // Wrap with SingleChildScrollView
+                padding: EdgeInsets.only(bottom: 70), // Adjust bottom padding
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        height: 50,
-                        width: 50,
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.all(
-                              Radius.circular(25)),
-                          border: Border.all(
-                            width: 1,
-                            color: Colors.white,
+                      const SizedBox(
+                        height: 5,
+                      ),
+                      //trip status display text
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            tripStatusDisplay,
+                            style: const TextStyle(
+                              fontSize: 19,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
-                        child: const Icon(
-                          Icons.phone,
-                          color: Colors.white,
-                        ),
+                        ],
                       ),
                       const SizedBox(
-                        height: 11,
+                        height: 19,
                       ),
-                      const Text(
-                        "Call",
-                        style: TextStyle(
-                          color: Colors.grey,
-                        ),
+                      const Divider(
+                        height: 1,
+                        color: Colors.white70,
+                        thickness: 1,
+                      ),
+                      const SizedBox(
+                        height: 19,
+                      ),
+                      //image - driver name and driver car details
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          ClipOval(
+                            child: Image.network(
+                              photoDriver == ''
+                                  ? "https://firebasestorage.googleapis.com/v0/b/flutter-uber-clone-with-admin.appspot.com/o/avatarman.png?alt=media&token=7a04943c-a566-45d3-b820-d33da3b105c7"
+                                  : photoDriver,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 8,
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                firstName,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                lastName,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                idNumber,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                bodyNumber,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 19,
+                      ),
+                      const Divider(
+                        height: 1,
+                        color: Colors.white70,
+                        thickness: 1,
+                      ),
+                      const SizedBox(
+                        height: 19,
+                      ),
+                      //call driver btn
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              launchUrl(Uri.parse("tel://$phoneNumberDriver"));
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  height: 50,
+                                  width: 50,
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(25)),
+                                    border: Border.all(
+                                      width: 1,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.phone,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 11,
+                                ),
+                                const Text(
+                                  "Call",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ],
-        ),
-      ),
-    ),
-  ),
-),
-
+          ),
         ],
       ),
     );

@@ -3,11 +3,13 @@ import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/models/prediction_model.dart';
+import 'package:passenger/pages/booking_screen.dart';
+import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/widgets/prediction_place_ui.dart';
 import 'package:provider/provider.dart';
 
 class SearchDestinationPage extends StatefulWidget {
-  const SearchDestinationPage({super.key});
+  const SearchDestinationPage({Key? key}) : super(key: key);
 
   @override
   State<SearchDestinationPage> createState() => _SearchDestinationPageState();
@@ -25,15 +27,15 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
       String apiPlacesUrl =
           "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$locationName&key=$googleMapKey&components=country:ph";
 
-//SEND REQUEST TO API
+      //SEND REQUEST TO API
       var responseFromPlacesAPI =
           await CommonMethods.sendRequestToAPI(apiPlacesUrl);
-//check if its error
+      //check if its error
       if (responseFromPlacesAPI == "error") {
         return;
         //do nothing
       }
-//No error occured
+      //No error occurred
       if (responseFromPlacesAPI["status"] == "OK") {
         var predictionResultInJson = responseFromPlacesAPI["predictions"];
         var predictionsList = (predictionResultInJson as List)
@@ -50,6 +52,106 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     }
   }
 
+  void navigateToHomePage() {
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Automatically show the ride options dialog when the page is loaded
+    WidgetsBinding.instance?.addPostFrameCallback((_) {
+      showRideOptionsDialog(context);
+    });
+  }
+
+  void showRideOptionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Schedule a Ride'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BookingScreen()),
+                    );
+                  },
+                  child: Container(
+                    width: 200,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          "assets/images/ridenow.png",
+                          height: 50,
+                          width: 50,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Ride Now',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BookingScreen()),
+                    );
+                  },
+                  child: Container(
+                    width: 200,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          "assets/images/calendar.png",
+                          height: 50,
+                          width: 50,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Advance Booking',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     String userAddress = Provider.of<AppInfo>(context, listen: false)
@@ -59,16 +161,23 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     pickUpTextEditingController.text = userAddress;
 
     return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: navigateToHomePage,
+        ),
+        title: Text("Set Dropoff Location"),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.only(bottom: 8),
           child: Column(
             children: [
               Card(
-                elevation: 0, // Remove elevation
+                elevation: 0,
                 child: Container(
                   height: 230,
-                  color: Colors.white, // Set container background to white
+                  color: Colors.white,
                   child: Padding(
                     padding: const EdgeInsets.only(
                         left: 24, top: 48, right: 24, bottom: 20),
@@ -77,33 +186,6 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                         const SizedBox(
                           height: 6,
                         ),
-                        //icon button - title
-                        Stack(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context);
-                              },
-                              child: const Icon(
-                                Icons.arrow_back,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const Center(
-                              child: Text(
-                                "Set Dropoff Location",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(
-                          height: 18,
-                        ),
-                        //pickup text field
                         Row(
                           children: [
                             Image.asset(
@@ -117,8 +199,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                             Expanded(
                               child: Container(
                                 decoration: BoxDecoration(
-                                  border: Border.all(
-                                      color: Colors.grey), // Add border
+                                  border: Border.all(color: Colors.grey),
                                   borderRadius: BorderRadius.circular(5),
                                 ),
                                 child: Padding(
@@ -127,7 +208,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                                     controller: pickUpTextEditingController,
                                     decoration: InputDecoration(
                                       hintText: "Pickup Address",
-                                      border: InputBorder.none, // Remove border
+                                      border: InputBorder.none,
                                       isDense: true,
                                       contentPadding: EdgeInsets.only(
                                           left: 11, top: 9, bottom: 9),
@@ -141,7 +222,6 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                         const SizedBox(
                           height: 11,
                         ),
-                        //destination text field
                         Row(
                           children: [
                             Image.asset(
@@ -155,8 +235,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                             Expanded(
                               child: Container(
                                 decoration: BoxDecoration(
-                                  border: Border.all(
-                                      color: Colors.grey), // Add border
+                                  border: Border.all(color: Colors.grey),
                                   borderRadius: BorderRadius.circular(5),
                                 ),
                                 child: Padding(
@@ -169,7 +248,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                                     },
                                     decoration: InputDecoration(
                                       hintText: "Destination Address",
-                                      border: InputBorder.none, // Remove border
+                                      border: InputBorder.none,
                                       isDense: true,
                                       contentPadding: EdgeInsets.only(
                                           left: 11, top: 9, bottom: 9),
@@ -185,14 +264,12 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                   ),
                 ),
               ),
-
-              //display prediction results for destination place
               (dropOffPredictionsPlacesList.length > 0)
                   ? Padding(
-                      padding: const EdgeInsets.only(
-                          left: 16, right: 16, top: 20), // Adjust padding
+                      padding:
+                          const EdgeInsets.only(left: 16, right: 16, top: 20),
                       child: SizedBox(
-                        height: 500, // Set a fixed height to prevent overflow
+                        height: 500,
                         child: ListView.builder(
                           padding: const EdgeInsets.all(0),
                           itemBuilder: (context, index) {

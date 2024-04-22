@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 String nameDriver = '';
 String photoDriver = '';
 String phoneNumberDriver = '';
@@ -10,3 +12,7 @@ String firstName = "";
 String lastName = "";
 String idNumber = "";
 String bodyNumber = "";
+
+DateTime? selectedStartDate;
+DateTime? selectedEndDate;
+TimeOfDay? selectedTime;
