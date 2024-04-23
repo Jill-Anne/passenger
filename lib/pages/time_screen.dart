@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 
+import 'search_destination _page.dart';
+
 class TimeScreen extends StatefulWidget {
   final DateTime startDate;
   final DateTime endDate;
@@ -140,6 +142,9 @@ class _TimeScreenState extends State<TimeScreen> {
                 // Handle booking action
                 print('Booking confirmed');
                 Navigator.of(context).pop();
+                Navigator.of(context).pushReplacement(MaterialPageRoute(
+                  builder: (context) => SearchDestinationPage(),
+                ));
               },
               child: Text('BOOK'),
             ),
