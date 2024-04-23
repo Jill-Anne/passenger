@@ -5,6 +5,7 @@ import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/models/prediction_model.dart';
 import 'package:passenger/pages/booking_screen.dart';
 import 'package:passenger/pages/home_page.dart';
+import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/prediction_place_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -66,91 +67,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     });
   }
 
-  void showRideOptionsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Schedule a Ride'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BookingScreen()),
-                    );
-                  },
-                  child: Container(
-                    width: 200,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          "assets/images/ridenow.png",
-                          height: 50,
-                          width: 50,
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'Ride Now',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => BookingScreen()),
-                    );
-                  },
-                  child: Container(
-                    width: 200,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          "assets/images/calendar.png",
-                          height: 50,
-                          width: 50,
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'Advance Booking',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
