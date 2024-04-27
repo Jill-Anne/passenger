@@ -21,6 +21,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
   TextEditingController destinationTextEditingController =
       TextEditingController();
   List<PredictionModel> dropOffPredictionsPlacesList = [];
+  String? selectedDropOffLocation;
 
   ///Places API - Place AutoComplete
   searchLocation(String locationName) async {
@@ -67,8 +68,6 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     String userAddress = Provider.of<AppInfo>(context, listen: false)
@@ -83,7 +82,18 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
           icon: Icon(Icons.arrow_back),
           onPressed: navigateToHomePage,
         ),
-        title: Text("Set Dropoff Location"),
+        title: GestureDetector(
+          onTap: () {
+            // Always show the ride options dialog when the arrow is tapped
+            showRideOptionsDialog(context);
+          },
+          child: Row(
+            children: [
+              Text(selectedDropOffLocation ?? "Ride Now"),
+              Icon(Icons.keyboard_arrow_down),
+            ],
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(
