@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/models/prediction_model.dart';
 import 'package:passenger/pages/home_page.dart';
-import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/prediction_place_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/material.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
-import 'package:passenger/pages/search_destination%20_page.dart';
-
-import 'time_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -35,7 +31,6 @@ class MyApp extends StatelessWidget {
 }
 
 class SearchDestinationPage extends StatefulWidget {
-  
   const SearchDestinationPage({Key? key}) : super(key: key);
 
   @override
@@ -51,6 +46,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
   late List<DateTime?> _dialogCalendarPickerValue;
   late DateTime _startDate;
   late DateTime _endDate;
+  late TimeOfDay _selectedTime;
 
   ///Places API - Place AutoComplete
   searchLocation(String locationName) async {
@@ -94,6 +90,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     _dialogCalendarPickerValue = [];
     _startDate = DateTime.now();
     _endDate = DateTime.now();
+    _selectedTime = TimeOfDay.now();
     // Automatically show the ride options dialog when the page is loaded
   }
 
@@ -253,118 +250,118 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     );
   }
 
-Widget _buildCalendarDialogButton() {
-  const dayTextStyle =
-      TextStyle(color: Colors.black, fontWeight: FontWeight.w700);
-  final prevDayTextStyle =
-      TextStyle(color: Colors.grey, fontWeight: FontWeight.w600);
-  final weekendTextStyle =
-      TextStyle(color: Colors.black, fontWeight: FontWeight.w600);
-  final anniversaryTextStyle = TextStyle(
-    color: Colors.red[400],
-    fontWeight: FontWeight.w700,
-    decoration: TextDecoration.underline,
-  );
-  final config = CalendarDatePicker2WithActionButtonsConfig(
-    calendarViewScrollPhysics: const NeverScrollableScrollPhysics(),
-    dayTextStyle: dayTextStyle,
-    calendarType: CalendarDatePicker2Type.range,
-    selectedDayHighlightColor: Colors.purple[800],
-    closeDialogOnCancelTapped: true,
-    firstDayOfWeek: 1,
-    weekdayLabelTextStyle: const TextStyle(
-      color: Colors.black87,
-      fontWeight: FontWeight.bold,
-    ),
-    controlsTextStyle: const TextStyle(
-      color: Colors.black,
-      fontSize: 15,
-      fontWeight: FontWeight.bold,
-    ),
-    centerAlignModePicker: true,
-    customModePickerIcon: const SizedBox(),
-    selectedDayTextStyle: dayTextStyle.copyWith(color: Colors.grey),
-    dayTextStylePredicate: ({required date}) {
-      TextStyle? textStyle;
-      if (date.weekday == DateTime.saturday ||
-          date.weekday == DateTime.sunday) {
-        textStyle = weekendTextStyle;
-      }
-      if (date.isBefore(DateTime.now().subtract(const Duration(days: 1))) ||
-          date.year < DateTime.now().year) {
-        textStyle = prevDayTextStyle;
-      }
-      if (DateUtils.isSameDay(date, DateTime(2021, 1, 25))) {
-        textStyle = anniversaryTextStyle;
-      }
-      return textStyle;
-    },
-  );
+  Widget _buildCalendarDialogButton() {
+    const dayTextStyle =
+        TextStyle(color: Colors.black, fontWeight: FontWeight.w700);
+    final prevDayTextStyle =
+        TextStyle(color: Colors.grey, fontWeight: FontWeight.w600);
+    final weekendTextStyle =
+        TextStyle(color: Colors.black, fontWeight: FontWeight.w600);
+    final anniversaryTextStyle = TextStyle(
+      color: Colors.red[400],
+      fontWeight: FontWeight.w700,
+      decoration: TextDecoration.underline,
+    );
+    final config = CalendarDatePicker2WithActionButtonsConfig(
+      calendarViewScrollPhysics: const NeverScrollableScrollPhysics(),
+      dayTextStyle: dayTextStyle,
+      calendarType: CalendarDatePicker2Type.range,
+      selectedDayHighlightColor: Colors.purple[800],
+      closeDialogOnCancelTapped: true,
+      firstDayOfWeek: 1,
+      weekdayLabelTextStyle: const TextStyle(
+        color: Colors.black87,
+        fontWeight: FontWeight.bold,
+      ),
+      controlsTextStyle: const TextStyle(
+        color: Colors.black,
+        fontSize: 15,
+        fontWeight: FontWeight.bold,
+      ),
+      centerAlignModePicker: true,
+      customModePickerIcon: const SizedBox(),
+      selectedDayTextStyle: dayTextStyle.copyWith(color: Colors.grey),
+      dayTextStylePredicate: ({required date}) {
+        TextStyle? textStyle;
+        if (date.weekday == DateTime.saturday ||
+            date.weekday == DateTime.sunday) {
+          textStyle = weekendTextStyle;
+        }
+        if (date.isBefore(DateTime.now().subtract(const Duration(days: 1))) ||
+            date.year < DateTime.now().year) {
+          textStyle = prevDayTextStyle;
+        }
+        if (DateUtils.isSameDay(date, DateTime(2021, 1, 25))) {
+          textStyle = anniversaryTextStyle;
+        }
+        return textStyle;
+      },
+    );
 
-  return Center(
-    child: Stack(
-      children: [
-        SizedBox(
-          // Adjust the height of SizedBox to change the size of the calendar container
-          height: 400, // Adjust the size of the calendar container here
-          child: Material(
-            child: CalendarDatePicker2(
-              config: config,
-              value: _dialogCalendarPickerValue,
-              onValueChanged: (values) {
-                if (values != null && values.length == 2) {
-                  setState(() {
-                    _dialogCalendarPickerValue = values;
-                    _startDate = values[0]!;
-                    _endDate = values[1]!;
-                  });
-                }
-              },
+    return Center(
+      child: Stack(
+        children: [
+          SizedBox(
+            // Adjust the height of SizedBox to change the size of the calendar container
+            height: 400, // Adjust the size of the calendar container here
+            child: Material(
+              child: CalendarDatePicker2(
+                config: config,
+                value: _dialogCalendarPickerValue,
+                onValueChanged: (values) {
+                  if (values != null && values.length == 2) {
+                    setState(() {
+                      _dialogCalendarPickerValue = values;
+                      _startDate = values[0]!;
+                      _endDate = values[1]!;
+                    });
+                  }
+                },
+              ),
             ),
           ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 10,
-          // Adjust the SizedBox height to change the space between the calendar and buttons
-          child: SizedBox(height: 50), // Adjust the space here
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 10,
-          child: _buildCalendarDialogButtons(),
-        ),
-      ],
-    ),
-  );
-}
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 10,
+            // Adjust the SizedBox height to change the space between the calendar and buttons
+            child: SizedBox(height: 50), // Adjust the space here
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 10,
+            child: _buildCalendarDialogButtons(),
+          ),
+        ],
+      ),
+    );
+  }
 
-Widget _buildCalendarDialogButtons() {
-  return Container(
-    // Adjust the width of Container to change the width of the buttons
-    width: double.infinity, // Adjust the width of the buttons here
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pop(); // Cancel button pops the dialog
-          },
-          child: Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            // Handle the next button action
-          },
-          child: Text('Next'),
-        ),
-      ],
-    ),
-  );
-}
-
+  Widget _buildCalendarDialogButtons() {
+    return Container(
+      // Adjust the width of Container to change the width of the buttons
+      width: double.infinity, // Adjust the width of the buttons here
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Cancel button pops the dialog
+            },
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _navigateToTimeSpinner(context,
+                  closeCalendarDialog: true); // Navigate to time spinner
+            },
+            child: Text('Next'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void showRideOptionsDialog(BuildContext context) {
     showDialog(
@@ -451,6 +448,144 @@ Widget _buildCalendarDialogButtons() {
     );
   }
 
+  void _navigateToTimeSpinner(BuildContext context,
+      {required bool closeCalendarDialog}) {
+    if (closeCalendarDialog) {
+      Navigator.of(context).pop(); // Close the calendar dialog
+    }
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: buildTime(),
+        );
+      },
+    );
+  }
 
-  
+  Widget buildTime() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            spreadRadius: 5,
+            blurRadius: 7,
+            offset: Offset(0, 3), // changes position of shadow
+          ),
+        ],
+        color: Colors.lightBlue[100],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Time',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 20),
+          _buildTimePickerSpinner(),
+          SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('CANCEL'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  _showConfirmationDialog(context, _startDate,
+                      closeTimeSpinnerDialog: true);
+                },
+                child: Text('BOOK'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimePickerSpinner() {
+    // Define parameters inside the widget
+    bool isShowSeconds = false;
+    bool is24HourMode = false;
+    TextStyle normalTextStyle = TextStyle(fontSize: 24, color: Colors.black);
+    TextStyle highlightedTextStyle =
+        TextStyle(fontSize: 28, color: Colors.blue);
+    double spacing = 40;
+    double itemHeight = 60;
+    bool isForce2Digits = true;
+
+    return TimePickerSpinner(
+      isShowSeconds: isShowSeconds,
+      is24HourMode: is24HourMode,
+      normalTextStyle: normalTextStyle,
+      highlightedTextStyle: highlightedTextStyle,
+      spacing: spacing,
+      itemHeight: itemHeight,
+      isForce2Digits: isForce2Digits,
+      onTimeChange: (time) {
+        setState(() {
+          _selectedTime = TimeOfDay.fromDateTime(time);
+        });
+      },
+    );
+  }
+
+  void _showConfirmationDialog(BuildContext context, DateTime startDate,
+      {required bool closeTimeSpinnerDialog}) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirmation'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Selected Date: ${startDate.day}/${startDate.month}/${startDate.year}', // Display selected date
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Selected Time: ${_selectedTime.format(context)}',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('CANCEL'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Handle booking action
+                print('Booking confirmed');
+                Navigator.of(context).pop();
+                if (closeTimeSpinnerDialog) {
+                  Navigator.of(context).pop(); // Close the time spinner dialog
+                }
+              },
+              child: Text('BOOK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
