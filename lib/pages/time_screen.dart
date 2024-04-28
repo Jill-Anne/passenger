@@ -4,10 +4,9 @@ import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'search_destination _page.dart';
 
 class TimeScreen extends StatefulWidget {
-  final DateTime startDate;
-  final DateTime endDate;
+  
 
-  const TimeScreen({Key? key, required this.startDate, required this.endDate})
+  const TimeScreen({Key? key,})
       : super(key: key);
 
   @override
@@ -16,6 +15,7 @@ class TimeScreen extends StatefulWidget {
 
 class _TimeScreenState extends State<TimeScreen> {
   late TimeOfDay _selectedTime;
+  
 
   @override
   void initState() {
@@ -23,7 +23,7 @@ class _TimeScreenState extends State<TimeScreen> {
     _selectedTime = TimeOfDay.now();
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -89,14 +89,24 @@ class _TimeScreenState extends State<TimeScreen> {
   }
 
   Widget _buildTimePickerSpinner() {
+    // Define parameters inside the widget
+    bool isShowSeconds = false;
+    bool is24HourMode = false;
+    TextStyle normalTextStyle = TextStyle(fontSize: 24, color: Colors.black);
+    TextStyle highlightedTextStyle =
+        TextStyle(fontSize: 28, color: Colors.blue);
+    double spacing = 40;
+    double itemHeight = 60;
+    bool isForce2Digits = true;
+
     return TimePickerSpinner(
-      isShowSeconds: false,
-      is24HourMode: false,
-      normalTextStyle: TextStyle(fontSize: 24, color: Colors.black),
-      highlightedTextStyle: TextStyle(fontSize: 28, color: Colors.blue),
-      spacing: 40,
-      itemHeight: 60,
-      isForce2Digits: true,
+      isShowSeconds: isShowSeconds,
+      is24HourMode: is24HourMode,
+      normalTextStyle: normalTextStyle,
+      highlightedTextStyle: highlightedTextStyle,
+      spacing: spacing,
+      itemHeight: itemHeight,
+      isForce2Digits: isForce2Digits,
       onTimeChange: (time) {
         setState(() {
           _selectedTime = TimeOfDay.fromDateTime(time);
@@ -115,15 +125,6 @@ class _TimeScreenState extends State<TimeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Selected Range:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '${widget.startDate.day}/${widget.startDate.month}/${widget.startDate.year} - ${widget.endDate.day}/${widget.endDate.month}/${widget.endDate.year}',
-              ),
-              SizedBox(height: 16),
               Text(
                 'Selected Time: ${_selectedTime.format(context)}',
                 style: TextStyle(fontWeight: FontWeight.bold),

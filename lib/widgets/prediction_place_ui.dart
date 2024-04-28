@@ -21,39 +21,51 @@ class PredictionPlaceUI extends StatefulWidget {
 
 class _PredictionPlaceUIState extends State<PredictionPlaceUI> {
   ///Place Details - Places API
-  fetchClickedPlaceDetails(String placeID) async
-  {
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) => LoadingDialog(messageText: "Getting details..."),
-    );
+fetchClickedPlaceDetails(String placeID) async {
+  if (!mounted) return; // Check if the widget is still mounted
+  
+  showDialog(
+    barrierDismissible: false,
+    context: context,
+    builder: (BuildContext context) =>
+        LoadingDialog(messageText: "Getting details..."),
+  );
 
-    String urlPlaceDetailsAPI = "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeID&key=$googleMapKey";
+  String urlPlaceDetailsAPI =
+      "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeID&key=$googleMapKey";
 
-    var responseFromPlaceDetailsAPI = await CommonMethods.sendRequestToAPI(urlPlaceDetailsAPI);
+  var responseFromPlaceDetailsAPI =
+      await CommonMethods.sendRequestToAPI(urlPlaceDetailsAPI);
 
-    Navigator.pop(context);
+  Navigator.pop(context);
 
-    if(responseFromPlaceDetailsAPI == "error")
-    {
-      return;
-    }
+  if (!mounted) return; // Check if the widget is still mounted after async operation
 
-    if(responseFromPlaceDetailsAPI["status"] == "OK")
-    {
-      AddressModel dropOffLocation = AddressModel();
-
-      dropOffLocation.placeName = responseFromPlaceDetailsAPI["result"]["name"];
-      dropOffLocation.latitudePosition = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lat"];
-      dropOffLocation.longitudePosition = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lng"];
-      dropOffLocation.placeID = placeID;
-
-      Provider.of<AppInfo>(context, listen: false).updateDropOffLocation(dropOffLocation);
-      
-      Navigator.pop(context, "placeSelected");
-    }
+  if (responseFromPlaceDetailsAPI == "error") {
+    return;
   }
+
+  if (responseFromPlaceDetailsAPI["status"] == "OK") {
+    AddressModel dropOffLocation = AddressModel();
+
+    dropOffLocation.placeName = responseFromPlaceDetailsAPI["result"]["name"];
+    dropOffLocation.latitudePosition =
+        responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lat"];
+    dropOffLocation.longitudePosition =
+        responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lng"];
+    dropOffLocation.placeID = placeID;
+
+    Provider.of<AppInfo>(context, listen: false)
+        .updateDropOffLocation(dropOffLocation);
+
+    if (!mounted) return; // Check if the widget is still mounted before navigating
+
+    Future.delayed(Duration.zero, () {
+      Navigator.pop(context, "placeSelected");
+    });
+  }
+}
+
 
 
 

@@ -3,13 +3,39 @@ import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/models/prediction_model.dart';
-import 'package:passenger/pages/booking_screen.dart';
 import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/prediction_place_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
+import 'package:calendar_date_picker2/calendar_date_picker2.dart';
+import 'package:passenger/pages/search_destination%20_page.dart';
+
+import 'time_screen.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      builder: (context, widget) {
+        Widget error = const Text('...rendering error...');
+        if (widget is Scaffold || widget is Navigator) {
+          error = Scaffold(body: Center(child: error));
+        }
+        ErrorWidget.builder = (errorDetails) => error;
+        if (widget != null) return widget;
+        throw StateError('widget is null');
+      },
+    );
+  }
+}
 
 class SearchDestinationPage extends StatefulWidget {
+  
   const SearchDestinationPage({Key? key}) : super(key: key);
 
   @override
@@ -22,6 +48,9 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
       TextEditingController();
   List<PredictionModel> dropOffPredictionsPlacesList = [];
   String? selectedDropOffLocation;
+  late List<DateTime?> _dialogCalendarPickerValue;
+  late DateTime _startDate;
+  late DateTime _endDate;
 
   ///Places API - Place AutoComplete
   searchLocation(String locationName) async {
@@ -55,17 +84,17 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
   }
 
   void navigateToHomePage() {
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (context) => HomePage()));
+    Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomePage()));
   }
 
   @override
   void initState() {
     super.initState();
+    _dialogCalendarPickerValue = [];
+    _startDate = DateTime.now();
+    _endDate = DateTime.now();
     // Automatically show the ride options dialog when the page is loaded
-    WidgetsBinding.instance?.addPostFrameCallback((_) {
-      showRideOptionsDialog(context);
-    });
   }
 
   @override
@@ -223,4 +252,205 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
       ),
     );
   }
+
+Widget _buildCalendarDialogButton() {
+  const dayTextStyle =
+      TextStyle(color: Colors.black, fontWeight: FontWeight.w700);
+  final prevDayTextStyle =
+      TextStyle(color: Colors.grey, fontWeight: FontWeight.w600);
+  final weekendTextStyle =
+      TextStyle(color: Colors.black, fontWeight: FontWeight.w600);
+  final anniversaryTextStyle = TextStyle(
+    color: Colors.red[400],
+    fontWeight: FontWeight.w700,
+    decoration: TextDecoration.underline,
+  );
+  final config = CalendarDatePicker2WithActionButtonsConfig(
+    calendarViewScrollPhysics: const NeverScrollableScrollPhysics(),
+    dayTextStyle: dayTextStyle,
+    calendarType: CalendarDatePicker2Type.range,
+    selectedDayHighlightColor: Colors.purple[800],
+    closeDialogOnCancelTapped: true,
+    firstDayOfWeek: 1,
+    weekdayLabelTextStyle: const TextStyle(
+      color: Colors.black87,
+      fontWeight: FontWeight.bold,
+    ),
+    controlsTextStyle: const TextStyle(
+      color: Colors.black,
+      fontSize: 15,
+      fontWeight: FontWeight.bold,
+    ),
+    centerAlignModePicker: true,
+    customModePickerIcon: const SizedBox(),
+    selectedDayTextStyle: dayTextStyle.copyWith(color: Colors.grey),
+    dayTextStylePredicate: ({required date}) {
+      TextStyle? textStyle;
+      if (date.weekday == DateTime.saturday ||
+          date.weekday == DateTime.sunday) {
+        textStyle = weekendTextStyle;
+      }
+      if (date.isBefore(DateTime.now().subtract(const Duration(days: 1))) ||
+          date.year < DateTime.now().year) {
+        textStyle = prevDayTextStyle;
+      }
+      if (DateUtils.isSameDay(date, DateTime(2021, 1, 25))) {
+        textStyle = anniversaryTextStyle;
+      }
+      return textStyle;
+    },
+  );
+
+  return Center(
+    child: Stack(
+      children: [
+        SizedBox(
+          // Adjust the height of SizedBox to change the size of the calendar container
+          height: 400, // Adjust the size of the calendar container here
+          child: Material(
+            child: CalendarDatePicker2(
+              config: config,
+              value: _dialogCalendarPickerValue,
+              onValueChanged: (values) {
+                if (values != null && values.length == 2) {
+                  setState(() {
+                    _dialogCalendarPickerValue = values;
+                    _startDate = values[0]!;
+                    _endDate = values[1]!;
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 10,
+          // Adjust the SizedBox height to change the space between the calendar and buttons
+          child: SizedBox(height: 50), // Adjust the space here
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 10,
+          child: _buildCalendarDialogButtons(),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildCalendarDialogButtons() {
+  return Container(
+    // Adjust the width of Container to change the width of the buttons
+    width: double.infinity, // Adjust the width of the buttons here
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop(); // Cancel button pops the dialog
+          },
+          child: Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            // Handle the next button action
+          },
+          child: Text('Next'),
+        ),
+      ],
+    ),
+  );
+}
+
+
+  void showRideOptionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Schedule a Ride'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return _buildCalendarDialogButton();
+                      },
+                    );
+                  },
+                  child: Container(
+                    width: 200,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          "assets/images/ridenow.png",
+                          height: 50,
+                          width: 50,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Ride Now',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () {
+                    // Handle advance booking
+                  },
+                  child: Container(
+                    width: 200,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          "assets/images/calendar.png",
+                          height: 50,
+                          width: 50,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Advance Booking',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+  
 }
