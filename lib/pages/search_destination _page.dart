@@ -34,10 +34,10 @@ class SearchDestinationPage extends StatefulWidget {
   const SearchDestinationPage({Key? key}) : super(key: key);
 
   @override
-  State<SearchDestinationPage> createState() => _SearchDestinationPageState();
+  State<SearchDestinationPage> createState() => SearchDestinationPageState();
 }
 
-class _SearchDestinationPageState extends State<SearchDestinationPage> {
+class SearchDestinationPageState extends State<SearchDestinationPage> {
   TextEditingController pickUpTextEditingController = TextEditingController();
   TextEditingController destinationTextEditingController =
       TextEditingController();
@@ -47,6 +47,7 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
   late DateTime _startDate;
   late DateTime _endDate;
   late TimeOfDay _selectedTime;
+  
 
   ///Places API - Place AutoComplete
   searchLocation(String locationName) async {
@@ -250,93 +251,98 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     );
   }
 
-  Widget _buildCalendarDialogButton() {
-    const dayTextStyle =
-        TextStyle(color: Colors.black, fontWeight: FontWeight.w700);
-    final prevDayTextStyle =
-        TextStyle(color: Colors.grey, fontWeight: FontWeight.w600);
-    final weekendTextStyle =
-        TextStyle(color: Colors.black, fontWeight: FontWeight.w600);
-    final anniversaryTextStyle = TextStyle(
-      color: Colors.red[400],
-      fontWeight: FontWeight.w700,
-      decoration: TextDecoration.underline,
-    );
-    final config = CalendarDatePicker2WithActionButtonsConfig(
-      calendarViewScrollPhysics: const NeverScrollableScrollPhysics(),
-      dayTextStyle: dayTextStyle,
-      calendarType: CalendarDatePicker2Type.range,
-      selectedDayHighlightColor: Colors.purple[800],
-      closeDialogOnCancelTapped: true,
-      firstDayOfWeek: 1,
-      weekdayLabelTextStyle: const TextStyle(
-        color: Colors.black87,
-        fontWeight: FontWeight.bold,
-      ),
-      controlsTextStyle: const TextStyle(
-        color: Colors.black,
-        fontSize: 15,
-        fontWeight: FontWeight.bold,
-      ),
-      centerAlignModePicker: true,
-      customModePickerIcon: const SizedBox(),
-      selectedDayTextStyle: dayTextStyle.copyWith(color: Colors.grey),
-      dayTextStylePredicate: ({required date}) {
-        TextStyle? textStyle;
-        if (date.weekday == DateTime.saturday ||
-            date.weekday == DateTime.sunday) {
-          textStyle = weekendTextStyle;
-        }
-        if (date.isBefore(DateTime.now().subtract(const Duration(days: 1))) ||
-            date.year < DateTime.now().year) {
-          textStyle = prevDayTextStyle;
-        }
-        if (DateUtils.isSameDay(date, DateTime(2021, 1, 25))) {
-          textStyle = anniversaryTextStyle;
-        }
-        return textStyle;
-      },
-    );
+Widget _buildCalendarDialogButton() {
+  const dayTextStyle =
+      TextStyle(color: Colors.black, fontWeight: FontWeight.w700);
+  final prevDayTextStyle =
+      TextStyle(color: Colors.grey, fontWeight: FontWeight.w600);
+  final weekendTextStyle =
+      TextStyle(color: Colors.black, fontWeight: FontWeight.w600);
+  final anniversaryTextStyle = TextStyle(
+    color: Colors.red[400],
+    fontWeight: FontWeight.w700,
+    decoration: TextDecoration.underline,
+  );
+  final config = CalendarDatePicker2WithActionButtonsConfig(
+    calendarViewScrollPhysics: const NeverScrollableScrollPhysics(),
+    dayTextStyle: dayTextStyle,
+    calendarType: CalendarDatePicker2Type.range,
+    selectedDayHighlightColor: Colors.purple[800],
+    closeDialogOnCancelTapped: true,
+    firstDayOfWeek: 1,
+    weekdayLabelTextStyle: const TextStyle(
+      color: Colors.black87,
+      fontWeight: FontWeight.bold,
+    ),
+    controlsTextStyle: const TextStyle(
+      color: Colors.black,
+      fontSize: 15,
+      fontWeight: FontWeight.bold,
+    ),
+    centerAlignModePicker: true,
+    customModePickerIcon: const SizedBox(),
+    selectedDayTextStyle: dayTextStyle.copyWith(color: Colors.grey),
+    dayTextStylePredicate: ({required date}) {
+      TextStyle? textStyle;
+      if (date.weekday == DateTime.saturday ||
+          date.weekday == DateTime.sunday) {
+        textStyle = weekendTextStyle;
+      }
+      if (date.isBefore(DateTime.now().subtract(const Duration(days: 1))) ||
+          date.year < DateTime.now().year) {
+        textStyle = prevDayTextStyle;
+      }
+      if (DateUtils.isSameDay(date, DateTime(2021, 1, 25))) {
+        textStyle = anniversaryTextStyle;
+      }
+      return textStyle;
+    },
+  );
 
-    return Center(
-      child: Stack(
-        children: [
-          SizedBox(
-            // Adjust the height of SizedBox to change the size of the calendar container
-            height: 400, // Adjust the size of the calendar container here
-            child: Material(
-              child: CalendarDatePicker2(
-                config: config,
-                value: _dialogCalendarPickerValue,
-                onValueChanged: (values) {
-                  if (values != null && values.length == 2) {
-                    setState(() {
-                      _dialogCalendarPickerValue = values;
-                      _startDate = values[0]!;
-                      _endDate = values[1]!;
-                    });
-                  }
-                },
-              ),
+  return Center(
+    child: Stack(
+      children: [
+        SizedBox(
+          height: 400,
+          child: Material(
+            child: CalendarDatePicker2(
+              config: config,
+              value: _dialogCalendarPickerValue,
+              onValueChanged: (values) {
+  if (values != null && values.length == 2) {
+    setState(() {
+      _dialogCalendarPickerValue = values;
+      _startDate = values[0]!;
+      _endDate = values[1]!;
+    });
+  } else if (values != null && values.length == 1) {
+    setState(() {
+      _dialogCalendarPickerValue = values;
+      _startDate = values[0]!;
+      _endDate = values[0]!; // For solo date, set end date to start date
+    });
+  }
+},
+
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 10,
-            // Adjust the SizedBox height to change the space between the calendar and buttons
-            child: SizedBox(height: 50), // Adjust the space here
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 10,
-            child: _buildCalendarDialogButtons(),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 10,
+          child: SizedBox(height: 50),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 10,
+          child: _buildCalendarDialogButtons(),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildCalendarDialogButtons() {
     return Container(
@@ -503,13 +509,26 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
                 },
                 child: Text('CANCEL'),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  _showConfirmationDialog(context, _startDate,
-                      closeTimeSpinnerDialog: true);
-                },
-                child: Text('BOOK'),
-              ),
+ElevatedButton(
+  onPressed: () {
+    _showConfirmationDialog(
+      context,
+      _startDate,
+      _endDate,
+      closeTimeSpinnerDialog: true,
+      resetDatesCallback: () {
+        setState(() {
+          _startDate = DateTime.now(); // Reset start date
+          _endDate = DateTime.now(); // Reset end date
+          print('Dates reset: $_startDate - $_endDate');
+          _dialogCalendarPickerValue = []; // Reset calendar value
+        });
+      },
+    );
+  },
+  child: Text('BOOK'),
+),
+
             ],
           ),
         ],
@@ -544,48 +563,53 @@ class _SearchDestinationPageState extends State<SearchDestinationPage> {
     );
   }
 
-  void _showConfirmationDialog(BuildContext context, DateTime startDate,
-      {required bool closeTimeSpinnerDialog}) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Confirmation'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Selected Date: ${startDate.day}/${startDate.month}/${startDate.year}', // Display selected date
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                'Selected Time: ${_selectedTime.format(context)}',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('CANCEL'),
+void _showConfirmationDialog(BuildContext context, DateTime startDate, DateTime endDate,
+    {required bool closeTimeSpinnerDialog, required VoidCallback resetDatesCallback}) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Confirmation'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              startDate == endDate
+                  ? 'Selected Date: ${startDate.day}/${startDate.month}/${startDate.year}' // Display solo date if start and end date are the same
+                  : 'Selected Date Range: ${startDate.day}/${startDate.month}/${startDate.year} - ${endDate.day}/${endDate.month}/${endDate.year}', // Display date range if different start and end date
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            TextButton(
-              onPressed: () {
-                // Handle booking action
-                print('Booking confirmed');
-                Navigator.of(context).pop();
-                if (closeTimeSpinnerDialog) {
-                  Navigator.of(context).pop(); // Close the time spinner dialog
-                }
-              },
-              child: Text('BOOK'),
+            Text(
+              'Selected Time: ${_selectedTime.format(context)}',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
-        );
-      },
-    );
-  }
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () {
+              print('Booking confirmed');
+              resetDatesCallback(); // Reset the selected dates
+              Navigator.of(context).pop();
+              if (closeTimeSpinnerDialog) {
+                Navigator.of(context).pop();
+              }
+            },
+            child: Text('BOOK'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+
 }

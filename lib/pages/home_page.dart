@@ -17,7 +17,7 @@ import 'package:passenger/methods/manage_drivers_methods.dart';
 import 'package:passenger/methods/push_notification_service.dart';
 import 'package:passenger/models/direction_details.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
-import 'package:passenger/pages/search_destination%20_page.dart';
+import 'package:passenger/pages/search_destination _page.dart';
 import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
 import 'package:provider/provider.dart';
@@ -57,6 +57,10 @@ class _HomePageState extends State<HomePage> {
   List<OnlineNearbyDrivers>? availableNearbyOnlineDriversList;
   StreamSubscription<DatabaseEvent>? tripStreamSubscription;
   bool requestingDirectionDetailsInfo = false;
+
+  late DateTime _startDate;
+  late DateTime _endDate;
+  late TimeOfDay _selectedTime;
 
   makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
@@ -425,6 +429,21 @@ class _HomePageState extends State<HomePage> {
     tripRequestRef =
         FirebaseDatabase.instance.ref().child("tripRequests").push();
 
+    // Obtain current date
+DateTime now = DateTime.now();
+
+// Assign current date to startDate and endDate as initial values
+DateTime startDate = now;
+DateTime endDate = now;
+
+// Format the selected range
+String selectedRange = startDate == endDate
+    ? 'Selected Date: ${startDate.day}/${startDate.month}/${startDate.year}' // Display solo date if start and end date are the same
+    : 'Selected Date Range: ${startDate.day}/${startDate.month}/${startDate.year} - ${endDate.day}/${endDate.month}/${endDate.year}'; // Display date range if different start and end date
+
+// Format the selected time
+String formattedSelectedTime = _selectedTime.format(context);
+
     var pickUpLocation =
         Provider.of<AppInfo>(context, listen: false).pickUpLocation;
     var dropOffDestinationLocation =
@@ -444,6 +463,7 @@ class _HomePageState extends State<HomePage> {
       "latitude": "",
       "longitude": "",
     };
+
 
     Map dataMap = {
       "tripID": tripRequestRef!.key,
@@ -467,6 +487,8 @@ class _HomePageState extends State<HomePage> {
       "lastName": "",
       "idNumber": "",
       "bodyNumber": "",
+       "dateRange": selectedRange, // Add selected date range
+  "selectedTime": formattedSelectedTime, // Add formatted selected time
     };
 
     print("Drop-off address: ${dataMap["dropOffAddress"]}");
