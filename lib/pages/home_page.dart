@@ -590,6 +590,8 @@ tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
     });
   }
 
+
+//MODIFY THESE IF THERE IS ADVANCE BOOKING, IT SHOULD NOT START
   updateFromDriverCurrentLocationToPickUp(driverCurrentLocationLatLng) async {
     if (!requestingDirectionDetailsInfo) {
       requestingDirectionDetailsInfo = true;
