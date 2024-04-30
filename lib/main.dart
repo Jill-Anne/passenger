@@ -5,9 +5,10 @@ import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/firebase_options.dart';
 import 'package:passenger/pages/home_page.dart';
+
+import 'package:passenger/widgets/state_management.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,18 +16,14 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  await Permission.locationWhenInUse.isDenied.then((valueOfPermission)
-  {
-    if(valueOfPermission)
-    {
+  await Permission.locationWhenInUse.isDenied.then((valueOfPermission) {
+    if (valueOfPermission) {
       Permission.locationWhenInUse.request();
     }
   });
 
-  await Permission.notification.isDenied.then((valueOfPermission)
-  {
-    if(valueOfPermission)
-    {
+  await Permission.notification.isDenied.then((valueOfPermission) {
+    if (valueOfPermission) {
       Permission.notification.request();
     }
   });
@@ -37,11 +34,13 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AppInfo(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AppInfo()),
+        ChangeNotifierProvider(create: (context) => TripData()),  // Add this line for trip data management
+      ],
       child: MaterialApp(
         title: 'Flutter User App',
         debugShowCheckedModeBanner: false,
@@ -54,4 +53,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

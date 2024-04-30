@@ -18,8 +18,10 @@ import 'package:passenger/methods/push_notification_service.dart';
 import 'package:passenger/models/direction_details.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/search_destination _page.dart';
+import 'package:passenger/widgets/dialog_utils.dart';
 import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
+import 'package:passenger/widgets/state_management.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:restart_app/restart_app.dart';
@@ -60,7 +62,18 @@ class _HomePageState extends State<HomePage> {
 
   late DateTime _startDate;
   late DateTime _endDate;
-  late TimeOfDay _selectedTime;
+TimeOfDay? _selectedTime;
+
+
+// Inside the function where you're setting _selectedTime, for example:
+void _onTimeSelected(TimeOfDay selectedTime) {
+  setState(() {
+    _selectedTime = selectedTime;
+  });
+}
+
+
+
 
   makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
@@ -158,7 +171,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-//WHAT IS THIS????????
+//Get details of place after selecting in list of prediction place????????
   retrieveDirectionDetails() async {
     var pickUpLocation =
         Provider.of<AppInfo>(context, listen: false).pickUpLocation;
@@ -322,7 +335,7 @@ class _HomePageState extends State<HomePage> {
 
   cancelRideRequest() {
     //remove ride request from database
-    tripRequestRef!.remove();
+    tripRequestRef?.remove();
 
     setState(() {
       stateOfApp = "normal";
@@ -425,72 +438,61 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  makeTripRequest() {
-    tripRequestRef =
-        FirebaseDatabase.instance.ref().child("tripRequests").push();
 
-    // Obtain current date
-DateTime now = DateTime.now();
+ makeTripRequest() {
+tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
 
-// Assign current date to startDate and endDate as initial values
-DateTime startDate = now;
-DateTime endDate = now;
+  var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+  var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-// Format the selected range
-String selectedRange = startDate == endDate
-    ? 'Selected Date: ${startDate.day}/${startDate.month}/${startDate.year}' // Display solo date if start and end date are the same
-    : 'Selected Date Range: ${startDate.day}/${startDate.month}/${startDate.year} - ${endDate.day}/${endDate.month}/${endDate.year}'; // Display date range if different start and end date
+  Map pickUpCoOrdinatesMap = {
+    "latitude": pickUpLocation!.latitudePosition.toString(),
+    "longitude": pickUpLocation.longitudePosition.toString(),
+  };
 
-// Format the selected time
-String formattedSelectedTime = _selectedTime.format(context);
+  Map dropOffDestinationCoOrdinatesMap = {
+    "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
+    "longitude": dropOffDestinationLocation.longitudePosition.toString(),
+  };
 
-    var pickUpLocation =
-        Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-    var dropOffDestinationLocation =
-        Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+  Map driverCoOrdinates = {
+    "latitude": "",
+    "longitude": "",
+  };
 
-    Map pickUpCoOrdinatesMap = {
-      "latitude": pickUpLocation!.latitudePosition.toString(),
-      "longitude": pickUpLocation.longitudePosition.toString(),
-    };
+  var tripData = Provider.of<TripData>(context, listen: false);
 
-    Map dropOffDestinationCoOrdinatesMap = {
-      "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
-      "longitude": dropOffDestinationLocation.longitudePosition.toString(),
-    };
+  Map dataMap = {
+    "tripID": tripRequestRef!.key,
+    "publishDateTime": DateTime.now().toString(),
+    "userName": userName,
+    "userPhone": userPhone,
+    "userID": userID,
+    "pickUpLatLng": pickUpCoOrdinatesMap,
+    "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
+    "pickUpAddress": pickUpLocation.placeName,
+    "dropOffAddress": dropOffDestinationLocation.placeName,
+    "driverID": "waiting",
+    "carDetails": "",
+    "driverLocation": driverCoOrdinates,
+    "driverName": "",
+    "driverPhone": "",
+    "driverPhoto": "",
+    "fareAmount": "",
+    "status": "new",
+    "firstName": "",
+    "lastName": "",
+    "idNumber": "",
+    "bodyNumber": "",
+    
+    // Additional details from confirmation dialog
+    "tripStartDate": tripData.startDate.toString(),
+    "tripEndDate": tripData.endDate.toString(),
+    "tripTime": tripData.selectedTime.format(context),
+  };
 
-    Map driverCoOrdinates = {
-      "latitude": "",
-      "longitude": "",
-    };
-
-
-    Map dataMap = {
-      "tripID": tripRequestRef!.key,
-      "publishDateTime": DateTime.now().toString(),
-      "userName": userName,
-      "userPhone": userPhone,
-      "userID": userID,
-      "pickUpLatLng": pickUpCoOrdinatesMap,
-      "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
-      "pickUpAddress": pickUpLocation.placeName,
-      "dropOffAddress": dropOffDestinationLocation.placeName,
-      "driverID": "waiting",
-      "carDetails": "",
-      "driverLocation": driverCoOrdinates,
-      "driverName": "",
-      "driverPhone": "",
-      "driverPhoto": "",
-      "fareAmount": "",
-      "status": "new",
-      "firstName": "",
-      "lastName": "",
-      "idNumber": "",
-      "bodyNumber": "",
-       "dateRange": selectedRange, // Add selected date range
-  "selectedTime": formattedSelectedTime, // Add formatted selected time
-    };
-
+  // Debug: Print the dataMap
+  print('Data Map: $dataMap');
     print("Drop-off address: ${dataMap["dropOffAddress"]}");
 
     tripRequestRef!.set(dataMap).then((_) {
@@ -639,140 +641,132 @@ String formattedSelectedTime = _selectedTime.format(context);
     }
   }
 
-  noDriverAvailable() async {
-    var result = await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) => AlertDialog(
-        title: Text("No Driver Available"),
-        content: Text(
-            "No driver found in the nearby location. Do you want to try again?"),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context,
-                  false); // return false to indicate user doesn't want to reset
-            },
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(
-                  context, true); // return true to indicate user wants to reset
-            },
-            child: Text('Reset'),
-          ),
-        ],
-      ),
-    );
+void noDriverAvailable() async {
+  var result = await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) => AlertDialog(
+      title: Text("No Driver Available"),
+      content: Text(
+          "No driver found in the nearby location. Do you want to try again?"),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context, false); // return false to indicate user doesn't want to reset
+          },
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(
+                context, true); // return true to indicate user wants to reset
+          },
+          child: Text('Reset'),
+        ),
+      ],
+    ),
+  );
 
-    if (result == true) {
-      resetAppNow();
-    }
-  }
-
+  print("No driver available dialog result: $result");
+}
   searchDriver() {
     if (availableNearbyOnlineDriversList!.isEmpty) {
       cancelRideRequest();
       noDriverAvailable();
       return;
     }
-
+//  NOT SURE BUT IF DRIVER ALREADY RECEIVE RIDE REQUEST. HE WILL REMOVE IN ONLINE DRIVERS
     var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
     sendNotificationToDriver(currentDriver);
   }
-
-  void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
-    print(
-        'sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}'); // Debug print
-
-    // Update driver's newTripStatus - assign tripID to current driver
-    DatabaseReference currentDriverRef = FirebaseDatabase.instance
-        .ref()
-        .child("driversAccount")
-        .child(currentDriver.uidDriver.toString())
-        .child("newTripStatus");
-
-    currentDriverRef.set(tripRequestRef!.key).then((_) {
-      print(
-          'newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}'); // Debug print
-    }).catchError((error) {
-      print(
-          'Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
-    });
-
-    // Get current driver device recognition token
-    DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
-        .ref()
-        .child("driversAccount")
-        .child(currentDriver.uidDriver.toString())
-        .child("deviceToken");
-
-    tokenOfCurrentDriverRef.once().then((dataSnapshot) {
-      if (dataSnapshot.snapshot.value != null) {
-        String deviceToken = dataSnapshot.snapshot.value.toString();
-        print(
-            'Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken'); // Debug print
-
-        // Send notification
-        PushNotificationService.sendNotificationToSelectedDriver(
-          deviceToken,
-          context,
-          tripRequestRef!.key.toString(),
-        );
-      } else {
-        print(
-            'Device token not found for driver UID: ${currentDriver.uidDriver}'); // Debug print
-        return;
-      }
-    }).catchError((error) {
-      print(
-          'Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error'); // Debug print on error
-    });
-
-    const oneTickPerSec = Duration(seconds: 1);
-
-    var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
-      requestTimeoutDriver = requestTimeoutDriver - 1;
-
-      //when trip request is not requesting means trip request cancelled - stop timer
-      if (stateOfApp != "requesting") {
-        timer.cancel();
-        currentDriverRef.set("cancelled");
-        currentDriverRef.onDisconnect();
-        requestTimeoutDriver = 20;
-        return; // Exit the timer callback function
-      }
-
-      // If 20 seconds passed - send notification to next nearest online available driver
-      if (requestTimeoutDriver == 0) {
-        timer.cancel();
-        currentDriverRef.set("timeout");
-        currentDriverRef.onDisconnect();
-        requestTimeoutDriver = 20;
-
-        //send notification to next nearest online available driver
-        searchDriver();
-        return; // Exit the timer callback function
-      }
-    });
-
-// Listen for changes in newTripStatus
-    currentDriverRef.onValue.listen((dataSnapshot) {
-      var value = dataSnapshot.snapshot.value;
-      if (value != null && value.toString() == "accepted") {
-        timerCountDown.cancel(); // Cancel the timer when trip is accepted
-        currentDriverRef.onDisconnect(); // Disconnect the reference
-        requestTimeoutDriver = 20; // Reset request timeout
-      }
-    });
+void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
+  print('sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
+  if (tripRequestRef == null) {
+    print('Trip request reference is null');
+    return;
   }
+
+  DatabaseReference currentDriverRef = FirebaseDatabase.instance
+      .ref()
+      .child("driversAccount")
+      .child(currentDriver.uidDriver.toString())
+      .child("newTripStatus");
+
+  currentDriverRef.set(tripRequestRef!.key).then((_) {
+    print('newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
+  }).catchError((error) {
+    print('Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
+  });
+
+  // Get current driver device recognition token
+  DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
+      .ref()
+      .child("driversAccount")
+      .child(currentDriver.uidDriver.toString())
+      .child("deviceToken");
+
+  tokenOfCurrentDriverRef.once().then((dataSnapshot) {
+    if (dataSnapshot.snapshot.value != null) {
+      String deviceToken = dataSnapshot.snapshot.value.toString();
+      print('Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
+
+      // Send notification
+      PushNotificationService.sendNotificationToSelectedDriver(
+        deviceToken,
+        context,
+        tripRequestRef!.key.toString(),
+      );
+    } else {
+      print('Device token not found for driver UID: ${currentDriver.uidDriver}');
+      return;
+    }
+  }).catchError((error) {
+    print('Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
+  });
+
+  const oneTickPerSec = Duration(seconds: 1);
+
+  var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
+    requestTimeoutDriver = requestTimeoutDriver - 1;
+
+    // When trip request is not requesting, means trip request cancelled - stop timer
+    if (stateOfApp != "requesting") {
+      timer.cancel();
+      currentDriverRef.set("cancelled");
+      currentDriverRef.onDisconnect();
+      requestTimeoutDriver = 20;
+      return; // Exit the timer callback function
+    }
+
+    // If 20 seconds passed - send notification to next nearest online available driver
+    if (requestTimeoutDriver == 0) {
+      timer.cancel();
+      currentDriverRef.set("timeout");
+      currentDriverRef.onDisconnect();
+      requestTimeoutDriver = 20;
+
+      // Send notification to next nearest online available driver
+      searchDriver();
+      return; // Exit the timer callback function
+    }
+  });
+
+  // Listen for changes in newTripStatus
+  currentDriverRef.onValue.listen((dataSnapshot) {
+    var value = dataSnapshot.snapshot.value;
+    if (value != null && value.toString() == "accepted") {
+      timerCountDown.cancel(); // Cancel the timer when trip is accepted
+      currentDriverRef.onDisconnect(); // Disconnect the reference
+      requestTimeoutDriver = 20; // Reset request timeout
+    }
+  });
+}
+
 
 // Build the UI of the home page
   @override
   Widget build(BuildContext context) {
     makeDriverNearbyCarIcon();
-
     return Scaffold(
       key: sKey,
       drawer: Container(
@@ -1035,10 +1029,14 @@ String formattedSelectedTime = _selectedTime.format(context);
 
 //WHOLE BOX CONFIRMATION BOOKING IN MAP
 //RIDE DETAILS CONTAINER W/ CONFIRM BOOKING
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
+ Positioned(
+  left: 0,
+  right: 0,
+  bottom: 0,
+  child: GestureDetector(
+    onTap: () {
+      DialogUtils.showRideOptionsDialog(context);
+    },
             child: Container(
               height: rideDetailsContainerHeight,
               decoration: const BoxDecoration(
@@ -1225,7 +1223,10 @@ String formattedSelectedTime = _selectedTime.format(context);
               ),
             ),
           ),
+ ),
 
+
+ 
 //REQUEST RIDE CONTAINER
           Positioned(
             left: 0,
