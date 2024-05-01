@@ -18,6 +18,7 @@ import 'package:passenger/methods/push_notification_service.dart';
 import 'package:passenger/models/direction_details.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/search_destination _page.dart';
+import 'package:passenger/pages/trips_history.dart';
 import 'package:passenger/widgets/dialog_utils.dart';
 import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
@@ -871,17 +872,20 @@ void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
               ),
 
 //body
-              ListTile(
-                leading: IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.info,
-                    color: Colors.grey,
+ 
+
+
+              GestureDetector(
+                onTap: ()
+                {
+                  Navigator.push(context, MaterialPageRoute(builder: (c)=> TripsHistoryPage()));
+                },
+                child: ListTile(
+                  leading: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.history, color: Colors.grey,),
                   ),
-                ),
-                title: const Text(
-                  "About",
-                  style: TextStyle(color: Colors.grey),
+                  title: const Text("History", style: TextStyle(color: Colors.grey),),
                 ),
               ),
 
