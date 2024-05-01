@@ -21,6 +21,7 @@ import 'package:passenger/pages/search_destination _page.dart';
 import 'package:passenger/widgets/dialog_utils.dart';
 import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
+import 'package:passenger/widgets/payment_dialog.dart';
 import 'package:passenger/widgets/state_management.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -579,6 +580,38 @@ tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
               (element) => element.markerId.value.contains("driver"));
         });
       }
+
+
+
+      if(status == "ended")
+      {
+        if((eventSnapshot.snapshot.value as Map)["fareAmount"] != null)
+        {
+          double fareAmount = double.parse((eventSnapshot.snapshot.value as Map)["fareAmount"].toString());
+
+//if user click paid in payment_dialog.dart, it will go here
+          var responseFromPaymentDialog = await showDialog(
+              context: context,
+              builder: (BuildContext context) => PaymentDialog(fareAmount: fareAmount.toString()),
+          );
+
+          if(responseFromPaymentDialog == "paid")
+          {
+            tripRequestRef!.onDisconnect();
+            tripRequestRef = null;
+
+            tripStreamSubscription!.cancel();
+            tripStreamSubscription = null;
+
+            resetAppNow();
+
+//ALTERNATIVE FOR THIS GOING TO RESTART APP
+            Restart.restartApp();
+          }
+        }
+      }
+      
+
     });
   }
 
