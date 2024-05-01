@@ -4,44 +4,36 @@ import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/models/address_model.dart';
 import 'package:passenger/models/prediction_model.dart';
-import 'package:passenger/widgets/loading_dialog.dart';
 import 'package:provider/provider.dart';
 
-class PredictionPlaceUI extends StatefulWidget {
-  PredictionModel? predictedPlaceData;
+class PredictionPlaceUI extends StatelessWidget {
+  final PredictionModel? predictedPlaceData;
 
-  PredictionPlaceUI({
-    super.key,
-    this.predictedPlaceData,
-  });
+  const PredictionPlaceUI({
+    Key? key,
+    this.predictedPlaceData, 
+  }) : super(key: key);
 
-  @override
-  State<PredictionPlaceUI> createState() => _PredictionPlaceUIState();
-}
-
-class _PredictionPlaceUIState extends State<PredictionPlaceUI> {
-  ///Place Details - Places API
-  fetchClickedPlaceDetails(String placeID) async
-  {
+  /// Place Details - Places API
+  fetchClickedPlaceDetails(String placeID, BuildContext context) async {
     showDialog(
       barrierDismissible: false,
       context: context,
-      builder: (BuildContext context) => LoadingDialog(messageText: "Getting details..."),
+      builder: (BuildContext context) => CustomLoadingAnimation(),
     );
 
-    String urlPlaceDetailsAPI = "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeID&key=$googleMapKey";
+    String urlPlaceDetailsAPI =
+        "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeID&key=$googleMapKey";
 
     var responseFromPlaceDetailsAPI = await CommonMethods.sendRequestToAPI(urlPlaceDetailsAPI);
 
     Navigator.pop(context);
 
-    if(responseFromPlaceDetailsAPI == "error")
-    {
+    if (responseFromPlaceDetailsAPI == "error") {
       return;
     }
 
-    if(responseFromPlaceDetailsAPI["status"] == "OK")
-    {
+    if (responseFromPlaceDetailsAPI["status"] == "OK") {
       AddressModel dropOffLocation = AddressModel();
 
       dropOffLocation.placeName = responseFromPlaceDetailsAPI["result"]["name"];
@@ -50,69 +42,56 @@ class _PredictionPlaceUIState extends State<PredictionPlaceUI> {
       dropOffLocation.placeID = placeID;
 
       Provider.of<AppInfo>(context, listen: false).updateDropOffLocation(dropOffLocation);
-      
+
       Navigator.pop(context, "placeSelected");
     }
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10), // Add space at the top
-      child: ElevatedButton(
-        onPressed: () {
-          fetchClickedPlaceDetails(widget.predictedPlaceData!.place_id.toString());
+    return Card(
+      elevation: 4,
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: InkWell(
+        onTap: () {
+          fetchClickedPlaceDetails(predictedPlaceData!.place_id.toString(), context);
         },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
+        child: ListTile(
+          leading: Icon(Icons.location_on, color: Color.fromARGB(255, 1, 42, 123)),
+          title: Text(
+            predictedPlaceData!.main_text ?? "Unknown location",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+            predictedPlaceData!.secondary_text ?? "No details",
+            style: TextStyle(color: Colors.grey),
+          ),
         ),
-        child: SizedBox(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.share_location,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(
-                    width: 13,
-                  ),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.predictedPlaceData!.main_text.toString(),
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 3,
-                        ),
-                        Text(
-                          widget.predictedPlaceData!.secondary_text.toString(),
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-            ],
+      ),
+    );
+  }
+}
+
+// Custom loading animation widget
+class CustomLoadingAnimation extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 50,
+            height: 50,
+            child: CircularProgressIndicator(
+              strokeWidth: 4,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
           ),
         ),
       ),

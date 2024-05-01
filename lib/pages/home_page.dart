@@ -24,6 +24,8 @@ import 'package:provider/provider.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:restart_app/restart_app.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:passenger/widgets/prediction_place_ui.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -61,9 +63,9 @@ class _HomePageState extends State<HomePage> {
   makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
       ImageConfiguration configuration =
-          createLocalImageConfiguration(context, size: Size(0.5, 0.5));
+          createLocalImageConfiguration(context, size: const Size(0.1, 0.1));
       BitmapDescriptor.fromAssetImage(
-              configuration, "assets/images/tracking.png")
+              configuration, "assets/images/pin4.png")
           .then((iconImage) {
         carIconNearbyDriver = iconImage;
       });
@@ -170,8 +172,7 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       barrierDismissible: false,
       context: context,
-      builder: (BuildContext context) =>
-          LoadingDialog(messageText: "Getting direction..."),
+     builder: (BuildContext context) => CustomLoadingAnimation(),
     );
 
     ///Directions API
@@ -313,7 +314,7 @@ class _HomePageState extends State<HomePage> {
       isDrawerOpened = true;
     });
 
-    Restart.restartApp();
+    // Restart.restartApp();
   }
 
   cancelRideRequest() {
@@ -905,7 +906,7 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
                     BoxShadow(
-                      color: Colors.black26,
+                      color: Color.fromARGB(255, 255, 255, 255),
                       blurRadius: 5,
                       spreadRadius: 0.5,
                       offset: Offset(0.7, 0.7),
@@ -923,349 +924,104 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-
           ///search location icon button
           Positioned(
             left: 0,
             right: 0,
             bottom: -80,
-            child: Container(
-              height: searchContainerHeight,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  // Blue Background
-                  Container(
-                    width: MediaQuery.of(context).size.width *
-                        0.85, // 95% of screen width
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2E3192), // Blue background color
-                      borderRadius: BorderRadius.circular(8), // Rounded corners
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          // White Container
-                          Container(
-                            width: MediaQuery.of(context).size.width *
-                                0.8, // 85% of screen width
-                            decoration: BoxDecoration(
-                              color: Colors.white, // White background color
-                              borderRadius:
-                                  BorderRadius.circular(8), // Rounded corners
-                            ),
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                var responseFromSearchPage =
-                                    await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (c) =>
-                                                SearchDestinationPage()));
+            child: GestureDetector(
+              onTap: () async {
+                var responseFromSearchPage = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => SearchDestinationPage()),
+                );
 
-                                if (responseFromSearchPage == "placeSelected") {
-                                  // Once a place is selected, display user ride details container
-                                  displayUserRideDetailsContainer();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors
-                                    .transparent, // Transparent background
-                                elevation: 0, // No shadow
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      8), // Rounded corners
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  // Search Icon
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Icon(
-                                      Icons.search, // Search icon
-                                      color: Colors.grey, // Grey color
-                                      size: 25,
-                                    ),
-                                  ),
-                                  // Hint Text
-                                  Text(
-                                    'Where do you want to go', // Hint text
-                                    style: TextStyle(
-                                      color: Colors.grey, // Grey color
-                                      fontSize:
-                                          16, // Adjust font size as needed
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-//WHOLE BOX CONFIRMATION BOOKING IN MAP
-//RIDE DETAILS CONTAINER W/ CONFIRM BOOKING
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: rideDetailsContainerHeight,
-              decoration: const BoxDecoration(
-                color: Colors.white, // Set background color to white
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(0), topRight: Radius.circular(0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color.fromARGB(31, 130, 91, 91),
-                    blurRadius: 15.0,
-                    spreadRadius: 0.5,
-                    offset: Offset(0.7, 0.7),
-                  ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            "assets/images/LOGO.png",
-                            height: 35,
-                            width: 35,
-                          ),
-                          const SizedBox(width: 8), // Added for spacing
-                          const Text(
-                            'Ride Now',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Icon(Icons
-                              .arrow_forward), // Icon indicating that clicking will lead to another page
-                        ],
-                      ),
-                      SizedBox(height: 0), // Added for spacing
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Card(
-                          elevation: 10,
-                          child: Container(
-                            width: MediaQuery.of(context).size.width *
-                                0.90, // Adjusted width for better visibility
-                            color: Colors
-                                .white, // Adjusted for consistency with background
-                            child: Padding(
-                              padding: const EdgeInsets.all(
-                                  16), // Increased padding for better layout
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        "Total Distance:",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        tripDirectionDetailsInfo
-                                                ?.distanceTextString ??
-                                            "",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8), // Added for spacing
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        "Estimated Travel Time:",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        tripDirectionDetailsInfo
-                                                ?.durationTextString ??
-                                            "",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8), // Added for spacing
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        "Total Fare:",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        tripDirectionDetailsInfo != null
-                                            ? "\PHP ${cMethods.calculateFareAmount(tripDirectionDetailsInfo!).toString()}"
-                                            : "",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-// CONFIRM BOOKING BUTTON
-                      Container(
-                        width: MediaQuery.of(context).size.width,
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10), // Adjusted margin for better spacing
+                if (responseFromSearchPage == "placeSelected") {
+                  // Once a place is selected, display user ride details container
+                  displayUserRideDetailsContainer();
+                }
+              },
+              child: Container(
+                height: searchContainerHeight,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 20),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
+                          color: Color.fromARGB(255, 1, 42, 123),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: Offset(0, 7),
+                            ),
+                          ],
                         ),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // ADD SETSTATE HERE for Confirm Booking Button
-                            setState(() {
-                              stateOfApp = "requesting";
-                            });
-
-                            displayRequestContainer();
-                            // get nearest avalable online drivers
-                            availableNearbyOnlineDriversList =
-                                ManageDriversMethods.nearbyOnlineDriversList;
-
-                            //search driver
-                            searchDriver();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            backgroundColor: const Color(
-                                0xFF2E3192), // Use the color from your reusable widget
-                          ),
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Text(
-                                'Confirm Booking', // Custom text for the booking action
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                            children: [
+                              Icon(
+                                Icons.search,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Where do you want to go?',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                  ),
                                 ),
+                              ),
+                              SizedBox(width: 10),
+                              Icon(
+                                Icons.arrow_forward,
+                                color: Colors.white,
+                                size: 30,
                               ),
                             ],
                           ),
                         ),
                       ),
-//SizedBox(height: 100), // Add extra space for scrolling
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-//REQUEST RIDE CONTAINER
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: requestContainerHeight,
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 15.0,
-                    spreadRadius: 0.5,
-                    offset: Offset(
-                      0.7,
-                      0.7,
                     ),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      height: 12,
-                    ),
-                    SizedBox(
-                      width: 200,
-                      child: LoadingAnimationWidget.flickr(
-                        leftDotColor: Colors.greenAccent,
-                        rightDotColor: Colors.pinkAccent,
-                        size: 50,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        resetAppNow();
-                        cancelRideRequest();
-                      },
-                      child: Container(
-                        height: 50,
-                        width: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.white70,
-                          borderRadius: BorderRadius.circular(25),
-                          border: Border.all(width: 1.5, color: Colors.grey),
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.black,
-                          size: 25,
-                        ),
+                    SizedBox(height: 20), // Add spacing between search container and recent locations
+                    // Recent Locations section
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Recent Locations',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          Container(
+                            height: 150, // Set the height as per your requirement
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.5),
+                                  spreadRadius: 2,
+                                  blurRadius: 5,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            /*child:  Your UI for recent locations goes here */
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1274,179 +1030,487 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          ///trip details container
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: tripContainerHeight,
-              decoration: const BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
+
+//WHOLE BOX CONFIRMATION BOOKING IN MAP
+//RIDE DETAILS CONTAINER W/ CONFIRM BOOKING
+Positioned(
+  left: 0,
+  right: 0,
+  bottom: 0,
+  child: Container(
+    height: rideDetailsContainerHeight,
+    decoration: const BoxDecoration(
+      color: Colors.white, // Set background color to white
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(25),
+        topRight: Radius.circular(25),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Color.fromARGB(31, 130, 91, 91),
+          blurRadius: 15.0,
+          spreadRadius: 0.5,
+          offset: Offset(0.7, 0.7),
+        ),
+      ],
+    ),
+    child: SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  "assets/images/LOGO.png",
+                  height: 35,
+                  width: 35,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white24,
-                    blurRadius: 15.0,
-                    spreadRadius: 0.5,
-                    offset: Offset(
-                      0.7,
-                      0.7,
-                    ),
+                const SizedBox(width: 8), // Added for spacing
+                const Text(
+                  'Ride Now',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                // Wrap with SingleChildScrollView
-                padding: EdgeInsets.only(bottom: 70), // Adjust bottom padding
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(
-                        height: 5,
-                      ),
-                      //trip status display text
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            tripStatusDisplay,
-                            style: const TextStyle(
-                              fontSize: 19,
-                              color: Colors.grey,
+                ),
+                Icon(Icons.arrow_forward), // Icon indicating that clicking will lead to another page
+              ],
+            ),
+            SizedBox(height: 16), // Added for spacing
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Card(
+                elevation: 10,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.90, // Adjusted width for better visibility
+                  color: Colors.white, // Adjusted for consistency with background
+                  child: Padding(
+                    padding: const EdgeInsets.all(16), // Increased padding for better layout
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Total Distance:",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 19,
-                      ),
-                      const Divider(
-                        height: 1,
-                        color: Colors.white70,
-                        thickness: 1,
-                      ),
-                      const SizedBox(
-                        height: 19,
-                      ),
-                      //image - driver name and driver car details
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          ClipOval(
-                            child: Image.network(
-                              photoDriver == ''
-                                  ? "https://firebasestorage.googleapis.com/v0/b/flutter-uber-clone-with-admin.appspot.com/o/avatarman.png?alt=media&token=7a04943c-a566-45d3-b820-d33da3b105c7"
-                                  : photoDriver,
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
+                            Text(
+                              tripDirectionDetailsInfo?.distanceTextString ?? "",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                          const SizedBox(
-                            width: 8,
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                firstName,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey,
-                                ),
+                          ],
+                        ),
+                        SizedBox(height: 8), // Added for spacing
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Estimated Travel Time:",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
                               ),
-                              Text(
-                                lastName,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey,
-                                ),
+                            ),
+                            Text(
+                              tripDirectionDetailsInfo?.durationTextString ?? "",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black,
                               ),
-                              Text(
-                                idNumber,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey,
-                                ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8), // Added for spacing
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Total Fare:",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
                               ),
-                              Text(
-                                bodyNumber,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey,
-                                ),
+                            ),
+                            Text(
+                              tripDirectionDetailsInfo != null ? "\PHP ${cMethods.calculateFareAmount(tripDirectionDetailsInfo!).toString()}" : "",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black,
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 19,
-                      ),
-                      const Divider(
-                        height: 1,
-                        color: Colors.white70,
-                        thickness: 1,
-                      ),
-                      const SizedBox(
-                        height: 19,
-                      ),
-                      //call driver btn
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              launchUrl(Uri.parse("tel://$phoneNumberDriver"));
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16), // Added for spacing
+                        Divider(), // Divider line
+                        SizedBox(height: 16), // Added for spacing
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  height: 50,
-                                  width: 50,
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.all(
-                                        Radius.circular(25)),
-                                    border: Border.all(
-                                      width: 1,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.phone,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(
-                                  height: 11,
-                                ),
-                                const Text(
-                                  "Call",
+                                Text(
+                                  "Do you want to share your ride?",
                                   style: TextStyle(
-                                    color: Colors.grey,
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  "Driver can accept other \npassengers within the route \nto the destination",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Switch(
+                              value: true, // Set the initial value of the switch
+                              onChanged: (bool newValue) {
+                                // Add functionality here
+                              },
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16), // Added for spacing
+                        // CONFIRM BOOKING BUTTON
+                        Container(
+                          width: MediaQuery.of(context).size.width,
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10), // Adjusted margin for better spacing
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // ADD SETSTATE HERE for Confirm Booking Button
+                              setState(() {
+                                stateOfApp = "requesting";
+                              });
+
+                              displayRequestContainer();
+                              // get nearest avalable online drivers
+                              availableNearbyOnlineDriversList =
+                                  ManageDriversMethods.nearbyOnlineDriversList;
+
+                              //search driver
+                              searchDriver();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              backgroundColor: const Color(
+                                  0xFF2E3192), // Use the color from your reusable widget
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Text(
+                                  'Confirm Booking', // Custom text for the booking action
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    ),
+  ),
+),
+
+//REQUEST RIDE CONTAINER
+Positioned(
+  left: 0,
+  right: 0,
+  bottom: 0,
+  child: Container(
+    height: requestContainerHeight,
+    decoration: BoxDecoration(
+      color: const Color.fromARGB(137, 255, 255, 255),
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(16),
+        topRight: Radius.circular(16),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Color.fromARGB(118, 255, 255, 255),
+          blurRadius: 15.0,
+          spreadRadius: 0.5,
+          offset: Offset(
+            0.7,
+            0.7,
           ),
+        ),
+      ],
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 100,
+            height: 100,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Color.fromARGB(255, 1, 42, 123),
+                      width: 2,
+                    ),
+                  ),
+                ),
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: 1),
+                  duration: Duration(seconds: 1),
+                  builder: (context, value, child) {
+                    return Container(
+                      width: 80 * value,
+                      height: 80 * value,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Color.fromARGB(255, 1, 42, 123).withOpacity(0.4),
+                          width: 2,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 255, 255, 255),
+                      width: 8,
+                    ),
+                  ),
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 18, 0, 88)),
+                    strokeWidth: 3,
+                    value: null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 20),
+          GestureDetector(
+            onTap: () {
+              displayUserRideDetailsContainer();
+              resetAppNow();
+              cancelRideRequest();
+            },
+            child: Container(
+              height: 50,
+              width: 50,
+              decoration: BoxDecoration(
+                color: Colors.white70,
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(width: 1.5, color: Colors.grey),
+              ),
+              child: Icon(
+                Icons.close,
+                color: Colors.black,
+                size: 25,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+),
+
+
+
+
+          ///trip details container
+Positioned(
+  left: 0,
+  right: 0,
+  bottom: 0,
+  child: Container(
+    height: tripContainerHeight,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(16),
+        topRight: Radius.circular(16),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.5),
+          spreadRadius: 2,
+          blurRadius: 7,
+          offset: Offset(0, 3),
+        ),
+      ],
+    ),
+    child: SingleChildScrollView(
+      padding: EdgeInsets.only(bottom: 30),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(
+              height: 20,
+            ),
+            // Trip status display text
+            Text(
+              tripStatusDisplay,
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Divider(
+              height: 10,
+              color: Colors.grey[400],
+              thickness: 1,
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            // Image - Driver name and car details
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color.fromARGB(255, 255, 255, 255)),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(
+                      photoDriver == ''
+                          ? "https://firebasestorage.googleapis.com/v0/b/flutter-uber-clone-with-admin.appspot.com/o/avatarman.png?alt=media&token=7a04943c-a566-45d3-b820-d33da3b105c7"
+                          : photoDriver,
+                    ),
+                    radius: 30,
+                  ),
+                  SizedBox(width: 20),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "$firstName $lastName",
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        "ID: $idNumber",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      Text(
+                        "Body Number: $bodyNumber",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            Divider(
+              height: 1,
+              color: Colors.grey[400],
+              thickness: 1,
+            ),
+            const SizedBox(
+              height: 15,
+            ),
+            // Call driver button
+            GestureDetector(
+              onTap: () {
+                launchUrl(Uri.parse("tel://$phoneNumberDriver"));
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 15),
+                decoration: BoxDecoration(
+                  color: Color.fromARGB(255, 1, 42, 123),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.phone,
+                      color: Colors.white,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Call Driver",
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  ),
+),
+
         ],
       ),
     );

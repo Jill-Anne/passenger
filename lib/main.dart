@@ -7,7 +7,7 @@ import 'package:passenger/firebase_options.dart';
 import 'package:passenger/pages/home_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-
+import 'package:animated_splash_screen/animated_splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,18 +15,14 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  await Permission.locationWhenInUse.isDenied.then((valueOfPermission)
-  {
-    if(valueOfPermission)
-    {
+  await Permission.locationWhenInUse.isDenied.then((valueOfPermission) {
+    if (valueOfPermission) {
       Permission.locationWhenInUse.request();
     }
   });
 
-  await Permission.notification.isDenied.then((valueOfPermission)
-  {
-    if(valueOfPermission)
-    {
+  await Permission.notification.isDenied.then((valueOfPermission) {
+    if (valueOfPermission) {
       Permission.notification.request();
     }
   });
@@ -35,9 +31,8 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -49,9 +44,16 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: FirebaseAuth.instance.currentUser == null ? LoginScreen() : HomePage(),
+        home: AnimatedSplashScreen(
+          duration: 4000, // Adjust the duration as needed
+          splash: 'assets/images/splash_logo.png', // Path to your splash screen image
+          nextScreen: FirebaseAuth.instance.currentUser == null
+              ? LoginScreen()
+              : HomePage(),
+          splashTransition: SplashTransition.fadeTransition,
+          backgroundColor: const Color.fromARGB(255, 255, 255, 255), // Set your background color to match your splash logo
+        ),
       ),
     );
   }
 }
-
