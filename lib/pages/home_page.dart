@@ -16,6 +16,7 @@ import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/methods/manage_drivers_methods.dart';
 import 'package:passenger/methods/push_notification_service.dart';
 import 'package:passenger/models/direction_details.dart';
+import 'package:passenger/pages/booking_screen.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/search_destination _page.dart';
 import 'package:passenger/pages/trips_history.dart';
@@ -64,18 +65,14 @@ class _HomePageState extends State<HomePage> {
 
   late DateTime _startDate;
   late DateTime _endDate;
-TimeOfDay? _selectedTime;
-
+  TimeOfDay? _selectedTime;
 
 // Inside the function where you're setting _selectedTime, for example:
-void _onTimeSelected(TimeOfDay selectedTime) {
-  setState(() {
-    _selectedTime = selectedTime;
-  });
-}
-
-
-
+  void _onTimeSelected(TimeOfDay selectedTime) {
+    setState(() {
+      _selectedTime = selectedTime;
+    });
+  }
 
   makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
@@ -440,61 +437,61 @@ void _onTimeSelected(TimeOfDay selectedTime) {
     });
   }
 
+  makeTripRequest() {
+    tripRequestRef =
+        FirebaseDatabase.instance.ref().child("tripRequests").push();
 
- makeTripRequest() {
-tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
+    var pickUpLocation =
+        Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+    var dropOffDestinationLocation =
+        Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-  var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-  var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+    Map pickUpCoOrdinatesMap = {
+      "latitude": pickUpLocation!.latitudePosition.toString(),
+      "longitude": pickUpLocation.longitudePosition.toString(),
+    };
 
-  Map pickUpCoOrdinatesMap = {
-    "latitude": pickUpLocation!.latitudePosition.toString(),
-    "longitude": pickUpLocation.longitudePosition.toString(),
-  };
+    Map dropOffDestinationCoOrdinatesMap = {
+      "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
+      "longitude": dropOffDestinationLocation.longitudePosition.toString(),
+    };
 
-  Map dropOffDestinationCoOrdinatesMap = {
-    "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
-    "longitude": dropOffDestinationLocation.longitudePosition.toString(),
-  };
+    Map driverCoOrdinates = {
+      "latitude": "",
+      "longitude": "",
+    };
 
-  Map driverCoOrdinates = {
-    "latitude": "",
-    "longitude": "",
-  };
+    var tripData = Provider.of<TripData>(context, listen: false);
 
-  var tripData = Provider.of<TripData>(context, listen: false);
+Map dataMap = {
+  "tripID": tripRequestRef!.key,
+  "publishDateTime": DateTime.now().toString(),
+  "userName": userName,
+  "userPhone": userPhone,
+  "userID": userID,
+  "pickUpLatLng": pickUpCoOrdinatesMap,
+  "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
+  "pickUpAddress": pickUpLocation.placeName,
+  "dropOffAddress": dropOffDestinationLocation.placeName,
+  "driverID": "waiting",
+  "driverLocation": driverCoOrdinates,
+  "driverName": "",
+  "driverPhone": "",
+  "driverPhoto": "",
+  "fareAmount": "",
+  "status": "new",
+  "firstName": "",
+  "lastName": "",
+  "idNumber": "",
+  "bodyNumber": "",
 
-  Map dataMap = {
-    "tripID": tripRequestRef!.key,
-    "publishDateTime": DateTime.now().toString(),
-    "userName": userName,
-    "userPhone": userPhone,
-    "userID": userID,
-    "pickUpLatLng": pickUpCoOrdinatesMap,
-    "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
-    "pickUpAddress": pickUpLocation.placeName,
-    "dropOffAddress": dropOffDestinationLocation.placeName,
-    "driverID": "waiting",
-    "carDetails": "",
-    "driverLocation": driverCoOrdinates,
-    "driverName": "",
-    "driverPhone": "",
-    "driverPhoto": "",
-    "fareAmount": "",
-    "status": "new",
-    "firstName": "",
-    "lastName": "",
-    "idNumber": "",
-    "bodyNumber": "",
-    
-    // Additional details from confirmation dialog
-    "tripStartDate": tripData.startDate.toString(),
-    "tripEndDate": tripData.endDate.toString(),
-    "tripTime": tripData.selectedTime.format(context),
-  };
-
-  // Debug: Print the dataMap
-  print('Data Map: $dataMap');
+  // Additional details from confirmation dialog
+  "tripStartDate": tripData.startDate.toString(),
+  "tripEndDate": tripData.endDate.toString(),
+  "tripTime": tripData.selectedTime.format(context),
+};
+    // Debug: Print the dataMap
+    print('Data Map: $dataMap');
     print("Drop-off address: ${dataMap["dropOffAddress"]}");
 
     tripRequestRef!.set(dataMap).then((_) {
@@ -582,22 +579,19 @@ tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
         });
       }
 
-
-
-      if(status == "ended")
-      {
-        if((eventSnapshot.snapshot.value as Map)["fareAmount"] != null)
-        {
-          double fareAmount = double.parse((eventSnapshot.snapshot.value as Map)["fareAmount"].toString());
+      if (status == "ended") {
+        if ((eventSnapshot.snapshot.value as Map)["fareAmount"] != null) {
+          double fareAmount = double.parse(
+              (eventSnapshot.snapshot.value as Map)["fareAmount"].toString());
 
 //if user click paid in payment_dialog.dart, it will go here
           var responseFromPaymentDialog = await showDialog(
-              context: context,
-              builder: (BuildContext context) => PaymentDialog(fareAmount: fareAmount.toString()),
+            context: context,
+            builder: (BuildContext context) =>
+                PaymentDialog(fareAmount: fareAmount.toString()),
           );
 
-          if(responseFromPaymentDialog == "paid")
-          {
+          if (responseFromPaymentDialog == "paid") {
             tripRequestRef!.onDisconnect();
             tripRequestRef = null;
 
@@ -611,8 +605,6 @@ tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
           }
         }
       }
-      
-
     });
   }
 
@@ -675,34 +667,36 @@ tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
     }
   }
 
-void noDriverAvailable() async {
-  var result = await showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) => AlertDialog(
-      title: Text("No Driver Available"),
-      content: Text(
-          "No driver found in the nearby location. Do you want to try again?"),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context, false); // return false to indicate user doesn't want to reset
-          },
-          child: Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(
-                context, true); // return true to indicate user wants to reset
-          },
-          child: Text('Reset'),
-        ),
-      ],
-    ),
-  );
+  void noDriverAvailable() async {
+    var result = await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text("No Driver Available"),
+        content: Text(
+            "No driver found in the nearby location. Do you want to try again?"),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context,
+                  false); // return false to indicate user doesn't want to reset
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(
+                  context, true); // return true to indicate user wants to reset
+            },
+            child: Text('Reset'),
+          ),
+        ],
+      ),
+    );
 
-  print("No driver available dialog result: $result");
-}
+    print("No driver available dialog result: $result");
+  }
+
   searchDriver() {
     if (availableNearbyOnlineDriversList!.isEmpty) {
       cancelRideRequest();
@@ -713,89 +707,96 @@ void noDriverAvailable() async {
     var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
     sendNotificationToDriver(currentDriver);
   }
-void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
-  print('sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
-  if (tripRequestRef == null) {
-    print('Trip request reference is null');
-    return;
-  }
 
-  DatabaseReference currentDriverRef = FirebaseDatabase.instance
-      .ref()
-      .child("driversAccount")
-      .child(currentDriver.uidDriver.toString())
-      .child("newTripStatus");
-
-  currentDriverRef.set(tripRequestRef!.key).then((_) {
-    print('newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
-  }).catchError((error) {
-    print('Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
-  });
-
-  // Get current driver device recognition token
-  DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
-      .ref()
-      .child("driversAccount")
-      .child(currentDriver.uidDriver.toString())
-      .child("deviceToken");
-
-  tokenOfCurrentDriverRef.once().then((dataSnapshot) {
-    if (dataSnapshot.snapshot.value != null) {
-      String deviceToken = dataSnapshot.snapshot.value.toString();
-      print('Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
-
-      // Send notification
-      PushNotificationService.sendNotificationToSelectedDriver(
-        deviceToken,
-        context,
-        tripRequestRef!.key.toString(),
-      );
-    } else {
-      print('Device token not found for driver UID: ${currentDriver.uidDriver}');
+  void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
+    print(
+        'sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
+    if (tripRequestRef == null) {
+      print('Trip request reference is null');
       return;
     }
-  }).catchError((error) {
-    print('Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
-  });
 
-  const oneTickPerSec = Duration(seconds: 1);
+    DatabaseReference currentDriverRef = FirebaseDatabase.instance
+        .ref()
+        .child("driversAccount")
+        .child(currentDriver.uidDriver.toString())
+        .child("newTripStatus");
 
-  var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
-    requestTimeoutDriver = requestTimeoutDriver - 1;
+    currentDriverRef.set(tripRequestRef!.key).then((_) {
+      print(
+          'newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
+    }).catchError((error) {
+      print(
+          'Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
+    });
 
-    // When trip request is not requesting, means trip request cancelled - stop timer
-    if (stateOfApp != "requesting") {
-      timer.cancel();
-      currentDriverRef.set("cancelled");
-      currentDriverRef.onDisconnect();
-      requestTimeoutDriver = 20;
-      return; // Exit the timer callback function
-    }
+    // Get current driver device recognition token
+    DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
+        .ref()
+        .child("driversAccount")
+        .child(currentDriver.uidDriver.toString())
+        .child("deviceToken");
 
-    // If 20 seconds passed - send notification to next nearest online available driver
-    if (requestTimeoutDriver == 0) {
-      timer.cancel();
-      currentDriverRef.set("timeout");
-      currentDriverRef.onDisconnect();
-      requestTimeoutDriver = 20;
+    tokenOfCurrentDriverRef.once().then((dataSnapshot) {
+      if (dataSnapshot.snapshot.value != null) {
+        String deviceToken = dataSnapshot.snapshot.value.toString();
+        print(
+            'Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
 
-      // Send notification to next nearest online available driver
-      searchDriver();
-      return; // Exit the timer callback function
-    }
-  });
+        // Send notification
+        PushNotificationService.sendNotificationToSelectedDriver(
+          deviceToken,
+          context,
+          
+          tripRequestRef!.key.toString(),
+        );
+      } else {
+        print(
+            'Device token not found for driver UID: ${currentDriver.uidDriver}');
+        return;
+      }
+    }).catchError((error) {
+      print(
+          'Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
+    });
 
-  // Listen for changes in newTripStatus
-  currentDriverRef.onValue.listen((dataSnapshot) {
-    var value = dataSnapshot.snapshot.value;
-    if (value != null && value.toString() == "accepted") {
-      timerCountDown.cancel(); // Cancel the timer when trip is accepted
-      currentDriverRef.onDisconnect(); // Disconnect the reference
-      requestTimeoutDriver = 20; // Reset request timeout
-    }
-  });
-}
+    const oneTickPerSec = Duration(seconds: 1);
 
+    var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
+      requestTimeoutDriver = requestTimeoutDriver - 1;
+
+      // When trip request is not requesting, means trip request cancelled - stop timer
+      if (stateOfApp != "requesting") {
+        timer.cancel();
+        currentDriverRef.set("cancelled");
+        currentDriverRef.onDisconnect();
+        requestTimeoutDriver = 20;
+        return; // Exit the timer callback function
+      }
+
+      // If 20 seconds passed - send notification to next nearest online available driver
+      if (requestTimeoutDriver == 0) {
+        timer.cancel();
+        currentDriverRef.set("timeout");
+        currentDriverRef.onDisconnect();
+        requestTimeoutDriver = 20;
+
+        // Send notification to next nearest online available driver
+        searchDriver();
+        return; // Exit the timer callback function
+      }
+    });
+
+    // Listen for changes in newTripStatus
+    currentDriverRef.onValue.listen((dataSnapshot) {
+      var value = dataSnapshot.snapshot.value;
+      if (value != null && value.toString() == "accepted") {
+        timerCountDown.cancel(); // Cancel the timer when trip is accepted
+        currentDriverRef.onDisconnect(); // Disconnect the reference
+        requestTimeoutDriver = 20; // Reset request timeout
+      }
+    });
+  }
 
 // Build the UI of the home page
   @override
@@ -872,20 +873,44 @@ void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
               ),
 
 //body
- 
-
 
               GestureDetector(
-                onTap: ()
-                {
-                  Navigator.push(context, MaterialPageRoute(builder: (c)=> TripsHistoryPage()));
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (c) => AdvanceBooking()));
                 },
                 child: ListTile(
                   leading: IconButton(
                     onPressed: () {},
-                    icon: const Icon(Icons.history, color: Colors.grey,),
+                    icon: const Icon(
+                      Icons.calendar_month,
+                      color: Colors.grey,
+                    ),
                   ),
-                  title: const Text("History", style: TextStyle(color: Colors.grey),),
+                  title: const Text(
+                    "Advance Booking",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ),
+
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (c) => TripsHistoryPage()));
+                },
+                child: ListTile(
+                  leading: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.history,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  title: const Text(
+                    "History",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
               ),
 
@@ -1066,204 +1091,204 @@ void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
 
 //WHOLE BOX CONFIRMATION BOOKING IN MAP
 //RIDE DETAILS CONTAINER W/ CONFIRM BOOKING
- Positioned(
-  left: 0,
-  right: 0,
-  bottom: 0,
-  child: GestureDetector(
-    onTap: () {
-      DialogUtils.showRideOptionsDialog(context);
-    },
-            child: Container(
-              height: rideDetailsContainerHeight,
-              decoration: const BoxDecoration(
-                color: Colors.white, // Set background color to white
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(0), topRight: Radius.circular(0)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color.fromARGB(31, 130, 91, 91),
-                    blurRadius: 15.0,
-                    spreadRadius: 0.5,
-                    offset: Offset(0.7, 0.7),
-                  ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            "assets/images/LOGO.png",
-                            height: 35,
-                            width: 35,
-                          ),
-                          const SizedBox(width: 8), // Added for spacing
-                          const Text(
-                            'Ride Now',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: GestureDetector(
+              onTap: () {
+                DialogUtils.showRideOptionsDialog(context);
+              },
+              child: Container(
+                height: rideDetailsContainerHeight,
+                decoration: const BoxDecoration(
+                  color: Colors.white, // Set background color to white
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(0),
+                      topRight: Radius.circular(0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color.fromARGB(31, 130, 91, 91),
+                      blurRadius: 15.0,
+                      spreadRadius: 0.5,
+                      offset: Offset(0.7, 0.7),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              "assets/images/LOGO.png",
+                              height: 35,
+                              width: 35,
                             ),
-                          ),
-                          Icon(Icons
-                              .arrow_forward), // Icon indicating that clicking will lead to another page
-                        ],
-                      ),
-                      SizedBox(height: 0), // Added for spacing
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Card(
-                          elevation: 10,
-                          child: Container(
-                            width: MediaQuery.of(context).size.width *
-                                0.90, // Adjusted width for better visibility
-                            color: Colors
-                                .white, // Adjusted for consistency with background
-                            child: Padding(
-                              padding: const EdgeInsets.all(
-                                  16), // Increased padding for better layout
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        "Total Distance:",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        tripDirectionDetailsInfo
-                                                ?.distanceTextString ??
-                                            "",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8), // Added for spacing
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        "Estimated Travel Time:",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        tripDirectionDetailsInfo
-                                                ?.durationTextString ??
-                                            "",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8), // Added for spacing
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        "Total Fare:",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        tripDirectionDetailsInfo != null
-                                            ? "\PHP ${cMethods.calculateFareAmount(tripDirectionDetailsInfo!).toString()}"
-                                            : "",
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                            const SizedBox(width: 8), // Added for spacing
+                            const Text(
+                              'Ride Now',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
+                            Icon(Icons
+                                .arrow_forward), // Icon indicating that clicking will lead to another page
+                          ],
                         ),
-                      ),
-
-// CONFIRM BOOKING BUTTON
-                      Container(
-                        width: MediaQuery.of(context).size.width,
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10), // Adjusted margin for better spacing
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // ADD SETSTATE HERE for Confirm Booking Button
-                            setState(() {
-                              stateOfApp = "requesting";
-                            });
-
-                            displayRequestContainer();
-                            // get nearest avalable online drivers
-                            availableNearbyOnlineDriversList =
-                                ManageDriversMethods.nearbyOnlineDriversList;
-
-                            //search driver
-                            searchDriver();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            backgroundColor: const Color(
-                                0xFF2E3192), // Use the color from your reusable widget
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Text(
-                                'Confirm Booking', // Custom text for the booking action
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                        SizedBox(height: 0), // Added for spacing
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Card(
+                            elevation: 10,
+                            child: Container(
+                              width: MediaQuery.of(context).size.width *
+                                  0.90, // Adjusted width for better visibility
+                              color: Colors
+                                  .white, // Adjusted for consistency with background
+                              child: Padding(
+                                padding: const EdgeInsets.all(
+                                    16), // Increased padding for better layout
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          "Total Distance:",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          tripDirectionDetailsInfo
+                                                  ?.distanceTextString ??
+                                              "",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8), // Added for spacing
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          "Estimated Travel Time:",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          tripDirectionDetailsInfo
+                                                  ?.durationTextString ??
+                                              "",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8), // Added for spacing
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          "Total Fare:",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          tripDirectionDetailsInfo != null
+                                              ? "\PHP ${cMethods.calculateFareAmount(tripDirectionDetailsInfo!).toString()}"
+                                              : "",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
+
+// CONFIRM BOOKING BUTTON
+                        Container(
+                          width: MediaQuery.of(context).size.width,
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical:
+                                  10), // Adjusted margin for better spacing
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // ADD SETSTATE HERE for Confirm Booking Button
+                              setState(() {
+                                stateOfApp = "requesting";
+                              });
+
+                              displayRequestContainer();
+                              // get nearest avalable online drivers
+                              availableNearbyOnlineDriversList =
+                                  ManageDriversMethods.nearbyOnlineDriversList;
+
+                              //search driver
+                              searchDriver();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              backgroundColor: const Color(
+                                  0xFF2E3192), // Use the color from your reusable widget
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Text(
+                                  'Confirm Booking', // Custom text for the booking action
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
 //SizedBox(height: 100), // Add extra space for scrolling
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
- ),
 
-
- 
 //REQUEST RIDE CONTAINER
           Positioned(
             left: 0,

@@ -4,6 +4,7 @@ import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:passenger/widgets/state_management.dart';
 import 'package:provider/provider.dart';
 
+
 class DialogUtils {
  
   static late DateTime _startDate;
@@ -297,18 +298,25 @@ static void setDateTimeCallback(void Function(String, String) callback) {
               ),
               ElevatedButton(
                 onPressed: () {
-                  _showConfirmationDialog(
-                    context,
-                    _startDate,
-                    _endDate,
-                    closeTimeSpinnerDialog: true,
-                    resetDatesCallback: () {
-                      _startDate = DateTime.now();
-                      _endDate = DateTime.now();
-                      _dialogCalendarPickerValue = [];
-                    },
-                  );
-                },
+  if (_dialogCalendarPickerValue.isNotEmpty) {
+    _showConfirmationDialog(
+      context,
+      _startDate,
+      _endDate,
+      closeTimeSpinnerDialog: true,
+      resetDatesCallback: () {
+        _startDate = DateTime.now();
+        _endDate = DateTime.now();
+        _dialogCalendarPickerValue = [];
+      },
+    );
+  } else {
+    print("No date selected. Cannot proceed.");
+    // Handle case where user didn't select any date
+    // Maybe show a message to the user?
+  }
+},
+
                 child: Text('BOOK'),
               ),
             ],
