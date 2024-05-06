@@ -5,6 +5,7 @@ import 'package:passenger/global/global_var.dart';
 import 'package:passenger/widgets/state_management.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';  // Include intl package for date formatting
 
 class PushNotificationService {
   static sendNotificationToSelectedDriver(
@@ -13,7 +14,7 @@ class PushNotificationService {
     TripData tripData = Provider.of<TripData>(context, listen: false);
     DateTime? startDate = tripData.startDate;
     DateTime? endDate = tripData.endDate;
-   // Get trip time (if available)
+    // Get trip time (if available)
     String tripTime = tripData.selectedTime.format(context);
     // Get pickup and drop-off addresses
     String dropOffDestinationAddress = Provider.of<AppInfo>(context, listen: false).dropOffLocation?.placeName ?? "Unknown Drop-off";
@@ -29,7 +30,7 @@ class PushNotificationService {
     if (hasDates) {
       titleBodyNotificationMap = {
         "title": "ADVANCE TRIP REQUEST from $userName",
-        "body": "PickUp Location: $pickUpAddress \nDropOff Location: $dropOffDestinationAddress \nStart Date: ${startDate.toString()} \nEnd Date: ${endDate.toString()} \nTrip Time: $tripTime",
+        "body": "PickUp Location: $pickUpAddress \nDropOff Location: $dropOffDestinationAddress \nStart Date: ${DateFormat('MMM d, yyyy').format(startDate!)} \nEnd Date: ${DateFormat('MMM d, yyyy').format(endDate!)} \nTrip Time: $tripTime",
       };
       
       dataMapNotification = {
@@ -37,8 +38,8 @@ class PushNotificationService {
         "id": "1",
         "status": "done",
         "tripID": tripID,
-        "tripStartDate": startDate.toString(),
-        "tripEndDate": endDate.toString(),
+        "tripStartDate": DateFormat('MMM d, yyyy').format(startDate),
+        "tripEndDate": DateFormat('MMM d, yyyy').format(endDate),
       };
     } else {
       titleBodyNotificationMap = {

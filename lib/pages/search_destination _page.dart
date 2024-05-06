@@ -44,11 +44,7 @@ class SearchDestinationPageState extends State<SearchDestinationPage> {
       TextEditingController();
   List<PredictionModel> dropOffPredictionsPlacesList = [];
   String? selectedDropOffLocation;
-  late List<DateTime?> _dialogCalendarPickerValue;
-  late DateTime _startDate;
-  late DateTime _endDate;
-  late TimeOfDay _selectedTime;
-  
+
 
   ///Places API - Place AutoComplete
   searchLocation(String locationName) async {
@@ -89,10 +85,7 @@ class SearchDestinationPageState extends State<SearchDestinationPage> {
   @override
   void initState() {
     super.initState();
-    _dialogCalendarPickerValue = [];
-    _startDate = DateTime.now();
-    _endDate = DateTime.now();
-    _selectedTime = TimeOfDay.now();
+  
     // Automatically show the ride options dialog when the page is loaded
   }
 

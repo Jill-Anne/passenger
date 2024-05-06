@@ -8,6 +8,7 @@ import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/global/global_var.dart';
@@ -462,6 +463,7 @@ class _HomePageState extends State<HomePage> {
     };
 
     var tripData = Provider.of<TripData>(context, listen: false);
+    DateFormat dateFormat = DateFormat('MMM d, yyyy');
 
 Map dataMap = {
   "tripID": tripRequestRef!.key,
@@ -486,13 +488,20 @@ Map dataMap = {
   "bodyNumber": "",
 
   // Additional details from confirmation dialog
-  "tripStartDate": tripData.startDate.toString(),
-  "tripEndDate": tripData.endDate.toString(),
-  "tripTime": tripData.selectedTime.format(context),
+  // Additional details from confirmation dialog
+  // Formatting the date for Firebase, with null checks
+   "tripStartDate": tripData.startDate != null ? DateFormat('MMMM d, yyyy').format(tripData.startDate!) : "Not set",
+  "tripEndDate": tripData.endDate != null ? DateFormat('MMMM d, yyyy').format(tripData.endDate!) : "Not set",
+  "tripTime": tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set",
 };
+print("tripStartDate: ${tripData.startDate != null ? DateFormat('MMM d, yyyy').format(tripData.startDate!) : "Not set"}");
+print("tripEndDate: ${tripData.endDate != null ? DateFormat('MMM d, yyyy').format(tripData.endDate!) : "Not set"}");
+print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set"}");
+
+
     // Debug: Print the dataMap
     print('Data Map: $dataMap');
-    print("Drop-off address: ${dataMap["dropOffAddress"]}");
+    
 
     tripRequestRef!.set(dataMap).then((_) {
       print('Trip request created successfully!');
