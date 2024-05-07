@@ -142,12 +142,7 @@ static void setDateTimeCallback(void Function(String, String) callback) {
               children: <Widget>[
                 GestureDetector(
                   onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return buildCalendarDialogButton(context);
-                      },
-                    );
+                
                   },
                   child: Container(
                     width: 200,
@@ -178,8 +173,13 @@ static void setDateTimeCallback(void Function(String, String) callback) {
                 ),
                 SizedBox(height: 20),
                 GestureDetector(
-                  onTap: () {
-                    // Handle advance booking
+                    onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return buildCalendarDialogButton(context);
+                      },
+                    );
                   },
                   child: Container(
                     width: 200,
