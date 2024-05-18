@@ -64,26 +64,27 @@ class _HomePageState extends State<HomePage> {
   StreamSubscription<DatabaseEvent>? tripStreamSubscription;
   bool requestingDirectionDetailsInfo = false;
 
+  Marker? driverMarker;
+  LatLng? driverCurrentLocationLatLng;
+
   late DateTime _startDate;
   late DateTime _endDate;
   TimeOfDay? _selectedTime;
 
-// Inside the function where you're setting _selectedTime, for example:
-  void _onTimeSelected(TimeOfDay selectedTime) {
-    setState(() {
-      _selectedTime = selectedTime;
-    });
-  }
-
-  makeDriverNearbyCarIcon() {
+  void makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
       ImageConfiguration configuration =
-          createLocalImageConfiguration(context, size: Size(0.5, 0.5));
+          createLocalImageConfiguration(context, size: const Size(0.5, 0.5));
       BitmapDescriptor.fromAssetImage(
               configuration, "assets/images/tracking.png")
           .then((iconImage) {
-        carIconNearbyDriver = iconImage;
+        setState(() {
+          carIconNearbyDriver = iconImage;
+        });
+        debugPrint("Icon loaded: $carIconNearbyDriver");
       });
+    } else {
+      debugPrint("Icon already loaded: $carIconNearbyDriver");
     }
   }
 
@@ -349,7 +350,6 @@ class _HomePageState extends State<HomePage> {
       bottomMapPadding = 200;
       isDrawerOpened = true;
     });
-
 //send ride request
     makeTripRequest();
   }
@@ -465,43 +465,50 @@ class _HomePageState extends State<HomePage> {
     var tripData = Provider.of<TripData>(context, listen: false);
     DateFormat dateFormat = DateFormat('MMM d, yyyy');
 
-Map dataMap = {
-  "tripID": tripRequestRef!.key,
-  "publishDateTime": DateTime.now().toString(),
-  "userName": userName,
-  "userPhone": userPhone,
-  "userID": userID,
-  "pickUpLatLng": pickUpCoOrdinatesMap,
-  "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
-  "pickUpAddress": pickUpLocation.placeName,
-  "dropOffAddress": dropOffDestinationLocation.placeName,
-  "driverID": "waiting",
-  "driverLocation": driverCoOrdinates,
-  "driverName": "",
-  "driverPhone": "",
-  "driverPhoto": "",
-  "fareAmount": "",
-  "status": "new",
-  "firstName": "",
-  "lastName": "",
-  "idNumber": "",
-  "bodyNumber": "",
+    Map dataMap = {
+      "tripID": tripRequestRef!.key,
+      "publishDateTime": DateTime.now().toString(),
+      "userName": userName,
+      "userPhone": userPhone,
+      "userID": userID,
+      "pickUpLatLng": pickUpCoOrdinatesMap,
+      "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
+      "pickUpAddress": pickUpLocation.placeName,
+      "dropOffAddress": dropOffDestinationLocation.placeName,
+      "driverID": "waiting",
+      "driverLocation": driverCoOrdinates,
+      "driverName": "",
+      "driverPhone": "",
+      "driverPhoto": "",
+      "fareAmount": "",
+      "status": "new",
+      "firstName": "",
+      "lastName": "",
+      "idNumber": "",
+      "bodyNumber": "",
 
-  // Additional details from confirmation dialog
-  // Additional details from confirmation dialog
-  // Formatting the date for Firebase, with null checks
-   "tripStartDate": tripData.startDate != null ? DateFormat('MMMM d, yyyy').format(tripData.startDate!) : "Not set",
-  "tripEndDate": tripData.endDate != null ? DateFormat('MMMM d, yyyy').format(tripData.endDate!) : "Not set",
-  "tripTime": tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set",
-};
-print("tripStartDate: ${tripData.startDate != null ? DateFormat('MMM d, yyyy').format(tripData.startDate!) : "Not set"}");
-print("tripEndDate: ${tripData.endDate != null ? DateFormat('MMM d, yyyy').format(tripData.endDate!) : "Not set"}");
-print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set"}");
-
+      // Additional details from confirmation dialog
+      // Additional details from confirmation dialog
+      // Formatting the date for Firebase, with null checks
+      "tripStartDate": tripData.startDate != null
+          ? DateFormat('MMMM d, yyyy').format(tripData.startDate!)
+          : "Not set",
+      "tripEndDate": tripData.endDate != null
+          ? DateFormat('MMMM d, yyyy').format(tripData.endDate!)
+          : "Not set",
+      "tripTime": tripData.selectedTime != null
+          ? tripData.selectedTime.format(context)
+          : "Not set",
+    };
+    print(
+        "tripStartDate: ${tripData.startDate != null ? DateFormat('MMM d, yyyy').format(tripData.startDate!) : "Not set"}");
+    print(
+        "tripEndDate: ${tripData.endDate != null ? DateFormat('MMM d, yyyy').format(tripData.endDate!) : "Not set"}");
+    print(
+        "tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set"}");
 
     // Debug: Print the dataMap
     print('Data Map: $dataMap');
-    
 
     tripRequestRef!.set(dataMap).then((_) {
       print('Trip request created successfully!');
@@ -625,7 +632,8 @@ print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(
     });
   }
 
-  updateFromDriverCurrentLocationToPickUp(driverCurrentLocationLatLng) async {
+  updateFromDriverCurrentLocationToPickUp(
+      LatLng driverCurrentLocationLatLng) async {
     if (!requestingDirectionDetailsInfo) {
       requestingDirectionDetailsInfo = true;
 
@@ -637,12 +645,32 @@ print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(
               driverCurrentLocationLatLng, userPickUpLocationLatLng);
 
       if (directionDetailsPickup == null) {
+        print("Direction details are null");
+        requestingDirectionDetailsInfo = false;
         return;
       }
 
+      print("Driver location: $driverCurrentLocationLatLng");
       setState(() {
         tripStatusDisplay =
             "Driver is Coming - ${directionDetailsPickup.durationTextString}";
+        // Update the driver's marker position directly within the setState
+        markerSet
+            .removeWhere((marker) => marker.markerId.value == "driverMarker");
+        markerSet.add(Marker(
+          markerId: MarkerId("driverMarker"),
+          position: driverCurrentLocationLatLng,
+          icon: carIconNearbyDriver!,
+        ));
+
+        // Update camera position to focus on the driver's location
+        if (controllerGoogleMap != null) {
+          print("Animating camera to: $driverCurrentLocationLatLng");
+          controllerGoogleMap!.animateCamera(
+              CameraUpdate.newLatLng(driverCurrentLocationLatLng));
+        } else {
+          print("Google Map controller is null");
+        }
       });
 
       requestingDirectionDetailsInfo = false;
@@ -756,7 +784,6 @@ print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(
         PushNotificationService.sendNotificationToSelectedDriver(
           deviceToken,
           context,
-          
           tripRequestRef!.key.toString(),
         );
       } else {
@@ -811,6 +838,7 @@ print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(
   @override
   Widget build(BuildContext context) {
     makeDriverNearbyCarIcon();
+
     return Scaffold(
       key: sKey,
       drawer: Container(
