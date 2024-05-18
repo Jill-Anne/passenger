@@ -16,3 +16,9 @@ String bodyNumber = "";
 DateTime? selectedStartDate;
 DateTime? selectedEndDate;
 TimeOfDay? selectedTime;
+
+class UserData {
+  static String name = '';
+  static String phone = '';
+  static String email = '';
+}

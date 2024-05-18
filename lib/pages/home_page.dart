@@ -19,6 +19,7 @@ import 'package:passenger/methods/push_notification_service.dart';
 import 'package:passenger/models/direction_details.dart';
 import 'package:passenger/pages/booking_screen.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
+import 'package:passenger/pages/profile_screen.dart';
 import 'package:passenger/pages/search_destination _page.dart';
 import 'package:passenger/pages/trips_history.dart';
 import 'package:passenger/services/add_advancebooking.dart';
@@ -64,6 +65,7 @@ class _HomePageState extends State<HomePage> {
   List<OnlineNearbyDrivers>? availableNearbyOnlineDriversList;
   StreamSubscription<DatabaseEvent>? tripStreamSubscription;
   bool requestingDirectionDetailsInfo = false;
+  
 
   Marker? driverMarker;
   LatLng? driverCurrentLocationLatLng;
@@ -856,49 +858,60 @@ class _HomePageState extends State<HomePage> {
               ),
 
 //header
-              Container(
-                color: Colors.black54,
-                height: 160,
-                child: DrawerHeader(
-                  decoration: const BoxDecoration(
-                    color: Colors.white10,
-                  ),
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        "assets/images/avatarman.png",
-                        width: 60,
-                        height: 60,
-                      ),
-                      const SizedBox(
-                        width: 16,
-                      ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            userName,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 4,
-                          ),
-                          const Text(
-                            "Profile",
-                            style: TextStyle(
-                              color: Colors.white38,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+Container(
+  color: Colors.black54,
+  height: 160,
+  child: GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfileScreen(),
+        ),
+      );
+    },
+    child: DrawerHeader(
+      decoration: const BoxDecoration(
+        color: Colors.white10,
+      ),
+      child: Row(
+        children: [
+          Image.asset(
+            "assets/images/avatarman.png",
+            width: 60,
+            height: 60,
+          ),
+          const SizedBox(
+            width: 16,
+          ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                UserData.name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+              const SizedBox(
+                height: 4,
+              ),
+              const Text(
+                "Profile",
+                style: TextStyle(
+                  color: Colors.white38,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  ),
+),
+
 
               const Divider(
                 height: 1,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:passenger/authentication/login_screen.dart';
+import 'package:passenger/global/trip_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/methods/reusable_widgets.dart';
 import 'package:passenger/pages/home_page.dart';
@@ -47,30 +48,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  registerNewUser() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) =>
-          LoadingDialog(messageText: "Registering your account..."),
-    );
+registerNewUser() async {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) =>
+        LoadingDialog(messageText: "Registering your account..."),
+  );
 
-    final User? userFirebase = (await FirebaseAuth.instance
-            .createUserWithEmailAndPassword(
-      email: emailTextEditingController.text.trim(),
-      password: passwordTextEditingController.text.trim(),
-    )
-            .catchError((errorMsg) {
-      Navigator.pop(context);
-      cMethods.displaySnackBar(errorMsg.toString(), context);
-    }))
-        .user;
-
-    if (!context.mounted) return;
+  final User? userFirebase = (await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+    email: emailTextEditingController.text.trim(),
+    password: passwordTextEditingController.text.trim(),
+  )
+          .catchError((errorMsg) {
     Navigator.pop(context);
+    cMethods.displaySnackBar(errorMsg.toString(), context);
+  }))
+      .user;
 
+  if (userFirebase != null) {
     DatabaseReference usersRef =
-        FirebaseDatabase.instance.ref().child("users").child(userFirebase!.uid);
+        FirebaseDatabase.instance.ref().child("users").child(userFirebase.uid);
+
     Map userDataMap = {
       "name": userNameTextEditingController.text.trim(),
       "email": emailTextEditingController.text.trim(),
@@ -78,10 +78,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
       "id": userFirebase.uid,
       "blockStatus": "no",
     };
-    usersRef.set(userDataMap); 
+
+    await usersRef.set(userDataMap);
+
+    // Save user details to global variable
+    UserData.name = userNameTextEditingController.text.trim();
+    UserData.phone = userPhoneTextEditingController.text.trim();
+    UserData.email = emailTextEditingController.text.trim();
+
+    if (!context.mounted) return;
 
     Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
+  } else {
+    Navigator.pop(context);
+    cMethods.displaySnackBar("User registration failed. Please try again.", context);
   }
+}
 
   @override
   Widget build(BuildContext context) {
