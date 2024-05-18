@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -50,37 +51,32 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: StreamBuilder(
-        stream: tripRequestsRef.onValue,
-        builder: (context, AsyncSnapshot snapshot) {
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('Advance Bookings')
+            .where('uid', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+            .snapshots(),
+        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text("Error Occurred."));
+            print(snapshot.error);
+            return const Center(child: Text('Error'));
           }
-          if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-            return const Center(child: Text("No record found."));
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Padding(
+              padding: EdgeInsets.only(top: 50),
+              child: Center(
+                  child: CircularProgressIndicator(
+                color: Colors.black,
+              )),
+            );
           }
 
-          Map dataTrips = snapshot.data!.snapshot.value as Map;
-          List tripsList = [];
-          dataTrips.forEach((key, value) {
-            if (value.containsKey("tripStartDate") &&
-                value.containsKey("tripEndDate") &&
-                _isValidDate(value["tripStartDate"]) &&
-                _isValidDate(value["tripEndDate"]) &&
-                value["userID"] == FirebaseAuth.instance.currentUser?.uid &&
-                value["status"] == "ended") {
-              tripsList.add({"key": key, ...value});
-            }
-          });
-
-          if (tripsList.isEmpty) {
-            return const Center(child: Text("No completed trips found."));
-          }
+          final data = snapshot.requireData;
 
           return ListView.builder(
-            itemCount: tripsList.length,
+            itemCount: data.docs.length,
             itemBuilder: (context, index) {
-              return _buildTripCard(tripsList[index]);
+              return _buildTripCard(data.docs[index]);
             },
           );
         },
@@ -88,7 +84,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
     );
   }
 
-  Widget _buildTripCard(Map trip) {
+  Widget _buildTripCard(trip) {
     return Card(
       color: Colors.grey[900],
       elevation: 10,
@@ -98,20 +94,22 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Start Date: ${trip["tripStartDate"]}",
+            Text(
+                "Start Date: ${DateFormat.yMMMd().add_jm().format(trip['date'].toDate())}",
                 style: const TextStyle(color: Colors.white)),
-            Text("End Date: ${trip["tripEndDate"]}",
+            Text(
+                "End Date: ${DateFormat.yMMMd().add_jm().format(trip['date'].toDate())}",
                 style: const TextStyle(color: Colors.white)),
-            Text("Pick Up Location: ${trip["pickUpAddress"]}",
+            Text("Pick Up Location: ${trip["from"]}",
                 style: const TextStyle(color: Colors.white)),
-            Text("Drop Off Location: ${trip["dropOffAddress"]}",
+            Text("Drop Off Location: ${trip["to"]}",
                 style: const TextStyle(color: Colors.white)),
-            SizedBox(height: 10),
-            Text("Driver Name: ${trip["firstName"]} ${trip["lastName"]}",
+            const SizedBox(height: 10),
+            Text("Driver Name:  ${trip["drivername"]}",
                 style: const TextStyle(color: Colors.white)),
-            Text("Driver ID Number: ${trip["idNumber"]}",
+            Text("Driver ID Number: ${trip["driverid"]}",
                 style: const TextStyle(color: Colors.white)),
-            Text("Driver Body Number: ${trip["bodyNumber"]}",
+            Text("Driver Body Number: ${trip["driverbodynumber"]}",
                 style: const TextStyle(color: Colors.white)),
 
             // Additional details as needed

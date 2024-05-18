@@ -21,6 +21,7 @@ import 'package:passenger/pages/booking_screen.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/search_destination _page.dart';
 import 'package:passenger/pages/trips_history.dart';
+import 'package:passenger/services/add_advancebooking.dart';
 import 'package:passenger/widgets/dialog_utils.dart';
 import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
@@ -465,43 +466,50 @@ class _HomePageState extends State<HomePage> {
     var tripData = Provider.of<TripData>(context, listen: false);
     DateFormat dateFormat = DateFormat('MMM d, yyyy');
 
-Map dataMap = {
-  "tripID": tripRequestRef!.key,
-  "publishDateTime": DateTime.now().toString(),
-  "userName": userName,
-  "userPhone": userPhone,
-  "userID": userID,
-  "pickUpLatLng": pickUpCoOrdinatesMap,
-  "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
-  "pickUpAddress": pickUpLocation.placeName,
-  "dropOffAddress": dropOffDestinationLocation.placeName,
-  "driverID": "waiting",
-  "driverLocation": driverCoOrdinates,
-  "driverName": "",
-  "driverPhone": "",
-  "driverPhoto": "",
-  "fareAmount": "",
-  "status": "new",
-  "firstName": "",
-  "lastName": "",
-  "idNumber": "",
-  "bodyNumber": "",
+    Map dataMap = {
+      "tripID": tripRequestRef!.key,
+      "publishDateTime": DateTime.now().toString(),
+      "userName": userName,
+      "userPhone": userPhone,
+      "userID": userID,
+      "pickUpLatLng": pickUpCoOrdinatesMap,
+      "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
+      "pickUpAddress": pickUpLocation.placeName,
+      "dropOffAddress": dropOffDestinationLocation.placeName,
+      "driverID": "waiting",
+      "driverLocation": driverCoOrdinates,
+      "driverName": "",
+      "driverPhone": "",
+      "driverPhoto": "",
+      "fareAmount": "",
+      "status": "new",
+      "firstName": "",
+      "lastName": "",
+      "idNumber": "",
+      "bodyNumber": "",
 
-  // Additional details from confirmation dialog
-  // Additional details from confirmation dialog
-  // Formatting the date for Firebase, with null checks
-   "tripStartDate": tripData.startDate != null ? DateFormat('MMMM d, yyyy').format(tripData.startDate!) : "Not set",
-  "tripEndDate": tripData.endDate != null ? DateFormat('MMMM d, yyyy').format(tripData.endDate!) : "Not set",
-  "tripTime": tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set",
-};
-print("tripStartDate: ${tripData.startDate != null ? DateFormat('MMM d, yyyy').format(tripData.startDate!) : "Not set"}");
-print("tripEndDate: ${tripData.endDate != null ? DateFormat('MMM d, yyyy').format(tripData.endDate!) : "Not set"}");
-print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set"}");
-
+      // Additional details from confirmation dialog
+      // Additional details from confirmation dialog
+      // Formatting the date for Firebase, with null checks
+      "tripStartDate": tripData.startDate != null
+          ? DateFormat('MMMM d, yyyy').format(tripData.startDate!)
+          : "Not set",
+      "tripEndDate": tripData.endDate != null
+          ? DateFormat('MMMM d, yyyy').format(tripData.endDate!)
+          : "Not set",
+      "tripTime": tripData.selectedTime != null
+          ? tripData.selectedTime.format(context)
+          : "Not set",
+    };
+    print(
+        "tripStartDate: ${tripData.startDate != null ? DateFormat('MMM d, yyyy').format(tripData.startDate!) : "Not set"}");
+    print(
+        "tripEndDate: ${tripData.endDate != null ? DateFormat('MMM d, yyyy').format(tripData.endDate!) : "Not set"}");
+    print(
+        "tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set"}");
 
     // Debug: Print the dataMap
     print('Data Map: $dataMap');
-    
 
     tripRequestRef!.set(dataMap).then((_) {
       print('Trip request created successfully!');
@@ -756,7 +764,6 @@ print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(
         PushNotificationService.sendNotificationToSelectedDriver(
           deviceToken,
           context,
-          
           tripRequestRef!.key.toString(),
         );
       } else {
@@ -1245,50 +1252,91 @@ print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(
                         ),
 
 // CONFIRM BOOKING BUTTON
-                        Container(
-                          width: MediaQuery.of(context).size.width,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical:
-                                  10), // Adjusted margin for better spacing
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // ADD SETSTATE HERE for Confirm Booking Button
-                              setState(() {
-                                stateOfApp = "requesting";
-                              });
+                        Row(
+                          children: [
+                            Container(
+                              width: 170,
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical:
+                                      10), // Adjusted margin for better spacing
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  // ADD SETSTATE HERE for Confirm Booking Button
+                                  setState(() {
+                                    stateOfApp = "requesting";
+                                  });
 
-                              displayRequestContainer();
-                              // get nearest avalable online drivers
-                              availableNearbyOnlineDriversList =
-                                  ManageDriversMethods.nearbyOnlineDriversList;
+                                  displayRequestContainer();
+                                  // get nearest avalable online drivers
+                                  availableNearbyOnlineDriversList =
+                                      ManageDriversMethods
+                                          .nearbyOnlineDriversList;
 
-                              //search driver
-                              searchDriver();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              backgroundColor: const Color(
-                                  0xFF2E3192), // Use the color from your reusable widget
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Text(
-                                  'Confirm Booking', // Custom text for the booking action
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                                  //search driver
+                                  searchDriver();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  backgroundColor: const Color(
+                                      0xFF2E3192), // Use the color from your reusable widget
                                 ),
-                              ],
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Text(
+                                      'Confirm Booking', // Custom text for the booking action
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                            Container(
+                              width: 170,
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical:
+                                      10), // Adjusted margin for better spacing
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _selectDate(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  backgroundColor: const Color(
+                                      0xFF2E3192), // Use the color from your reusable widget
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Text(
+                                      'Advance Booking', // Custom text for the booking action
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+
 //SizedBox(height: 100), // Add extra space for scrolling
                       ],
                     ),
@@ -1544,5 +1592,56 @@ print("tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(
         ],
       ),
     );
+  }
+
+  DateTime? _selectedDate1;
+  TimeOfDay? _selectedTime1;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2101),
+    );
+
+    if (pickedDate != null && pickedDate != _selectedDate1) {
+      setState(() {
+        _selectedDate1 = pickedDate;
+      });
+      _selectTime(context).whenComplete(() {
+        var pickUpLocation =
+            Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+        var dropOffDestinationLocation =
+            Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+        addAdvanceBooking(
+            userName,
+            pickUpLocation!.placeName,
+            dropOffDestinationLocation!.placeName,
+            pickUpLocation!.latitudePosition,
+            pickUpLocation!.longitudePosition,
+            dropOffDestinationLocation!.latitudePosition,
+            dropOffDestinationLocation!.longitudePosition,
+            _selectedDate1,
+            _selectedTime1!.format(context));
+
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => HomePage()));
+        cMethods.displaySnackBar("Your advance booking has posted!", context);
+      });
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime != null && pickedTime != _selectedTime1) {
+      setState(() {
+        _selectedTime1 = pickedTime;
+      });
+    }
   }
 }
