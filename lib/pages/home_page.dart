@@ -21,6 +21,7 @@ import 'package:passenger/pages/booking_screen.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/search_destination _page.dart';
 import 'package:passenger/pages/trips_history.dart';
+import 'package:passenger/services/add_advancebooking.dart';
 import 'package:passenger/widgets/dialog_utils.dart';
 import 'package:passenger/widgets/info_dialog.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
@@ -1273,50 +1274,91 @@ class _HomePageState extends State<HomePage> {
                         ),
 
 // CONFIRM BOOKING BUTTON
-                        Container(
-                          width: MediaQuery.of(context).size.width,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical:
-                                  10), // Adjusted margin for better spacing
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // ADD SETSTATE HERE for Confirm Booking Button
-                              setState(() {
-                                stateOfApp = "requesting";
-                              });
+                        Row(
+                          children: [
+                            Container(
+                              width: 170,
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical:
+                                      10), // Adjusted margin for better spacing
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  // ADD SETSTATE HERE for Confirm Booking Button
+                                  setState(() {
+                                    stateOfApp = "requesting";
+                                  });
 
-                              displayRequestContainer();
-                              // get nearest avalable online drivers
-                              availableNearbyOnlineDriversList =
-                                  ManageDriversMethods.nearbyOnlineDriversList;
+                                  displayRequestContainer();
+                                  // get nearest avalable online drivers
+                                  availableNearbyOnlineDriversList =
+                                      ManageDriversMethods
+                                          .nearbyOnlineDriversList;
 
-                              //search driver
-                              searchDriver();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              backgroundColor: const Color(
-                                  0xFF2E3192), // Use the color from your reusable widget
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Text(
-                                  'Confirm Booking', // Custom text for the booking action
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                                  //search driver
+                                  searchDriver();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  backgroundColor: const Color(
+                                      0xFF2E3192), // Use the color from your reusable widget
                                 ),
-                              ],
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Text(
+                                      'Confirm Booking', // Custom text for the booking action
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                            Container(
+                              width: 170,
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical:
+                                      10), // Adjusted margin for better spacing
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  _selectDate(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  backgroundColor: const Color(
+                                      0xFF2E3192), // Use the color from your reusable widget
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Text(
+                                      'Advance Booking', // Custom text for the booking action
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+
 //SizedBox(height: 100), // Add extra space for scrolling
                       ],
                     ),
@@ -1572,5 +1614,56 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  DateTime? _selectedDate1;
+  TimeOfDay? _selectedTime1;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2101),
+    );
+
+    if (pickedDate != null && pickedDate != _selectedDate1) {
+      setState(() {
+        _selectedDate1 = pickedDate;
+      });
+      _selectTime(context).whenComplete(() {
+        var pickUpLocation =
+            Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+        var dropOffDestinationLocation =
+            Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+        addAdvanceBooking(
+            userName,
+            pickUpLocation!.placeName,
+            dropOffDestinationLocation!.placeName,
+            pickUpLocation!.latitudePosition,
+            pickUpLocation!.longitudePosition,
+            dropOffDestinationLocation!.latitudePosition,
+            dropOffDestinationLocation!.longitudePosition,
+            _selectedDate1,
+            _selectedTime1!.format(context));
+
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => HomePage()));
+        cMethods.displaySnackBar("Your advance booking has posted!", context);
+      });
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime != null && pickedTime != _selectedTime1) {
+      setState(() {
+        _selectedTime1 = pickedTime;
+      });
+    }
   }
 }
