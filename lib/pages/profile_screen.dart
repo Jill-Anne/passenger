@@ -28,41 +28,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _updateUserProfile() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user.uid);
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user.uid);
 
-      Map<String, String> updatedData = {
-        "name": _nameController.text.trim(),
-        "phone": _phoneController.text.trim(),
-        "email": _emailController.text.trim(),
-      };
+    Map<String, String> updatedData = {
+      "name": _nameController.text.trim(),
+      "phone": _phoneController.text.trim(),
+      "email": _emailController.text.trim(),
+    };
 
-      // Only update password if the field is not empty
-      if (_passwordController.text.trim().isNotEmpty) {
-        await user.updatePassword(_passwordController.text.trim());
-      }
-
-      userRef.update(updatedData).then((_) {
-        // Update global UserData
-        UserData.name = _nameController.text.trim();
-        UserData.phone = _phoneController.text.trim();
-        UserData.email = _emailController.text.trim();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile updated successfully')),
-        );
-
-        setState(() {
-          _isEditing = false;
-        });
-      }).catchError((error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating profile: $error')),
-        );
-      });
+    if (_passwordController.text.trim().isNotEmpty) {
+      await user.updatePassword(_passwordController.text.trim());
     }
+
+    userRef.update(updatedData).then((_) {
+      UserData.name = _nameController.text.trim();
+      UserData.phone = _phoneController.text.trim();
+      UserData.email = _emailController.text.trim();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profile updated successfully')),
+      );
+
+      setState(() {
+        _isEditing = false;
+      });
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating profile: $error')),
+      );
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -86,29 +85,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Name: ${UserData.name}',
-          style: const TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Phone: ${UserData.phone}',
-          style: const TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Email: ${UserData.email}',
-          style: const TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'Password: ***', // Masking the password
-          style: TextStyle(fontSize: 18),
-        ),
-      ],
+    User? user = FirebaseAuth.instance.currentUser;
+    DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user?.uid ?? '');
+
+    return FutureBuilder<DatabaseEvent>(
+      future: userRef.once(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator()); // Show loading indicator while fetching data
+        } else if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        } else if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+          return Text('User data not available');
+        } else {
+          Map<dynamic, dynamic> userData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Name: ${userData['name'] ?? ''}',
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Phone: ${userData['phone'] ?? ''}',
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Email: ${userData['email'] ?? ''}',
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Password: ***', // Masking the password
+                style: TextStyle(fontSize: 18),
+              ),
+            ],
+          );
+        }
+      },
     );
   }
 

@@ -67,29 +67,29 @@ registerNewUser() async {
   }))
       .user;
 
-  if (userFirebase != null) {
-    DatabaseReference usersRef =
-        FirebaseDatabase.instance.ref().child("users").child(userFirebase.uid);
+ if (userFirebase != null) {
+  DatabaseReference usersRef =
+      FirebaseDatabase.instance.ref().child("users").child(userFirebase.uid);
 
-    Map userDataMap = {
-      "name": userNameTextEditingController.text.trim(),
-      "email": emailTextEditingController.text.trim(),
-      "phone": userPhoneTextEditingController.text.trim(),
-      "id": userFirebase.uid,
-      "blockStatus": "no",
-    };
+  Map userDataMap = {
+    "name": userNameTextEditingController.text.trim(),
+    "email": emailTextEditingController.text.trim(),
+    "phone": userPhoneTextEditingController.text.trim(),
+    "id": userFirebase.uid,
+    "blockStatus": "no",
+  };
 
-    await usersRef.set(userDataMap);
+  await usersRef.set(userDataMap);
 
-    // Save user details to global variable
-    UserData.name = userNameTextEditingController.text.trim();
-    UserData.phone = userPhoneTextEditingController.text.trim();
-    UserData.email = emailTextEditingController.text.trim();
+  // Save user details to global variable
+  UserData.name = userNameTextEditingController.text.trim();
+  UserData.phone = userPhoneTextEditingController.text.trim();
+  UserData.email = emailTextEditingController.text.trim();
 
-    if (!context.mounted) return;
+  if (!context.mounted) return;
 
-    Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
-  } else {
+  Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
+}else {
     Navigator.pop(context);
     cMethods.displaySnackBar("User registration failed. Please try again.", context);
   }

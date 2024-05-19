@@ -546,11 +546,11 @@ void resetAppNow(BuildContext context) {
       }
       if ((eventSnapshot.snapshot.value as Map)["idNumber"] != null) {
         idNumber = (eventSnapshot.snapshot.value as Map)["idNumber"];
-        print('Last Name: $idNumber');
+       
       }
       if ((eventSnapshot.snapshot.value as Map)["bodyNumber"] != null) {
         bodyNumber = (eventSnapshot.snapshot.value as Map)["bodyNumber"];
-        print('Last Name: $bodyNumber');
+       
       }
 
       if ((eventSnapshot.snapshot.value as Map)["driverPhoto"] != null) {
@@ -1527,7 +1527,7 @@ Container(
                           ClipOval(
                             child: Image.network(
                               photoDriver == ''
-                                  ? "https://firebasestorage.googleapis.com/v0/b/flutter-uber-clone-with-admin.appspot.com/o/avatarman.png?alt=media&token=7a04943c-a566-45d3-b820-d33da3b105c7"
+                                  ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=88c7d42e-f31a-4f65-b205-b3c9afb6977a"
                                   : photoDriver,
                               width: 60,
                               height: 60,

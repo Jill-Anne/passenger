@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/firebase_options.dart';
+import 'package:passenger/global/trip_var.dart';
 import 'package:passenger/pages/home_page.dart';
 
 import 'package:passenger/widgets/state_management.dart';
@@ -27,7 +28,9 @@ void main() async {
       Permission.notification.request();
     }
   });
-
+  await Firebase.initializeApp();
+  await UserData.fetchUserData();
+  
   runApp(MyApp());
 }
 
