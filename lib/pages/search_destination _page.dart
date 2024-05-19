@@ -45,7 +45,6 @@ class SearchDestinationPageState extends State<SearchDestinationPage> {
   List<PredictionModel> dropOffPredictionsPlacesList = [];
   String? selectedDropOffLocation;
 
-
   ///Places API - Place AutoComplete
   searchLocation(String locationName) async {
     if (locationName.length > 1) {
@@ -85,16 +84,17 @@ class SearchDestinationPageState extends State<SearchDestinationPage> {
   @override
   void initState() {
     super.initState();
-  
+
     // Automatically show the ride options dialog when the page is loaded
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use a fallback value if pickUpLocation or humanReadableAddress is null
     String userAddress = Provider.of<AppInfo>(context, listen: false)
-            .pickUpLocation!
-            .humanReadableAddress ??
-        "";
+            .pickUpLocation
+            ?.humanReadableAddress ??
+        'Address not available';
     pickUpTextEditingController.text = userAddress;
 
     return Scaffold(
@@ -106,7 +106,7 @@ class SearchDestinationPageState extends State<SearchDestinationPage> {
         title: GestureDetector(
           onTap: () {
             // Always show the ride options dialog when the arrow is tapped
-           DialogUtils.showRideOptionsDialog(context);
+            DialogUtils.showRideOptionsDialog(context);
           },
           child: Row(
             children: [
@@ -244,10 +244,4 @@ class SearchDestinationPageState extends State<SearchDestinationPage> {
       ),
     );
   }
-
-
 }
-
-
-
-

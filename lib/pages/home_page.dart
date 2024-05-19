@@ -320,22 +320,28 @@ class _HomePageState extends State<HomePage> {
   }
 
 //EXIT FROM MAP CONFIRM BOOKING
-  resetAppNow() {
-    setState(() {
-      polylineCoOrdinates.clear();
-      polylineSet.clear();
-      markerSet.clear();
-      circleSet.clear();
-      rideDetailsContainerHeight = 0;
-      requestContainerHeight = 0;
-      tripContainerHeight = 0;
-      searchContainerHeight = 276;
-      bottomMapPadding = 300;
-      isDrawerOpened = true;
-    });
+void resetAppNow(BuildContext context) {
+  
+    // Directly set the states without calling setState
+    polylineCoOrdinates.clear();
+    polylineSet.clear();
+    markerSet.clear();
+    circleSet.clear();
+    rideDetailsContainerHeight = 0;
+    requestContainerHeight = 0;
+    tripContainerHeight = 0;
+    searchContainerHeight = 276;
+    bottomMapPadding = 300;
+    isDrawerOpened = true;
 
-    Restart.restartApp();
+    // Instead of restarting the app, navigate to the initial screen or reset necessary states
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const HomePage()), // Replace with your initial screen
+      (Route<dynamic> route) => false,
+    );
   }
+
 
   cancelRideRequest() {
     //remove ride request from database
@@ -617,10 +623,11 @@ class _HomePageState extends State<HomePage> {
             tripStreamSubscription!.cancel();
             tripStreamSubscription = null;
 
-            resetAppNow();
+            
+           resetAppNow(context);
 
 //ALTERNATIVE FOR THIS GOING TO RESTART APP
-            Restart.restartApp();
+        //    Restart.restartApp();
           }
         }
       }
@@ -1025,7 +1032,7 @@ Container(
                 if (isDrawerOpened == true) {
                   sKey.currentState!.openDrawer();
                 } else {
-                  resetAppNow();
+                  resetAppNow(context);
                 }
               },
               child: Container(
@@ -1427,7 +1434,7 @@ Container(
                     ),
                     GestureDetector(
                       onTap: () {
-                        resetAppNow();
+                        resetAppNow(context);
                         cancelRideRequest();
                       },
                       child: Container(
