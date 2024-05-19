@@ -45,7 +45,7 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
             );
           }
 
-          if (!(snapshotData.hasData)) {
+          if (!snapshotData.hasData) {
             return const Center(
               child: Text(
                 "No record found.",
@@ -76,7 +76,37 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        //pickup - fare amount
+                        // Driver Name
+                        Text(
+                          'Driver Name: ${tripsList[index]["firstName"] ?? "N/A"} ${tripsList[index]["lastName"] ?? "N/A"}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.white38,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        // Body Number
+                        Text(
+                          'Body Number: ${tripsList[index]["bodyNumber"] ?? "N/A"}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.white38,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // ID Number
+                        Text(
+                          'ID Number: ${tripsList[index]["idNumber"] ?? "N/A"}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.white38,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Pickup - fare amount
                         Row(
                           children: [
                             Image.asset(
@@ -114,7 +144,7 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                           height: 8,
                         ),
 
-                        //dropoff
+                        // Dropoff
                         Row(
                           children: [
                             Image.asset(
