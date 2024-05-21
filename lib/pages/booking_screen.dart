@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AdvanceBooking extends StatefulWidget {
   const AdvanceBooking({Key? key}) : super(key: key);
@@ -111,11 +112,29 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                 style: const TextStyle(color: Colors.white)),
             Text("Driver Body Number: ${trip["driverbodynumber"]}",
                 style: const TextStyle(color: Colors.white)),
+            Text("Status: ${trip["status"]}",
+                style: const TextStyle(color: Colors.white)),
 
             // Additional details as needed
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                trip["status"] != 'Pending'
+                    ? ElevatedButton(
+                        onPressed: () async {
+                          var text = 'tel:${trip["drivernumber"]}';
+                          if (await canLaunch(text)) {
+                            await launch(text);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green),
+                        child: const Text('Call Driver'),
+                      )
+                    : const SizedBox(),
+                const SizedBox(
+                  width: 20,
+                ),
                 ElevatedButton(
                   onPressed: () => _deleteTrip(trip["key"]),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
