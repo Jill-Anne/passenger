@@ -10,6 +10,7 @@ String status = '';
 String carDetailsDriver = '';
 String tripStatusDisplay = 'Driver is Arriving';
 
+  String driverPhotoUrl = "";
 String firstName = "";
 String lastName = "";
 String idNumber = "";
@@ -18,6 +19,7 @@ String bodyNumber = "";
 DateTime? selectedStartDate;
 DateTime? selectedEndDate;
 TimeOfDay? selectedTime;
+
 
 class UserData {
   static String name = '';
@@ -38,3 +40,4 @@ class UserData {
     }
   }
 }
+
