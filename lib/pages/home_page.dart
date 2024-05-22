@@ -65,7 +65,6 @@ class _HomePageState extends State<HomePage> {
   List<OnlineNearbyDrivers>? availableNearbyOnlineDriversList;
   StreamSubscription<DatabaseEvent>? tripStreamSubscription;
   bool requestingDirectionDetailsInfo = false;
-  
 
   Marker? driverMarker;
   LatLng? driverCurrentLocationLatLng;
@@ -320,8 +319,7 @@ class _HomePageState extends State<HomePage> {
   }
 
 //EXIT FROM MAP CONFIRM BOOKING
-void resetAppNow(BuildContext context) {
-  
+  void resetAppNow(BuildContext context) {
     // Directly set the states without calling setState
     polylineCoOrdinates.clear();
     polylineSet.clear();
@@ -337,11 +335,12 @@ void resetAppNow(BuildContext context) {
     // Instead of restarting the app, navigate to the initial screen or reset necessary states
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const HomePage()), // Replace with your initial screen
+      MaterialPageRoute(
+          builder: (context) =>
+              const HomePage()), // Replace with your initial screen
       (Route<dynamic> route) => false,
     );
   }
-
 
   cancelRideRequest() {
     //remove ride request from database
@@ -546,11 +545,9 @@ void resetAppNow(BuildContext context) {
       }
       if ((eventSnapshot.snapshot.value as Map)["idNumber"] != null) {
         idNumber = (eventSnapshot.snapshot.value as Map)["idNumber"];
-       
       }
       if ((eventSnapshot.snapshot.value as Map)["bodyNumber"] != null) {
         bodyNumber = (eventSnapshot.snapshot.value as Map)["bodyNumber"];
-       
       }
 
       if ((eventSnapshot.snapshot.value as Map)["driverPhoto"] != null) {
@@ -623,11 +620,10 @@ void resetAppNow(BuildContext context) {
             tripStreamSubscription!.cancel();
             tripStreamSubscription = null;
 
-            
-           resetAppNow(context);
+            resetAppNow(context);
 
 //ALTERNATIVE FOR THIS GOING TO RESTART APP
-        //    Restart.restartApp();
+            //    Restart.restartApp();
           }
         }
       }
@@ -865,60 +861,59 @@ void resetAppNow(BuildContext context) {
               ),
 
 //header
-Container(
-  color: Colors.black54,
-  height: 160,
-  child: GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProfileScreen(),
-        ),
-      );
-    },
-    child: DrawerHeader(
-      decoration: const BoxDecoration(
-        color: Colors.white10,
-      ),
-      child: Row(
-        children: [
-          Image.asset(
-            "assets/images/avatarman.png",
-            width: 60,
-            height: 60,
-          ),
-          const SizedBox(
-            width: 16,
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                UserData.name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold,
+              Container(
+                color: Colors.black54,
+                height: 160,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProfileScreen(),
+                      ),
+                    );
+                  },
+                  child: DrawerHeader(
+                    decoration: const BoxDecoration(
+                      color: Colors.white10,
+                    ),
+                    child: Row(
+                      children: [
+                        Image.asset(
+                          "assets/images/avatarman.png",
+                          width: 60,
+                          height: 60,
+                        ),
+                        const SizedBox(
+                          width: 16,
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              UserData.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 4,
+                            ),
+                            const Text(
+                              "Profile",
+                              style: TextStyle(
+                                color: Colors.white38,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(
-                height: 4,
-              ),
-              const Text(
-                "Profile",
-                style: TextStyle(
-                  color: Colors.white38,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
-  ),
-),
-
 
               const Divider(
                 height: 1,
@@ -1353,7 +1348,7 @@ Container(
                               ),
                               child: ElevatedButton(
                                 onPressed: () {
-                                  _selectDate(context);
+                                  _selectDateRange(context);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   padding:
@@ -1637,39 +1632,50 @@ Container(
   }
 
   DateTime? _selectedDate1;
+  DateTimeRange? _selectedDateRange;
   TimeOfDay? _selectedTime1;
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? pickedDate = await showDatePicker(
+  Future<void> _selectDateRange(BuildContext context) async {
+    final DateTimeRange? pickedDateRange = await showDateRangePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDateRange: DateTimeRange(
+        start: DateTime.now(),
+        end: DateTime.now().add(Duration(days: 1)),
+      ),
       firstDate: DateTime.now(),
       lastDate: DateTime(2101),
     );
 
-    if (pickedDate != null && pickedDate != _selectedDate1) {
+    if (pickedDateRange != null) {
       setState(() {
-        _selectedDate1 = pickedDate;
+        _selectedDateRange = pickedDateRange;
       });
+
+      // Assuming you want to pick a time for the start date
       _selectTime(context).whenComplete(() {
         var pickUpLocation =
             Provider.of<AppInfo>(context, listen: false).pickUpLocation;
         var dropOffDestinationLocation =
             Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+
         addAdvanceBooking(
             userName,
             pickUpLocation!.placeName,
             dropOffDestinationLocation!.placeName,
-            pickUpLocation!.latitudePosition,
-            pickUpLocation!.longitudePosition,
-            dropOffDestinationLocation!.latitudePosition,
-            dropOffDestinationLocation!.longitudePosition,
-            _selectedDate1,
-            _selectedTime1!.format(context));
+            pickUpLocation.latitudePosition,
+            pickUpLocation.longitudePosition,
+            dropOffDestinationLocation.latitudePosition,
+            dropOffDestinationLocation.longitudePosition,
+            _selectedDateRange!.start,
+            _selectedTime1!.format(context),
+            _selectedDateRange!.end,
+            userPhone);
 
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (context) => HomePage()));
-        cMethods.displaySnackBar("Your advance booking has posted!", context);
+
+        cMethods.displaySnackBar(
+            "Your advance booking has been posted!", context);
       });
     }
   }
