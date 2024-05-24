@@ -29,6 +29,7 @@ Future<String> addAdvanceBooking(name, from, to, fromlat, fromlng, tolat, tolng,
     'driverid': '',
     'driverbodynumber': '',
     'drivernumber': '',
+    'reason': '',
   };
 
   await docUser.set(json);

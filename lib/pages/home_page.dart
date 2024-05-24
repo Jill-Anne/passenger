@@ -21,6 +21,7 @@ import 'package:passenger/pages/booking_screen.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/profile_screen.dart';
 import 'package:passenger/pages/search_destination _page.dart';
+import 'package:passenger/pages/service_ride_page.dart';
 import 'package:passenger/pages/trips_history.dart';
 import 'package:passenger/services/add_advancebooking.dart';
 import 'package:passenger/widgets/dialog_utils.dart';
@@ -1289,89 +1290,217 @@ class _HomePageState extends State<HomePage> {
                         ),
 
 // CONFIRM BOOKING BUTTON
-                        Row(
-                          children: [
-                            Container(
-                              width: 170,
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical:
-                                      10), // Adjusted margin for better spacing
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  // ADD SETSTATE HERE for Confirm Booking Button
-                                  setState(() {
-                                    stateOfApp = "requesting";
-                                  });
+                        Container(
+                          width: 170,
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical:
+                                  10), // Adjusted margin for better spacing
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return Dialog(
+                                    child: SizedBox(
+                                      width: 300,
+                                      height: 300,
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Select Service',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 10,
+                                          ),
+                                          Container(
+                                            width: 250,
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical:
+                                                    10), // Adjusted margin for better spacing
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
+                                            ),
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                setState(() {
+                                                  stateOfApp = "requesting";
+                                                });
 
-                                  displayRequestContainer();
-                                  // get nearest avalable online drivers
-                                  availableNearbyOnlineDriversList =
-                                      ManageDriversMethods
-                                          .nearbyOnlineDriversList;
+                                                displayRequestContainer();
+                                                // get nearest avalable online drivers
+                                                availableNearbyOnlineDriversList =
+                                                    ManageDriversMethods
+                                                        .nearbyOnlineDriversList;
 
-                                  //search driver
-                                  searchDriver();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  backgroundColor: const Color(
-                                      0xFF2E3192), // Use the color from your reusable widget
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Text(
-                                      'Confirm Booking', // Custom text for the booking action
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
+                                                //search driver
+                                                searchDriver();
+                                                // ADD SETSTATE HERE for Confirm Booking Button
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 10),
+                                                backgroundColor: const Color(
+                                                    0xFF2E3192), // Use the color from your reusable widget
+                                              ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Image.asset(
+                                                    'assets/images/ridenow.png',
+                                                  ),
+                                                  SizedBox(
+                                                    width: 10,
+                                                  ),
+                                                  Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        'Ride now!', // Custom text for the booking action
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        'Available only at 8pm onwards', // Custom text for the booking action
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.w200,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 10,
+                                          ),
+                                          Container(
+                                            width: 250,
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical:
+                                                    10), // Adjusted margin for better spacing
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
+                                            ),
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+
+                                                Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (c) =>
+                                                            ServiceRidePage(
+                                                              name: userName,
+                                                              phone: userPhone,
+                                                            )));
+
+                                                // _selectDateRange(context);
+
+                                                // ADD SETSTATE HERE for Confirm Booking Button
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 10),
+                                                backgroundColor: const Color(
+                                                    0xFF2E3192), // Use the color from your reusable widget
+                                              ),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Image.asset(
+                                                    'assets/images/Rectangle 1.png',
+                                                    height: 25,
+                                                  ),
+                                                  SizedBox(
+                                                    width: 10,
+                                                  ),
+                                                  Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        'Service Ride', // Custom text for the booking action
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                      Text(
+                                                        'One time ride or Sceduled Ride', // Custom text for the booking action
+                                                        style: TextStyle(
+                                                          color: Colors.white,
+                                                          fontWeight:
+                                                              FontWeight.w200,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 170,
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical:
-                                      10), // Adjusted margin for better spacing
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  _selectDateRange(context);
+                                  );
                                 },
-                                style: ElevatedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  backgroundColor: const Color(
-                                      0xFF2E3192), // Use the color from your reusable widget
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Text(
-                                      'Advance Booking', // Custom text for the booking action
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              backgroundColor: const Color(
+                                  0xFF2E3192), // Use the color from your reusable widget
                             ),
-                          ],
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Text(
+                                  'Confirm Booking', // Custom text for the booking action
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
 
 //SizedBox(height: 100), // Add extra space for scrolling
