@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -142,144 +144,171 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                     showDialog(
                       context: context,
                       builder: (context) {
-                        return Dialog(
-                          backgroundColor: const Color(0xFF2E3192),
-                          child: Padding(
-                            padding: const EdgeInsets.all(20.0),
-                            child: SizedBox(
-                              width: 300,
-                              height: 300,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Reject this Service?',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                            color: Colors.white),
-                                      ),
-                                      const Text(
-                                        '○ Changed plans',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.normal,
-                                            fontSize: 12,
-                                            color: Colors.white),
-                                      ),
-                                      const Text(
-                                        '○ Found alternative transportation',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.normal,
-                                            fontSize: 12,
-                                            color: Colors.white),
-                                      ),
-                                      const Text(
-                                        '○ Driver issue',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.normal,
-                                            fontSize: 12,
-                                            color: Colors.white),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(10.0),
-                                        child: TextField(
-                                          controller: reason,
-                                          decoration: const InputDecoration(
-                                            filled: true,
-                                            fillColor: Colors.white,
-                                            labelText: 'Other',
-                                            labelStyle: TextStyle(
+                        return StatefulBuilder(builder: (context, setState) {
+                          return Dialog(
+                            backgroundColor: const Color(0xFF2E3192),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: SizedBox(
+                                width: 300,
+                                height: 300,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Reject this Service?',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                              color: Colors.white),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              reason.text = 'Changed plans';
+                                            });
+                                          },
+                                          child: const Text(
+                                            '○ Changed plans',
+                                            style: TextStyle(
                                                 fontWeight: FontWeight.normal,
                                                 fontSize: 12,
-                                                color: Colors.black),
-                                            border: OutlineInputBorder(),
+                                                color: Colors.white),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Container(
-                                        width: 125,
-                                        // Adjusted margin for better spacing
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                        ),
-                                        child: ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                            // ADD SETSTATE HERE for Confirm Booking Button
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 10),
-                                            backgroundColor: Colors
-                                                .grey, // Use the color from your reusable widget
-                                          ),
-                                          child: const Text(
-                                            'Back', // Custom text for the booking action
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 125,
-                                        // Adjusted margin for better spacing
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                        ),
-                                        child: ElevatedButton(
-                                          onPressed: () async {
-                                            await FirebaseFirestore.instance
-                                                .collection('Advance Bookings')
-                                                .doc()
-                                                .update({
-                                              'status': 'Deleted',
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              reason.text =
+                                                  'Found alternative transportation';
                                             });
-                                            Navigator.pop(context);
-                                            // ADD SETSTATE HERE for Confirm Booking Button
                                           },
-                                          style: ElevatedButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 10),
-                                            backgroundColor: Colors
-                                                .red, // Use the color from your reusable widget
-                                          ),
                                           child: const Text(
-                                            'Reject', // Custom text for the booking action
+                                            '○ Found alternative transportation',
                                             style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
+                                                fontWeight: FontWeight.normal,
+                                                fontSize: 12,
+                                                color: Colors.white),
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              reason.text = 'Driver issue';
+                                            });
+                                          },
+                                          child: const Text(
+                                            '○ Driver issue',
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.normal,
+                                                fontSize: 12,
+                                                color: Colors.white),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(10.0),
+                                          child: TextField(
+                                            controller: reason,
+                                            decoration: const InputDecoration(
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                              labelText: 'Other',
+                                              labelStyle: TextStyle(
+                                                  fontWeight: FontWeight.normal,
+                                                  fontSize: 12,
+                                                  color: Colors.black),
+                                              border: OutlineInputBorder(),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                    const SizedBox(
+                                      height: 10,
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        Container(
+                                          width: 125,
+                                          // Adjusted margin for better spacing
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(30),
+                                          ),
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              // ADD SETSTATE HERE for Confirm Booking Button
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 10),
+                                              backgroundColor: Colors
+                                                  .grey, // Use the color from your reusable widget
+                                            ),
+                                            child: const Text(
+                                              'Back', // Custom text for the booking action
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 125,
+                                          // Adjusted margin for better spacing
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(30),
+                                          ),
+                                          child: ElevatedButton(
+                                            onPressed: () async {
+                                              await FirebaseFirestore.instance
+                                                  .collection(
+                                                      'Advance Bookings')
+                                                  .doc()
+                                                  .update({
+                                                'status': 'Deleted',
+                                              });
+                                              Navigator.pop(context);
+                                              // ADD SETSTATE HERE for Confirm Booking Button
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 10),
+                                              backgroundColor: Colors
+                                                  .red, // Use the color from your reusable widget
+                                            ),
+                                            child: const Text(
+                                              'Reject', // Custom text for the booking action
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
+                          );
+                        });
                       },
                     );
                   },

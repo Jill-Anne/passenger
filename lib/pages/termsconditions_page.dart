@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:passenger/appInfo/app_info.dart';
+import 'package:passenger/global/trip_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/services/add_advancebooking.dart';
@@ -98,6 +100,7 @@ class _TermsConditionsPageState extends State<TermsConditionsPage> {
 
     if (pickedDateRange != null) {
       setState(() {
+        _selectedDate1 = pickedDateRange.start;
         _selectedDateRange = pickedDateRange;
       });
 
@@ -122,11 +125,169 @@ class _TermsConditionsPageState extends State<TermsConditionsPage> {
           widget.phone,
         );
 
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => const HomePage()));
-
-        cMethods.displaySnackBar(
-            "Your advance booking has been posted!", context);
+        showDialog(
+          context: context,
+          builder: (context) {
+            return Dialog(
+              backgroundColor: const Color(0xFF2E3192),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Review Your Details!',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 16)),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Text(
+                        "${pickedDateRange.end.difference(pickedDateRange.start).inDays} Day Service",
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14)),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Text(DateFormat.yMMMd().add_jm().format(_selectedDate1!),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 12)),
+                    const Divider(),
+                    Text(pickUpLocation.placeName!,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 12)),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Container(
+                          width: 100,
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical:
+                                  10), // Adjusted margin for better spacing
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              backgroundColor: Colors
+                                  .grey, // Use the color from your reusable widget
+                            ),
+                            child: const Text(
+                              'Back', // Custom text for the booking action
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 100,
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical:
+                                  10), // Adjusted margin for better spacing
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              showDialog(
+                                barrierDismissible: false,
+                                context: context,
+                                builder: (context) {
+                                  return Dialog(
+                                    backgroundColor: Colors.green,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(10.0),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text(
+                                              'Your Service Ride has posted!',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  fontSize: 16)),
+                                          Container(
+                                            width: 150,
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical:
+                                                    10), // Adjusted margin for better spacing
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
+                                            ),
+                                            child: ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.pushReplacement(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                        builder: (context) =>
+                                                            const HomePage()));
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 10),
+                                                backgroundColor: Colors
+                                                    .grey, // Use the color from your reusable widget
+                                              ),
+                                              child: const Text(
+                                                'Back', // Custom text for the booking action
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              backgroundColor: Colors
+                                  .green, // Use the color from your reusable widget
+                            ),
+                            child: const Text(
+                              'Book', // Custom text for the booking action
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
       });
     }
   }
