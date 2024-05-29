@@ -942,7 +942,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   title: const Text(
-                    "Advance Booking",
+                    "Service Ride",
                     style: TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -1651,7 +1651,7 @@ class _HomePageState extends State<HomePage> {
                           ClipOval(
                             child: Image.network(
                               photoDriver == ''
-                                  ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=88c7d42e-f31a-4f65-b205-b3c9afb6977a"
+                                  ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=11c39289-3c10-4355-9537-9003913dbeef"
                                   : photoDriver,
                               width: 60,
                               height: 60,
@@ -1666,28 +1666,21 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                firstName,
+                                '$firstName $lastName',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   color: Colors.grey,
                                 ),
                               ),
                               Text(
-                                lastName,
+                                'Plate Number: $idNumber',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   color: Colors.grey,
                                 ),
                               ),
                               Text(
-                                idNumber,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Text(
-                                bodyNumber,
+                                'Body Number: $bodyNumber',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   color: Colors.grey,
@@ -1803,8 +1796,7 @@ class _HomePageState extends State<HomePage> {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (context) => HomePage()));
 
-        cMethods.displaySnackBar(
-            "Your advance booking has been posted!", context);
+        cMethods.displaySnackBar("Your service ride has been posted!", context);
       });
     }
   }

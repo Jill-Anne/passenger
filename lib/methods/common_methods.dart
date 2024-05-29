@@ -124,9 +124,9 @@ class CommonMethods {
 //CALCULATE FARE
 
   calculateFareAmount(DirectionDetails directionDetails) {
-    double distancePerKmAmount = 1.03;
-    double durationPerMinuteAmount = 0.3;
-    double baseFareAmount = 11.50;
+    double distancePerKmAmount = 6;
+    double durationPerMinuteAmount = 0.12;
+    double baseFareAmount =46;
 
     double totalDistanceTravelFareAmount =
         (directionDetails.distanceValueDigits! / 1000) * distancePerKmAmount;

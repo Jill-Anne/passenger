@@ -9,7 +9,7 @@ import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  const SignUpScreen({Key? key}) : super(key: key);
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -17,8 +17,7 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   TextEditingController userNameTextEditingController = TextEditingController();
-  TextEditingController userPhoneTextEditingController =
-      TextEditingController();
+  TextEditingController userPhoneTextEditingController = TextEditingController();
   TextEditingController emailTextEditingController = TextEditingController();
   TextEditingController passwordTextEditingController = TextEditingController();
 
@@ -33,67 +32,79 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   signUpFormValidation() {
     if (userNameTextEditingController.text.trim().length < 3) {
-      cMethods.displaySnackBar(
-          "Your name must be at least 4 or more characters.", context);
+      cMethods.displaySnackBar("Your name must be at least 4 or more characters.", context);
     } else if (userPhoneTextEditingController.text.trim().length < 7) {
-      cMethods.displaySnackBar(
-          "Your phone number must be at least 8 or more characters.", context);
+      cMethods.displaySnackBar("Your phone number must be at least 8 or more characters.", context);
     } else if (!emailTextEditingController.text.contains("@")) {
       cMethods.displaySnackBar("Please write a valid email.", context);
     } else if (passwordTextEditingController.text.trim().length < 5) {
-      cMethods.displaySnackBar(
-          "Your password must be at least 6 or more characters.", context);
+      cMethods.displaySnackBar("Your password must be at least 6 or more characters.", context);
     } else {
       registerNewUser();
     }
   }
 
-registerNewUser() async {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) =>
-        LoadingDialog(messageText: "Registering your account..."),
-  );
+  registerNewUser() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => LoadingDialog(messageText: "Registering your account..."),
+    );
 
-  final User? userFirebase = (await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-    email: emailTextEditingController.text.trim(),
-    password: passwordTextEditingController.text.trim(),
-  )
-          .catchError((errorMsg) {
-    Navigator.pop(context);
-    cMethods.displaySnackBar(errorMsg.toString(), context);
-  }))
-      .user;
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailTextEditingController.text.trim(),
+        password: passwordTextEditingController.text.trim(),
+      );
 
- if (userFirebase != null) {
-  DatabaseReference usersRef =
-      FirebaseDatabase.instance.ref().child("users").child(userFirebase.uid);
+      User? userFirebase = userCredential.user;
 
-  Map userDataMap = {
-    "name": userNameTextEditingController.text.trim(),
-    "email": emailTextEditingController.text.trim(),
-    "phone": userPhoneTextEditingController.text.trim(),
-    "id": userFirebase.uid,
-    "blockStatus": "no",
-  };
+      if (userFirebase != null) {
+        DatabaseReference usersRef = FirebaseDatabase.instance.ref().child("users").child(userFirebase.uid);
 
-  await usersRef.set(userDataMap);
+        Map userDataMap = {
+          "name": userNameTextEditingController.text.trim(),
+          "email": emailTextEditingController.text.trim(),
+          "phone": userPhoneTextEditingController.text.trim(),
+          "id": userFirebase.uid,
+          "blockStatus": "no",
+        };
 
-  // Save user details to global variable
-  UserData.name = userNameTextEditingController.text.trim();
-  UserData.phone = userPhoneTextEditingController.text.trim();
-  UserData.email = emailTextEditingController.text.trim();
+        await usersRef.set(userDataMap);
 
-  if (!context.mounted) return;
+        // Save user details to global variable
+        UserData.name = userNameTextEditingController.text.trim();
+        UserData.phone = userPhoneTextEditingController.text.trim();
+        UserData.email = emailTextEditingController.text.trim();
 
-  Navigator.push(context, MaterialPageRoute(builder: (c) => LoginScreen()));
-}else {
-    Navigator.pop(context);
-    cMethods.displaySnackBar("User registration failed. Please try again.", context);
+        Navigator.pop(context); // Close loading dialog
+
+        // Show success dialog
+        showDialog(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+            title: Text("Successfully Sign Up"),
+            content: Text("You have successfully signed up."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+                },
+                child: Text("OK"),
+              ),
+            ],
+          ),
+        );
+      } else {
+        Navigator.pop(context); // Close loading dialog
+        cMethods.displaySnackBar("User registration failed. Please try again.", context);
+      }
+    } catch (error) {
+      Navigator.pop(context); // Close loading dialog
+      cMethods.displaySnackBar(error.toString(), context);
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +123,7 @@ registerNewUser() async {
               padding: const EdgeInsets.all(10),
               child: Column(
                 children: [
-                  SizedBox(height: 50), 
+                  SizedBox(height: 50),
                   Positioned(
                     top: 100,
                     left: 30,
@@ -130,44 +141,16 @@ registerNewUser() async {
                             ),
                           ),
                         ),
-
                         Padding(
                           padding: const EdgeInsets.all(22),
                           child: Column(
                             children: [
-                              customTextField(
-                                "Name",
-                                Icons.person,
-                                false,
-                                userNameTextEditingController,
-                              ),
-
-                              const SizedBox(
-                                height: 22,
-                              ),
-
-                              customTextField(
-                                "User Phone",
-                                Icons.phone,
-                                false,
-                                userPhoneTextEditingController,
-                              ),
-
-                              const SizedBox(
-                                height: 22,
-                              ),
-
-                              customTextField(
-                                "User Email",
-                                Icons.email,
-                                false,
-                                emailTextEditingController,
-                              ),
-
-                              const SizedBox(
-                                height: 22,
-                              ),
-
+                              customTextField("Name", Icons.person, false, userNameTextEditingController),
+                              const SizedBox(height: 22),
+                              customTextField("User Phone", Icons.phone, false, userPhoneTextEditingController),
+                              const SizedBox(height: 22),
+                              customTextField("User Email", Icons.email, false, emailTextEditingController),
+                              const SizedBox(height: 22),
                               TextField(
                                 controller: passwordTextEditingController,
                                 obscureText: !_isPasswordVisible,
@@ -192,19 +175,12 @@ registerNewUser() async {
                                 ),
                                 keyboardType: TextInputType.visiblePassword,
                               ),
-
-                              const SizedBox(
-                                height: 32,
-                              ),
-
+                              const SizedBox(height: 32),
                               signInSignUpButton(context, false, () {
                                 checkIfNetworkIsAvailable();
                               }),
-
-                              const SizedBox(
-                                height: 12,
-                              ),
-                              signUpOption()
+                              const SizedBox(height: 12),
+                              signUpOption(),
                             ],
                           ),
                         )
@@ -230,7 +206,7 @@ registerNewUser() async {
         ),
         GestureDetector(
           onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
           },
           child: const Text(
             " Log In",
