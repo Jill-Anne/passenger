@@ -5,3 +5,5 @@
 # Xcode-related
 **/dgph
 **/xcuserdata/
+# .gitignore
+lib/methods/firebaseToken.dart
