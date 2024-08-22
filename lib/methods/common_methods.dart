@@ -1,5 +1,7 @@
 import 'dart:convert'; // Importing dart:convert for JSON encoding/decoding.
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart'; // Importing a package for checking network connectivity.
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart'; // Importing Flutter material package for UI components.
 import 'package:geolocator/geolocator.dart'; // Importing geolocator package for getting device's location.
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -10,7 +12,6 @@ import 'package:passenger/global/global_var.dart';
 import 'package:passenger/models/address_model.dart';
 import 'package:passenger/models/direction_details.dart';
 import 'package:provider/provider.dart'; // Importing global variables.
-
 
 class CommonMethods {
   // Method for checking connectivity.
@@ -23,7 +24,7 @@ class CommonMethods {
         connectionResult != ConnectivityResult.wifi) {
       if (!context.mounted) return; // If the widget is not mounted, return.
       displaySnackBar(
-          "your Internet is not Available. Check your connection. Try Again.", // Displaying a message for the user.
+          "Your Internet is not Available. Check your connection. Try Again.", // Displaying a message for the user.
           context); // Passing the context to display the snackbar.
     }
   }
@@ -36,8 +37,8 @@ class CommonMethods {
         .showSnackBar(snackBar); // Displaying the snackbar.
   }
 
-//send GET requests to an API and handle the response
-// Method for sending a request to an API.
+  // Send GET requests to an API and handle the response.
+  // Method for sending a request to an API.
   static sendRequestToAPI(String apiUrl) async {
     http.Response responseFromAPI = await http.get(
         Uri.parse(apiUrl)); // Sending a GET request to the specified API URL.
@@ -56,7 +57,7 @@ class CommonMethods {
     }
   }
 
-  ///Reverse GeoCoding
+  /// Reverse GeoCoding
   // Method for converting geographic coordinates into human-readable address.
   static Future<String> convertGeoGraphicCoOrdinatesIntoHumanReadableAddress(
       Position position, BuildContext context) async {
@@ -87,22 +88,22 @@ class CommonMethods {
     return humanReadableAddress; // Returning the human-readable address.
   }
 
-//DIRECTION API
+  // DIRECTION API
   static Future<DirectionDetails?> getDirectionDetailsFromAPI(
       LatLng source, LatLng destination) async {
-//SENT REQUEST TO DIRECTION API
+    // SENT REQUEST TO DIRECTION API
     String urlDirectionsAPI =
         "https://maps.googleapis.com/maps/api/directions/json?destination=${destination.latitude},${destination.longitude}&origin=${source.latitude},${source.longitude}&mode=driving&key=$googleMapKey";
 
-//JSON FORMAT = WE GET RESPONSE FROM DIRECTION API
+    // JSON FORMAT = WE GET RESPONSE FROM DIRECTION API
     var responseFromDirectionsAPI = await sendRequestToAPI(urlDirectionsAPI);
 
     if (responseFromDirectionsAPI == "error") {
       return null;
     }
 
-//IF RESPONSE SUCCESS WE GET THIS:
-//MAKE IT NOT JSON FORMAT OR FORMAL THRU DIRECTON DETAILS MODELS
+    // IF RESPONSE SUCCESS WE GET THIS:
+    // MAKE IT NOT JSON FORMAT OR FORMAL THRU DIRECTION DETAILS MODELS
     DirectionDetails detailsModel = DirectionDetails();
 
     detailsModel.distanceTextString =
@@ -121,22 +122,80 @@ class CommonMethods {
     return detailsModel;
   }
 
-//CALCULATE FARE
+Future<double> calculateFareAmount(DirectionDetails directionDetails) async {
+  try {
+    // Retrieve the fare parameters from Firebase Firestore
+    DocumentSnapshot fareData = await FirebaseFirestore.instance
+        .collection('fareParameters')
+        .doc('currentParameters')
+        .get();
 
-  calculateFareAmount(DirectionDetails directionDetails) {
-    double distancePerKmAmount = 6;
-    double durationPerMinuteAmount = 0.12;
-    double baseFareAmount =46;
+    if (!fareData.exists) {
+      throw Exception('Fare parameters not found');
+    }
 
-    double totalDistanceTravelFareAmount =
-        (directionDetails.distanceValueDigits! / 1000) * distancePerKmAmount;
-    double totalDurationSpendFareAmount =
-        (directionDetails.durationValueDigits! / 60) * durationPerMinuteAmount;
+    // Log retrieved fare data for debugging
+    print('Retrieved fare data: ${fareData.data()}');
 
-    double overAllTotalFareAmount = baseFareAmount +
-        totalDistanceTravelFareAmount +
-        totalDurationSpendFareAmount;
+    // Ensure values are retrieved as double, handle possible type issues
+    double distancePerKmAmount;
+    double baseFareAmount;
 
-    return overAllTotalFareAmount.toStringAsFixed(1);
+    try {
+      distancePerKmAmount = (fareData['distancePerKmAmount'] as num).toDouble();
+    } catch (e) {
+      print("Error converting distancePerKmAmount: $e");
+      distancePerKmAmount = 0.0;
+    }
+
+    try {
+      baseFareAmount = (fareData['baseFareAmount'] as num).toDouble();
+    } catch (e) {
+      print("Error converting baseFareAmount: $e");
+      baseFareAmount = 0.0;
+    }
+
+    // Distance in km
+    double distanceInKm;
+    try {
+      distanceInKm = directionDetails.distanceValueDigits! / 1000;
+    } catch (e) {
+      print("Error calculating distanceInKm: $e");
+      distanceInKm = 0.0;
+    }
+
+    // Determine if distance exceeds the base fare threshold
+    double distanceThreshold = 1.87; // Distance threshold for base fare
+
+    double totalDistanceTravelFareAmount;
+    if (distanceInKm > distanceThreshold) {
+      // Calculate the fare for the distance beyond the base threshold
+      double distanceBeyondThreshold = distanceInKm - distanceThreshold;
+      totalDistanceTravelFareAmount = distanceBeyondThreshold * distancePerKmAmount;
+    } else {
+      // No additional fare for distances within the base threshold
+      totalDistanceTravelFareAmount = 0;
+    }
+
+    // Calculate the overall total fare amount (base fare + distance-based fare)
+    double overAllTotalFareAmount = baseFareAmount + totalDistanceTravelFareAmount;
+
+    // Round the fare amount to the nearest whole number
+    overAllTotalFareAmount = overAllTotalFareAmount.roundToDouble();
+
+    // Save the calculated fare amount to Firestore
+    await FirebaseFirestore.instance
+        .collection('currentFare')
+        .doc('latestFare')
+        .set({'amount': overAllTotalFareAmount});
+
+    print('Calculated fare amount: PHP $overAllTotalFareAmount');
+    return overAllTotalFareAmount;
+  } catch (e) {
+    print("Error fetching fare parameters or calculating fare: $e");
+    return 0.0; // Return a default value or handle the error appropriately
   }
+}
+
+
 }

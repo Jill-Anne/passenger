@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
@@ -66,6 +68,8 @@ class _HomePageState extends State<HomePage> {
   List<OnlineNearbyDrivers>? availableNearbyOnlineDriversList;
   StreamSubscription<DatabaseEvent>? tripStreamSubscription;
   bool requestingDirectionDetailsInfo = false;
+   Future<double>? fareAmountFuture;
+   
 
   Marker? driverMarker;
   LatLng? driverCurrentLocationLatLng;
@@ -446,27 +450,52 @@ class _HomePageState extends State<HomePage> {
       }
     });
   }
+  // Fetch fare amount from Firestore
+Future<double> getFareAmount() async {
+  try {
+    DocumentSnapshot fareDoc = await FirebaseFirestore.instance
+        .collection('currentFare')
+        .doc('latestFare')
+        .get();
 
-  makeTripRequest() {
+    if (fareDoc.exists) {
+      double fareAmount = (fareDoc['amount'] as num).toDouble();
+      return fareAmount;
+    } else {
+      print("No data found at 'currentFare/latestFare'");
+      return 0.0; // Return default value if no data is found
+    }
+  } catch (e) {
+    print("Error fetching fare amount: $e");
+    return 0.0; // Return default value or handle error
+  }
+}
+
+  makeTripRequest() async {
+    
+    
+    // Push the trip request to Firebase
     tripRequestRef =
         FirebaseDatabase.instance.ref().child("tripRequests").push();
+        
+
 
     var pickUpLocation =
         Provider.of<AppInfo>(context, listen: false).pickUpLocation;
     var dropOffDestinationLocation =
         Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-    Map pickUpCoOrdinatesMap = {
+    Map<String, String> pickUpCoOrdinatesMap = {
       "latitude": pickUpLocation!.latitudePosition.toString(),
       "longitude": pickUpLocation.longitudePosition.toString(),
     };
 
-    Map dropOffDestinationCoOrdinatesMap = {
+    Map<String, String> dropOffDestinationCoOrdinatesMap = {
       "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
       "longitude": dropOffDestinationLocation.longitudePosition.toString(),
     };
 
-    Map driverCoOrdinates = {
+    Map<String, String> driverCoOrdinates = {
       "latitude": "",
       "longitude": "",
     };
@@ -474,7 +503,7 @@ class _HomePageState extends State<HomePage> {
     var tripData = Provider.of<TripData>(context, listen: false);
     DateFormat dateFormat = DateFormat('MMM d, yyyy');
 
-    Map dataMap = {
+    Map<String, Object?> dataMap = {
       "tripID": tripRequestRef!.key,
       "publishDateTime": DateTime.now().toString(),
       "userName": userName,
@@ -495,10 +524,6 @@ class _HomePageState extends State<HomePage> {
       "lastName": "",
       "idNumber": "",
       "bodyNumber": "",
-
-      // Additional details from confirmation dialog
-      // Additional details from confirmation dialog
-      // Formatting the date for Firebase, with null checks
       "tripStartDate": tripData.startDate != null
           ? DateFormat('MMMM d, yyyy').format(tripData.startDate!)
           : "Not set",
@@ -509,23 +534,45 @@ class _HomePageState extends State<HomePage> {
           ? tripData.selectedTime.format(context)
           : "Not set",
     };
-    print(
-        "tripStartDate: ${tripData.startDate != null ? DateFormat('MMM d, yyyy').format(tripData.startDate!) : "Not set"}");
-    print(
-        "tripEndDate: ${tripData.endDate != null ? DateFormat('MMM d, yyyy').format(tripData.endDate!) : "Not set"}");
-    print(
-        "tripTime: ${tripData.selectedTime != null ? tripData.selectedTime.format(context) : "Not set"}");
 
-    // Debug: Print the dataMap
-    print('Data Map: $dataMap');
-
-    tripRequestRef!.set(dataMap).then((_) {
+    // Set the initial trip request data to Firebase
+    tripRequestRef!.set(dataMap).then((_) async {
       print('Trip request created successfully!');
+
+      // Retrieve passenger's device token after pushing the initial data
+      String? deviceToken = await FirebaseMessaging.instance.getToken();
+
+      if (deviceToken != null) {
+        // Update the dataMap with the device token
+        dataMap["deviceToken"] = deviceToken;
+
+        // Update the trip request in Firebase with the new dataMap
+        tripRequestRef!.update(dataMap as Map<String, Object?>).then((_) {
+          print("Device token added to trip request: $deviceToken");
+        }).catchError((error) {
+          print('Error updating trip request with device token: $error');
+        });
+      } else {
+        print("Error: Passenger's device token is null.");
+      }
+
+      // Store the tripID in a shared location for the driver
+      DatabaseReference currentDriverRef = FirebaseDatabase.instance
+          .ref()
+          .child("driversAccount")
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .child("currentTripID");
+
+      currentDriverRef.set(tripRequestRef!.key).then((_) {
+        print('currentTripID updated for driver.');
+      }).catchError((error) {
+        print('Error updating currentTripID for driver: $error');
+      });
     }).catchError((error) {
       print('Error creating trip request: $error');
     });
 
-    tripStreamSubscription =
+tripStreamSubscription =
         tripRequestRef!.onValue.listen((eventSnapshot) async {
       if (eventSnapshot.snapshot.value == null) {
         return;
@@ -602,17 +649,20 @@ class _HomePageState extends State<HomePage> {
         });
       }
 
-      if (status == "ended") {
-        if ((eventSnapshot.snapshot.value as Map)["fareAmount"] != null) {
-          double fareAmount = double.parse(
-              (eventSnapshot.snapshot.value as Map)["fareAmount"].toString());
+if (status == "ended") {
+  // Fetch the fare amount from Firestore using getFareAmount method
+  double fareAmount = await getFareAmount();
+   if (fareAmount != 0.0) { // Ensure fareAmount is valid
+        // Convert fareAmount to string with 2 decimal places
+        String formattedFareAmount = fareAmount.toStringAsFixed(2);
 
-//if user click paid in payment_dialog.dart, it will go here
-          var responseFromPaymentDialog = await showDialog(
-            context: context,
-            builder: (BuildContext context) =>
-                PaymentDialog(fareAmount: fareAmount.toString()),
-          );
+        // Show the dialog and await the response
+        var responseFromPaymentDialog = await showDialog(
+          context: context,
+          builder: (BuildContext context) => PaymentDialog(fareAmount: formattedFareAmount),
+        );
+
+
 
           if (responseFromPaymentDialog == "paid") {
             tripRequestRef!.onDisconnect();
@@ -752,7 +802,7 @@ class _HomePageState extends State<HomePage> {
     sendNotificationToDriver(currentDriver);
   }
 
-  void sendNotificationToDriver(OnlineNearbyDrivers currentDriver) {
+  Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
     print(
         'sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
     if (tripRequestRef == null) {
@@ -774,34 +824,35 @@ class _HomePageState extends State<HomePage> {
           'Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
     });
 
-    // Get current driver device recognition token
-    DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
-        .ref()
-        .child("driversAccount")
-        .child(currentDriver.uidDriver.toString())
-        .child("deviceToken");
+// Get current driver device recognition token
+DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
+    .ref()
+    .child("driversAccount")
+    .child(currentDriver.uidDriver.toString())
+    .child("deviceToken");
 
-    tokenOfCurrentDriverRef.once().then((dataSnapshot) {
-      if (dataSnapshot.snapshot.value != null) {
-        String deviceToken = dataSnapshot.snapshot.value.toString();
-        print(
-            'Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
+try {
+  final dataSnapshot = await tokenOfCurrentDriverRef.get();
+  
+  if (dataSnapshot.exists && dataSnapshot.value != null) {
+    String deviceToken = dataSnapshot.value.toString();
+    print(
+        'Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
 
-        // Send notification
-        PushNotificationService.sendNotificationToSelectedDriver(
-          deviceToken,
-          context,
-          tripRequestRef!.key.toString(),
-        );
-      } else {
-        print(
-            'Device token not found for driver UID: ${currentDriver.uidDriver}');
-        return;
-      }
-    }).catchError((error) {
-      print(
-          'Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
-    });
+    // Send notification
+    await PushNotificationService.sendNotificationToSelectedDriver(
+      deviceToken,
+      context,
+      tripRequestRef!.key.toString(),
+    );
+  } else {
+    print(
+        'Device token not found for driver UID: ${currentDriver.uidDriver}');
+  }
+} catch (error) {
+  print(
+      'Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
+}
 
     const oneTickPerSec = Duration(seconds: 1);
 
@@ -841,6 +892,14 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+@override
+  void initState() {
+    super.initState();
+    // Initialize the Future to calculate fare amount
+    if (tripDirectionDetailsInfo != null) {
+      fareAmountFuture = CommonMethods().calculateFareAmount(tripDirectionDetailsInfo!);
+    }
+  }
 // Build the UI of the home page
   @override
   Widget build(BuildContext context) {
@@ -1196,7 +1255,7 @@ class _HomePageState extends State<HomePage> {
                                 .arrow_forward), // Icon indicating that clicking will lead to another page
                           ],
                         ),
-                        SizedBox(height: 0), // Added for spacing
+                        SizedBox(height: 0), // Adjusted for spacing
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Card(
@@ -1204,8 +1263,8 @@ class _HomePageState extends State<HomePage> {
                             child: Container(
                               width: MediaQuery.of(context).size.width *
                                   0.90, // Adjusted width for better visibility
-                              color: Colors
-                                  .white, // Adjusted for consistency with background
+                              color:
+                                  Colors.white, // Consistent background color
                               child: Padding(
                                 padding: const EdgeInsets.all(
                                     16), // Increased padding for better layout
@@ -1259,28 +1318,61 @@ class _HomePageState extends State<HomePage> {
                                       ],
                                     ),
                                     SizedBox(height: 8), // Added for spacing
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text(
-                                          "Total Fare:",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.black87,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          tripDirectionDetailsInfo != null
-                                              ? "\PHP ${cMethods.calculateFareAmount(tripDirectionDetailsInfo!).toString()}"
-                                              : "",
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                      ],
+                                    FutureBuilder<double>(
+                                      future: tripDirectionDetailsInfo != null
+                                          ? cMethods.calculateFareAmount(
+                                              tripDirectionDetailsInfo!)
+                                          : null,
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const Text(
+                                            "Calculating fare...",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.black,
+                                            ),
+                                          );
+                                        } else if (snapshot.hasError) {
+                                          return const Text(
+                                            "Error calculating fare",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.red,
+                                            ),
+                                          );
+                                        } else if (snapshot.hasData) {
+                                          return Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text(
+                                                "Total Fare:",
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.black87,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                "\PHP ${snapshot.data!.toStringAsFixed(2)}",
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        } else {
+                                          return const Text(
+                                            "No fare data",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.black,
+                                            ),
+                                          );
+                                        }
+                                      },
                                     ),
                                   ],
                                 ),
@@ -1288,6 +1380,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         ),
+                            
 
 // CONFIRM BOOKING BUTTON
                         Container(
@@ -1813,4 +1906,6 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
+
+  
 }

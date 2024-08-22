@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:passenger/global/trip_var.dart';
 
+import 'dart:io';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
@@ -15,52 +17,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  bool _isEditing = false;
   bool _isPasswordVisible = false; // Flag to track whether the password is visible or not
+  File? _profileImage;
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = UserData.name ?? '';
-    _phoneController.text = UserData.phone ?? '';
-    _emailController.text = UserData.email ?? '';
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user.uid);
+      DatabaseEvent event = await userRef.once();
+      if (event.snapshot.value != null) {
+        Map<dynamic, dynamic> userData = event.snapshot.value as Map<dynamic, dynamic>;
+        _nameController.text = userData['name'] ?? '';
+        _phoneController.text = userData['phone'] ?? '';
+        _emailController.text = userData['email'] ?? '';
+      }
+    }
   }
 
   Future<void> _updateUserProfile() async {
-  User? user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user.uid);
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user.uid);
 
-    Map<String, String> updatedData = {
-      "name": _nameController.text.trim(),
-      "phone": _phoneController.text.trim(),
-      "email": _emailController.text.trim(),
-    };
+      Map<String, String> updatedData = {
+        "name": _nameController.text.trim(),
+        "phone": _phoneController.text.trim(),
+        "email": _emailController.text.trim(),
+      };
 
-    if (_passwordController.text.trim().isNotEmpty) {
-      await user.updatePassword(_passwordController.text.trim());
-    }
+      if (_passwordController.text.trim().isNotEmpty) {
+        await user.updatePassword(_passwordController.text.trim());
+      }
 
-    userRef.update(updatedData).then((_) {
-      UserData.name = _nameController.text.trim();
-      UserData.phone = _phoneController.text.trim();
-      UserData.email = _emailController.text.trim();
+      userRef.update(updatedData).then((_) {
+        UserData.name = _nameController.text.trim();
+        UserData.phone = _phoneController.text.trim();
+        UserData.email = _emailController.text.trim();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Profile updated successfully')),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile updated successfully')),
+        );
 
-      setState(() {
-        _isEditing = false;
+        setState(() {
+          // No specific state to update here
+        });
+      }).catchError((error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating profile: $error')),
+        );
       });
-    }).catchError((error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating profile: $error')),
-      );
-    });
+    }
   }
-}
+
 
 
   @override
@@ -71,116 +85,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _isEditing ? _buildEditForm() : _buildProfileView(),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          setState(() {
-            _isEditing = !_isEditing;
-          });
-        },
-        child: Icon(_isEditing ? Icons.check : Icons.edit),
-      ),
-    );
-  }
-
-  Widget _buildProfileView() {
-    User? user = FirebaseAuth.instance.currentUser;
-    DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user?.uid ?? '');
-
-    return FutureBuilder<DatabaseEvent>(
-      future: userRef.once(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator()); // Show loading indicator while fetching data
-        } else if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        } else if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-          return Text('User data not available');
-        } else {
-          Map<dynamic, dynamic> userData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-          return Column(
+        child: SingleChildScrollView(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Name: ${userData['name'] ?? ''}',
-                style: const TextStyle(fontSize: 18),
+              Center(
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundImage: _profileImage != null
+                          ? FileImage(_profileImage!)
+                          : AssetImage('assets/default_profile.png') as ImageProvider,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: InkWell(
+                        
+                        child: CircleAvatar(
+                          backgroundColor: Colors.white,
+                          child: Icon(Icons.camera_alt, color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 10),
-              Text(
-                'Phone: ${userData['phone'] ?? ''}',
-                style: const TextStyle(fontSize: 18),
+              TextField(
+                controller: _phoneController,
+                decoration: InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 10),
-              Text(
-                'Email: ${userData['email'] ?? ''}',
-                style: const TextStyle(fontSize: 18),
+              TextField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Password: ***', // Masking the password
-                style: TextStyle(fontSize: 18),
+              TextField(
+                controller: _passwordController,
+                obscureText: !_isPasswordVisible,
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: ElevatedButton(
+                  onPressed: _updateUserProfile,
+                  child: Text('Save'),
+                ),
               ),
             ],
-          );
-        }
-      },
-    );
-  }
-
-  Widget _buildEditForm() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              labelText: 'Name',
-              border: OutlineInputBorder(),
-            ),
           ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _phoneController,
-            decoration: InputDecoration(
-              labelText: 'Phone',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _emailController,
-            decoration: InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _passwordController,
-            obscureText: !_isPasswordVisible,
-            decoration: InputDecoration(
-              labelText: 'New Password',
-              border: OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isPasswordVisible = !_isPasswordVisible; // Toggle password visibility state
-                  });
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _updateUserProfile,
-            child: Text('Save'),
-          ),
-        ],
+        ),
       ),
     );
   }

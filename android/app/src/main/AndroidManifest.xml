@@ -3,6 +3,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    
 
     <!-- Provide required visibility configuration for API level 30 and above -->
     <queries>
@@ -60,5 +61,11 @@
 
         <meta-data android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCkLt8ILMXSFRP12xS8P7830kGNBeGn47s"/>
+        <meta-data
+    android:name="firebase_messaging_auto_init_enabled"
+    android:value="false" />
+<meta-data
+    android:name="firebase_analytics_collection_enabled"
+    android:value="false" />
     </application>
 </manifest>
