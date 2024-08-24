@@ -69,6 +69,7 @@ class _HomePageState extends State<HomePage> {
   StreamSubscription<DatabaseEvent>? tripStreamSubscription;
   bool requestingDirectionDetailsInfo = false;
    Future<double>? fareAmountFuture;
+   String? tripID;
    
 
   Marker? driverMarker;
@@ -478,7 +479,8 @@ Future<double> getFareAmount() async {
     tripRequestRef =
         FirebaseDatabase.instance.ref().child("tripRequests").push();
         
-
+  // Store the tripID (Firebase-generated key)
+   globalTripID = tripRequestRef!.key;  
 
     var pickUpLocation =
         Provider.of<AppInfo>(context, listen: false).pickUpLocation;
@@ -538,7 +540,7 @@ Future<double> getFareAmount() async {
     // Set the initial trip request data to Firebase
     tripRequestRef!.set(dataMap).then((_) async {
       print('Trip request created successfully!');
-
+print('Trip ID: $globalTripID');
       // Retrieve passenger's device token after pushing the initial data
       String? deviceToken = await FirebaseMessaging.instance.getToken();
 
@@ -791,16 +793,116 @@ if (status == "ended") {
     print("No driver available dialog result: $result");
   }
 
-  searchDriver() {
-    if (availableNearbyOnlineDriversList!.isEmpty) {
-      cancelRideRequest();
-      noDriverAvailable();
-      return;
-    }
-//  NOT SURE BUT IF DRIVER ALREADY RECEIVE RIDE REQUEST. HE WILL REMOVE IN ONLINE DRIVERS
-    var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
-    sendNotificationToDriver(currentDriver);
+bool isCancellationHandled = false; // Flag to track if cancellation is handled
+
+Future<void> searchDriver() async {
+  print('searchDriver() called.');
+
+  if (globalTripID == null) {
+    print('Error: tripID is not set.');
+    return;
   }
+
+  print('Trip ID: $globalTripID');
+
+  // Retrieve the status of the trip from Firebase
+  DatabaseReference tripStatusRef = FirebaseDatabase.instance
+      .ref()
+      .child("tripRequests")
+      .child(globalTripID!)
+      .child("status");
+
+  try {
+    // Listen for real-time changes in trip status
+    tripStatusRef.onValue.listen((dataSnapshot) async {
+      final status = dataSnapshot.snapshot.value as String?;
+      print('Status: $status');
+
+      if (status == 'cancelled') {
+        print('Trip cancelled notification received.');
+
+        if (!isCancellationHandled) {
+          isCancellationHandled = true; // Mark cancellation as handled
+
+          if (context != null && mounted) {
+            await _showDeclineDialog();
+            print('Decline dialog dismissed.');
+          } else {
+            print('Context is null or widget is not mounted.');
+          }
+          cancelRideRequest();
+          resetAppNow(context);
+          print('Cancellation AND RESET handled.');
+
+          // Exit as no further actions are needed
+          return;
+        }
+      }
+
+      print('Status is not cancelled. Proceeding with driver search.');   
+    });
+  } catch (error) {
+    print('Error retrieving trip status: $error');
+  }
+
+  if (availableNearbyOnlineDriversList!.isEmpty) {
+        print('No available drivers found.');
+        noDriverAvailable();
+        cancelRideRequest();
+        return;
+      }
+
+      var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
+      print('Driver selected: $currentDriver');
+      await sendNotificationToDriver(currentDriver);
+}
+
+Future<void> _showDeclineDialog() async {
+  print('Preparing to show decline dialog.');
+
+  if (context == null) {
+    print('Error: Context is null when attempting to show dialog.');
+    return Future.value();
+  }
+
+  try {
+    print('Context is valid. Proceeding with showDialog.');
+
+    if (!mounted) {
+      print('Error: The widget is no longer mounted. Cannot show dialog.');
+      return Future.value();
+    }
+
+    await showDialog(
+      context: context!,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        print('Building AlertDialog for driver decline.');
+
+        return AlertDialog(
+          title: Text('Trip Declined'),
+          content: Text('Sorry, the driver has declined the trip. Please try again later.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                print('OK button pressed in decline dialog.');
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    ).then((_) {
+      print('Dialog completion callback executed.');
+    });
+
+    print('showDialog() function call completed.');
+  } catch (e, stackTrace) {
+    print('Exception in _showDeclineDialog: $e');
+    print('Stack trace: $stackTrace');
+  }
+}
 
   Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
     print(

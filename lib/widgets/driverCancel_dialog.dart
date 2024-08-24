@@ -1,110 +1,56 @@
+import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-class NotificationHandler extends StatefulWidget {
-  @override
-  _NotificationHandlerState createState() => _NotificationHandlerState();
-}
+class NotificationHandler {
+  final BuildContext context;
 
-class _NotificationHandlerState extends State<NotificationHandler> {
-  OverlayEntry? _overlayEntry;
+  NotificationHandler(this.context);
 
-  @override
-  void initState() {
-    super.initState();
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _handleMessage(message);
-    });
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _handleMessage(message);
-    });
-  }
+  Future<void> handleNotification(RemoteMessage message) async {
+    // Extract data from the notification
+    final String? status = message.data['status'];
+    final String? tripID = message.data['tripID'];
 
-  void _handleMessage(RemoteMessage message) {
-    WidgetsBinding.instance?.addPostFrameCallback((_) {
-      if (mounted) {
-        String status = message.data['status'] ?? '';
-        String tripID = message.data['tripID'] ?? '';
+    print('Received notification with data:');
+    print('Status: $status');
+    print('Trip ID: $tripID');
 
-        if (status == 'cancelled') {
-          _showCancellationDialog(tripID);
-        }
+    if (status == 'cancelled') {
+      print('Trip cancelled notification received.');
+
+      try {
+        await _showCancellationDialog(tripID);
+      } catch (e, stackTrace) {
+        print('Error showing cancellation dialog: $e');
+        print('Stack trace: $stackTrace');
       }
-    });
+    } else {
+      print('No action for this notification status.');
+    }
   }
 
-  void _showCancellationDialog(String tripID) {
-    final overlay = Overlay.of(context);
-    if (overlay == null) return;
+  Future<void> _showCancellationDialog(String? tripID) async {
+    print('Preparing to show cancellation dialog.');
 
-    // Remove any existing overlay entry to prevent multiple dialogs
-    _overlayEntry?.remove();
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: MediaQuery.of(context).viewInsets.top,
-        left: 0,
-        right: 0,
-        child: Material(
-          color: Colors.transparent,
-          child: Center(
-            child: Dialog(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Trip Cancelled',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      'The trip with ID $tripID has been cancelled.',
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        _overlayEntry
-                            ?.remove(); // Safely remove the overlay entry
-                      },
-                      child: Text('OK'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    overlay.insert(_overlayEntry!);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Notification Handler"),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("Waiting for notifications..."),
-            ElevatedButton(
+    final result = await showDialog<int>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Trip Cancelled'),
+          content: Text('Your trip with ID $tripID has been cancelled by the driver.'),
+          actions: [
+            TextButton(
               onPressed: () {
-                print('Simulating a message for testing dialog');
-                _showCancellationDialog('TEST_TRIP_ID');
+                Navigator.of(context).pop(1); // Return 1 to indicate 'OK' pressed
               },
-              child: Text("Test Dialog"),
+              child: Text('OK'),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
+
+    print('Dialog result: $result');
   }
 }

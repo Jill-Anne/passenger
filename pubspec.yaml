@@ -61,6 +61,7 @@ dependencies:
   firebase_analytics: ^10.0.0
   flutter_local_notifications: ^17.2.2
   googleapis_auth: ^1.6.0
+  adaptive_dialog: ^2.1.0
 
 dev_dependencies:
   flutter_test:
