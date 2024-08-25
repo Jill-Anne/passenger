@@ -472,113 +472,124 @@ Future<double> getFareAmount() async {
   }
 }
 
-  makeTripRequest() async {
-    
-    
-    // Push the trip request to Firebase
-    tripRequestRef =
-        FirebaseDatabase.instance.ref().child("tripRequests").push();
-        
+makeTripRequest() async {
+  // Push the trip request to Firebase
+  tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
+  
   // Store the tripID (Firebase-generated key)
-   globalTripID = tripRequestRef!.key;  
+  globalTripID = tripRequestRef!.key;
 
-    var pickUpLocation =
-        Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-    var dropOffDestinationLocation =
-        Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+  // Log trip request creation
+  print('Trip request created with Trip ID: $globalTripID');
 
-    Map<String, String> pickUpCoOrdinatesMap = {
-      "latitude": pickUpLocation!.latitudePosition.toString(),
-      "longitude": pickUpLocation.longitudePosition.toString(),
-    };
+  var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+  var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-    Map<String, String> dropOffDestinationCoOrdinatesMap = {
-      "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
-      "longitude": dropOffDestinationLocation.longitudePosition.toString(),
-    };
+  Map<String, String> pickUpCoOrdinatesMap = {
+    "latitude": pickUpLocation!.latitudePosition.toString(),
+    "longitude": pickUpLocation.longitudePosition.toString(),
+  };
 
-    Map<String, String> driverCoOrdinates = {
-      "latitude": "",
-      "longitude": "",
-    };
+  Map<String, String> dropOffDestinationCoOrdinatesMap = {
+    "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
+    "longitude": dropOffDestinationLocation.longitudePosition.toString(),
+  };
 
-    var tripData = Provider.of<TripData>(context, listen: false);
-    DateFormat dateFormat = DateFormat('MMM d, yyyy');
+  Map<String, String> driverCoOrdinates = {
+    "latitude": "",
+    "longitude": "",
+  };
 
-    Map<String, Object?> dataMap = {
-      "tripID": tripRequestRef!.key,
-      "publishDateTime": DateTime.now().toString(),
-      "userName": userName,
-      "userPhone": userPhone,
-      "userID": userID,
-      "pickUpLatLng": pickUpCoOrdinatesMap,
-      "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
-      "pickUpAddress": pickUpLocation.placeName,
-      "dropOffAddress": dropOffDestinationLocation.placeName,
-      "driverID": "waiting",
-      "driverLocation": driverCoOrdinates,
-      "driverName": "",
-      "driverPhone": "",
-      "driverPhoto": "",
-      "fareAmount": "",
-      "status": "new",
-      "firstName": "",
-      "lastName": "",
-      "idNumber": "",
-      "bodyNumber": "",
-      "tripStartDate": tripData.startDate != null
-          ? DateFormat('MMMM d, yyyy').format(tripData.startDate!)
-          : "Not set",
-      "tripEndDate": tripData.endDate != null
-          ? DateFormat('MMMM d, yyyy').format(tripData.endDate!)
-          : "Not set",
-      "tripTime": tripData.selectedTime != null
-          ? tripData.selectedTime.format(context)
-          : "Not set",
-    };
+  var tripData = Provider.of<TripData>(context, listen: false);
+  DateFormat dateFormat = DateFormat('MMM d, yyyy');
 
-    // Set the initial trip request data to Firebase
-    tripRequestRef!.set(dataMap).then((_) async {
-      print('Trip request created successfully!');
-print('Trip ID: $globalTripID');
-      // Retrieve passenger's device token after pushing the initial data
-      String? deviceToken = await FirebaseMessaging.instance.getToken();
+  Map<String, Object?> dataMap = {
+    "tripID": tripRequestRef!.key,
+    "publishDateTime": DateTime.now().toString(),
+    "userName": userName,
+    "userPhone": userPhone,
+    "userID": userID,
+    "pickUpLatLng": pickUpCoOrdinatesMap,
+    "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
+    "pickUpAddress": pickUpLocation.placeName,
+    "dropOffAddress": dropOffDestinationLocation.placeName,
+    "driverID": "waiting",
+    "driverLocation": driverCoOrdinates,
+    "driverName": "",
+    "driverPhone": "",
+    "driverPhoto": "",
+    "fareAmount": "",
+    "status": "new",
+    "firstName": "",
+    "lastName": "",
+    "idNumber": "",
+    "bodyNumber": "",
+    "tripStartDate": tripData.startDate != null
+        ? DateFormat('MMMM d, yyyy').format(tripData.startDate!)
+        : "Not set",
+    "tripEndDate": tripData.endDate != null
+        ? DateFormat('MMMM d, yyyy').format(tripData.endDate!)
+        : "Not set",
+    "tripTime": tripData.selectedTime != null
+        ? tripData.selectedTime.format(context)
+        : "Not set",
+  };
 
-      if (deviceToken != null) {
-        // Update the dataMap with the device token
-        dataMap["deviceToken"] = deviceToken;
+  // Set the initial trip request data to Firebase
+  tripRequestRef!.set(dataMap).then((_) async {
+    print('Trip request created successfully!');
+    print('Trip ID: $globalTripID');
+    
 
-        // Update the trip request in Firebase with the new dataMap
-        tripRequestRef!.update(dataMap as Map<String, Object?>).then((_) {
-          print("Device token added to trip request: $deviceToken");
-        }).catchError((error) {
-          print('Error updating trip request with device token: $error');
-        });
-      } else {
-        print("Error: Passenger's device token is null.");
-      }
+    // Retrieve passenger's device token after pushing the initial data
+    String? deviceToken = await FirebaseMessaging.instance.getToken();
 
-      // Store the tripID in a shared location for the driver
-      DatabaseReference currentDriverRef = FirebaseDatabase.instance
-          .ref()
-          .child("driversAccount")
-          .child(FirebaseAuth.instance.currentUser!.uid)
-          .child("currentTripID");
+    if (deviceToken != null) {
+      // Update the dataMap with the device token
+      dataMap["deviceToken"] = deviceToken;
 
-      currentDriverRef.set(tripRequestRef!.key).then((_) {
-        print('currentTripID updated for driver.');
+      // Update the trip request in Firebase with the new dataMap
+      tripRequestRef!.update(dataMap as Map<String, Object?>).then((_) {
+        print("Device token added to trip request: $deviceToken");
       }).catchError((error) {
-        print('Error updating currentTripID for driver: $error');
+        print('Error updating trip request with device token: $error');
       });
-    }).catchError((error) {
-      print('Error creating trip request: $error');
-    });
+    } else {
+      print("Error: Passenger's device token is null.");
+    }
+  }).catchError((error) {
+    print('Error creating trip request: $error');
+  });
+
 
 tripStreamSubscription =
         tripRequestRef!.onValue.listen((eventSnapshot) async {
       if (eventSnapshot.snapshot.value == null) {
         return;
       }
+
+        Map<String, dynamic> tripData = Map<String, dynamic>.from(eventSnapshot.snapshot.value as Map);
+
+    // Retrieve and print the trip data
+    firstName = tripData["firstName"] ?? 'Not found';
+    lastName = tripData["lastName"] ?? 'Not found';
+    idNumber = tripData["idNumber"] ?? 'Not found';
+    bodyNumber = tripData["bodyNumber"] ?? 'Not found';
+    photoDriver = tripData["driverPhoto"] ?? 'Not found';
+    carDetailsDriver = tripData["carDetails"] ?? 'Not found';
+    status = tripData["status"] ?? 'Not found';
+    
+    print('Retrieved trip data: ${tripData}');
+    print('First Name: $firstName');
+    print('Last Name: $lastName');
+    print('Driver Photo URL: $photoDriver');
+
+    if (tripData["driverID"] != null) {
+      String driverID = tripData["driverID"];
+      fetchDriverPhoto(driverID);
+    } else {
+      print('Driver ID not found in trip data.');
+    }
 
       if ((eventSnapshot.snapshot.value as Map)["firstName"] != null) {
         firstName = (eventSnapshot.snapshot.value as Map)["firstName"];
@@ -681,8 +692,34 @@ if (status == "ended") {
         }
       }
     });
+
+
+    
   }
 
+void fetchDriverPhoto(String driverId) async {
+  if (driverId != null) {
+    final DatabaseReference driverRef = FirebaseDatabase.instance.ref().child('driversAccount').child(driverId);
+
+    driverRef.onValue.listen((driverSnapshot) {
+      if (driverSnapshot.snapshot.value != null) {
+        Map<String, dynamic> driverData = Map<String, dynamic>.from(driverSnapshot.snapshot.value as Map);
+        print('Driver data snapshot: ${driverData}');
+        
+        if (driverData["driverPhoto"] != null) {
+          photoDriver = driverData["driverPhoto"];
+          print('Driver photo URL retrieved: $photoDriver');
+        } else {
+          print('Driver photo URL not found.');
+        }
+      } else {
+        print('No data found for driver.');
+      }
+    });
+  } else {
+    print('Driver ID is not available.');
+  }
+}
   displayTripDetailsContainer() {
     setState(() {
       requestContainerHeight = 0;
@@ -904,95 +941,96 @@ Future<void> _showDeclineDialog() async {
   }
 }
 
-  Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
-    print(
-        'sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
-    if (tripRequestRef == null) {
-      print('Trip request reference is null');
-      return;
+Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
+  print('sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
+  
+  if (tripRequestRef == null) {
+    print('Trip request reference is null');
+    return;
+  }
+
+  // Reference to the driver's data in Firebase
+  DatabaseReference driverRef = FirebaseDatabase.instance
+      .ref()
+      .child("driversAccount")
+      .child(currentDriver.uidDriver.toString());
+
+  // Update newTripStatus and currentTripID
+  driverRef.child("newTripStatus").set(tripRequestRef!.key).then((_) {
+    print('newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
+  }).catchError((error) {
+    print('Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
+  });
+
+  // Add currentTripID node to store the tripID
+  driverRef.child("currentTripID").set(tripRequestRef!.key).then((_) {
+    print('currentTripID updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
+  }).catchError((error) {
+    print('Error updating currentTripID for driver UID: ${currentDriver.uidDriver}: $error');
+  });
+
+  // Get the current driver device recognition token
+  DatabaseReference tokenOfCurrentDriverRef = driverRef.child("deviceToken");
+
+  try {
+    final dataSnapshot = await tokenOfCurrentDriverRef.get();
+    
+    if (dataSnapshot.exists && dataSnapshot.value != null) {
+      String deviceToken = dataSnapshot.value.toString();
+      print('Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
+
+      // Send notification
+      await PushNotificationService.sendNotificationToSelectedDriver(
+        deviceToken,
+        context,
+        tripRequestRef!.key.toString(),
+      );
+    } else {
+      print('Device token not found for driver UID: ${currentDriver.uidDriver}');
+    }
+  } catch (error) {
+    print('Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
+  }
+
+  // Timer logic
+  const oneTickPerSec = Duration(seconds: 1);
+
+  var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
+    requestTimeoutDriver = requestTimeoutDriver - 1;
+
+    // When trip request is not requesting, means trip request cancelled - stop timer
+    if (stateOfApp != "requesting") {
+      timer.cancel();
+      driverRef.child("newTripStatus").set("cancelled");
+      driverRef.onDisconnect();
+      requestTimeoutDriver = 20;
+      return; // Exit the timer callback function
     }
 
-    DatabaseReference currentDriverRef = FirebaseDatabase.instance
-        .ref()
-        .child("driversAccount")
-        .child(currentDriver.uidDriver.toString())
-        .child("newTripStatus");
+    // If 20 seconds passed - send notification to the next nearest online available driver
+    if (requestTimeoutDriver == 0) {
+      timer.cancel();
+      driverRef.child("newTripStatus").set("timeout");
+      driverRef.onDisconnect();
+      requestTimeoutDriver = 20;
 
-    currentDriverRef.set(tripRequestRef!.key).then((_) {
-      print(
-          'newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
-    }).catchError((error) {
-      print(
-          'Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
-    });
+      // Send notification to the next nearest online available driver
+      searchDriver();
+      return; // Exit the timer callback function
+    }
+  });
 
-// Get current driver device recognition token
-DatabaseReference tokenOfCurrentDriverRef = FirebaseDatabase.instance
-    .ref()
-    .child("driversAccount")
-    .child(currentDriver.uidDriver.toString())
-    .child("deviceToken");
-
-try {
-  final dataSnapshot = await tokenOfCurrentDriverRef.get();
-  
-  if (dataSnapshot.exists && dataSnapshot.value != null) {
-    String deviceToken = dataSnapshot.value.toString();
-    print(
-        'Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
-
-    // Send notification
-    await PushNotificationService.sendNotificationToSelectedDriver(
-      deviceToken,
-      context,
-      tripRequestRef!.key.toString(),
-    );
-  } else {
-    print(
-        'Device token not found for driver UID: ${currentDriver.uidDriver}');
-  }
-} catch (error) {
-  print(
-      'Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
+  // Listen for changes in newTripStatus
+  driverRef.child("newTripStatus").onValue.listen((dataSnapshot) {
+    var value = dataSnapshot.snapshot.value;
+    if (value != null && value.toString() == "accepted") {
+      timerCountDown.cancel(); // Cancel the timer when trip is accepted
+      driverRef.onDisconnect(); // Disconnect the reference
+      requestTimeoutDriver = 20; // Reset request timeout
+    }
+  });
 }
 
-    const oneTickPerSec = Duration(seconds: 1);
-
-    var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
-      requestTimeoutDriver = requestTimeoutDriver - 1;
-
-      // When trip request is not requesting, means trip request cancelled - stop timer
-      if (stateOfApp != "requesting") {
-        timer.cancel();
-        currentDriverRef.set("cancelled");
-        currentDriverRef.onDisconnect();
-        requestTimeoutDriver = 20;
-        return; // Exit the timer callback function
-      }
-
-      // If 20 seconds passed - send notification to next nearest online available driver
-      if (requestTimeoutDriver == 0) {
-        timer.cancel();
-        currentDriverRef.set("timeout");
-        currentDriverRef.onDisconnect();
-        requestTimeoutDriver = 20;
-
-        // Send notification to next nearest online available driver
-        searchDriver();
-        return; // Exit the timer callback function
-      }
-    });
-
-    // Listen for changes in newTripStatus
-    currentDriverRef.onValue.listen((dataSnapshot) {
-      var value = dataSnapshot.snapshot.value;
-      if (value != null && value.toString() == "accepted") {
-        timerCountDown.cancel(); // Cancel the timer when trip is accepted
-        currentDriverRef.onDisconnect(); // Disconnect the reference
-        requestTimeoutDriver = 20; // Reset request timeout
-      }
-    });
-  }
 
 @override
   void initState() {

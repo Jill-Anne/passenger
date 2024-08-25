@@ -274,15 +274,27 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                                           ),
                                           child: ElevatedButton(
                                             onPressed: () async {
-                                              await FirebaseFirestore.instance
-                                                  .collection(
-                                                      'Advance Bookings')
-                                                  .doc()
-                                                  .update({
-                                                'status': 'Deleted',
-                                              });
-                                              Navigator.pop(context);
+                                              // await FirebaseFirestore.instance
+                                              //     .collection(
+                                              //         'Advance Bookings')
+                                              //     .doc()
+                                              //     .update({
+                                              //   'status': 'Deleted',
+                                              // });
+                                              // Navigator.pop(context);
                                               // ADD SETSTATE HERE for Confirm Booking Button
+
+                                                                  await FirebaseFirestore.instance
+                        .collection('Advance Bookings')
+                        .doc(trip
+                            .id) // Use the document ID to delete the specific trip
+                        .delete(); // Perform the deletion
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Advance Booking Rejected Successfully')),
+                    );
+                    setState(() {}); // Refresh the list after deletion
                                             },
                                             style: ElevatedButton.styleFrom(
                                               padding:
@@ -313,8 +325,26 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                     );
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Delete'),
+                  child: const Text('Cancel ride'),
                 ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await FirebaseFirestore.instance
+                        .collection('Advance Bookings')
+                        .doc(trip
+                            .id) // Use the document ID to delete the specific trip
+                        .delete(); // Perform the deletion
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Trip deleted successfully')),
+                    );
+                    setState(() {}); // Refresh the list after deletion
+                  },
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  child: const Text('Delete'),
+                )
               ],
             ),
           ],

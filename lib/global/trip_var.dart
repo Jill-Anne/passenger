@@ -10,7 +10,8 @@ String status = '';
 String carDetailsDriver = '';
 String tripStatusDisplay = 'Driver is Arriving';
 
-  String driverPhotoUrl = "";
+  String driverPhoto = "";
+ String? _driverPhotoUrl;
 String firstName = "";
 String lastName = "";
 String idNumber = "";

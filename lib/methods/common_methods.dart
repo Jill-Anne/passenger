@@ -190,6 +190,30 @@ Future<double> calculateFareAmount(DirectionDetails directionDetails) async {
         .set({'amount': overAllTotalFareAmount});
 
     print('Calculated fare amount: PHP $overAllTotalFareAmount');
+
+    // --- Add this block to store the fare in Realtime Database ---
+    try {
+      // Assuming globalTripID is already set and valid
+      if (globalTripID != null) {
+        // Reference to the specific trip request
+        DatabaseReference tripRequestRef = FirebaseDatabase.instance
+            .reference()
+            .child('tripRequests')
+            .child(globalTripID!);
+
+        // Store fare amount under 'fareAmount' node
+        await tripRequestRef.child('fareAmount').set(overAllTotalFareAmount);
+
+        // Log success for Realtime Database write
+        print('Fare amount stored in Realtime Database successfully.');
+      } else {
+        print('globalTripID is null, cannot store fare amount in Realtime Database.');
+      }
+    } catch (e) {
+      print("Error storing fare amount in Realtime Database: $e");
+    }
+    // ------------------------------------------------------------
+
     return overAllTotalFareAmount;
   } catch (e) {
     print("Error fetching fare parameters or calculating fare: $e");
