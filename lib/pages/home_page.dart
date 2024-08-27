@@ -472,6 +472,15 @@ Future<double> getFareAmount() async {
   }
 }
 
+// Function to format tripEndedTime
+String formatTripEndedTime(DateTime tripEndedTime) {
+  // Create a DateFormat instance with the desired pattern
+  DateFormat dateFormat = DateFormat('MMMM d, yyyy h:mm a');
+  
+  // Format the DateTime object to the desired string
+  return dateFormat.format(tripEndedTime);
+}
+
 makeTripRequest() async {
   // Push the trip request to Firebase
   tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
@@ -523,6 +532,7 @@ makeTripRequest() async {
     "firstName": "",
     "lastName": "",
     "idNumber": "",
+    "tripEndedTime": "",
     "bodyNumber": "",
     "tripStartDate": tripData.startDate != null
         ? DateFormat('MMMM d, yyyy').format(tripData.startDate!)
@@ -663,28 +673,41 @@ tripStreamSubscription =
       }
 
 if (status == "ended") {
-  // Fetch the fare amount from Firestore using getFareAmount method
+   // Fetch the fare amount from Firestore using getFareAmount method
   double fareAmount = await getFareAmount();
-   if (fareAmount != 0.0) { // Ensure fareAmount is valid
-        // Convert fareAmount to string with 2 decimal places
-        String formattedFareAmount = fareAmount.toStringAsFixed(2);
+  
+  if (fareAmount != 0.0) { // Ensure fareAmount is valid
+    // Convert fareAmount to string with 2 decimal places
+    String formattedFareAmount = fareAmount.toStringAsFixed(2);
 
-        // Show the dialog and await the response
-        var responseFromPaymentDialog = await showDialog(
-          context: context,
-          builder: (BuildContext context) => PaymentDialog(fareAmount: formattedFareAmount),
-        );
+    // Show the dialog and await the response
+    var responseFromPaymentDialog = await showDialog(
+      context: context,
+      builder: (BuildContext context) => PaymentDialog(fareAmount: formattedFareAmount),
+    );
 
+    if (responseFromPaymentDialog == "paid") {
+      // Get the current time for tripEndedTime
+      DateTime tripEndedDateTime = DateTime.now();
 
+      // Format the tripEndedTime
+      String formattedTripEndedTime = formatTripEndedTime(tripEndedDateTime);
 
-          if (responseFromPaymentDialog == "paid") {
-            tripRequestRef!.onDisconnect();
-            tripRequestRef = null;
+      // Update tripEndedTime in Firebase
+      tripRequestRef!.update({"tripEndedTime": formattedTripEndedTime}).then((_) {
+        print("Trip ended time updated: $formattedTripEndedTime");
+      }).catchError((error) {
+        print('Error updating trip ended time: $error');
+      });
 
-            tripStreamSubscription!.cancel();
-            tripStreamSubscription = null;
+      // Other actions after payment confirmation
+      tripRequestRef!.onDisconnect();
+      tripRequestRef = null;
 
-            resetAppNow(context);
+      tripStreamSubscription!.cancel();
+      tripStreamSubscription = null;
+
+      resetAppNow(context);
 
 //ALTERNATIVE FOR THIS GOING TO RESTART APP
             //    Restart.restartApp();
@@ -696,6 +719,7 @@ if (status == "ended") {
 
     
   }
+
 
 void fetchDriverPhoto(String driverId) async {
   if (driverId != null) {

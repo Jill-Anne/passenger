@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class TripsHistoryPage extends StatefulWidget {
   const TripsHistoryPage({super.key});
@@ -67,6 +68,26 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                   tripsList[index]["status"] == "ended" &&
                   tripsList[index]["userID"] ==
                       FirebaseAuth.instance.currentUser!.uid) {
+
+                // Initialize the formatted trip ended time
+                String tripEndedTimeFormatted = "N/A";
+if (tripsList[index]["tripEndedTime"] != null) {
+  try {
+    // Define a DateFormat that matches your date string format
+    DateFormat dateFormat = DateFormat("MMMM d, yyyy h:mm a");
+    
+    // Parse the date string into a DateTime object
+    DateTime tripEndedDateTime = dateFormat.parse(tripsList[index]["tripEndedTime"]);
+    
+    // Format the DateTime object to your desired output format
+    tripEndedTimeFormatted = DateFormat('MMMM d, yyyy h:mm a').format(tripEndedDateTime);
+  } catch (e) {
+    // Handle parsing exceptions
+    tripEndedTimeFormatted = "Invalid date format";
+    print("Date parsing error: $e");
+  }
+}
+
                 return Card(
                   color: Colors.white12,
                   elevation: 10,
@@ -99,6 +120,16 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                         // ID Number
                         Text(
                           'ID Number: ${tripsList[index]["idNumber"] ?? "N/A"}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.white38,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Trip Ended Time
+                        Text(
+                          'Trip Ended Time: $tripEndedTimeFormatted',
                           style: const TextStyle(
                             fontSize: 18,
                             color: Colors.white38,
