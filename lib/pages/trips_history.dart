@@ -85,7 +85,7 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        
+
                         // Body Number
                         Text(
                           'Body Number: ${tripsList[index]["bodyNumber"] ?? "N/A"}',
@@ -166,6 +166,21 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
                               ),
                             ),
                           ],
+                        ),
+
+                        // Delete Button
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () async {
+                            // Get the key of the trip to be deleted
+                            String tripKey = tripsList[index]["key"];
+                            // Delete the trip from Firebase
+                            await completedTripRequestsOfCurrentUser.child(tripKey).remove();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+                          child: const Text('Delete'),
                         ),
                       ],
                     ),
