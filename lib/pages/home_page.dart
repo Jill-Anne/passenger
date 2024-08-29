@@ -1836,96 +1836,103 @@ Positioned(
             ),
           ),
 
-          ///trip details container
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: tripContainerHeight,
-              decoration: const BoxDecoration(
+///trip details container
+Positioned(
+  left: 0,
+  right: 0,
+  bottom: 0,
+  child: Container(
+    height: tripContainerHeight,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(16),
+        topRight: Radius.circular(16),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.5), // This line is fine now
+          spreadRadius: 2,
+          blurRadius: 7,
+          offset: Offset(0, 3),
+        ),
+      ],
+    ),
+    child: SingleChildScrollView(
+      padding: EdgeInsets.only(bottom: 30),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(
+              height: 20,
+            ),
+            // Trip status display text
+            Text(
+              tripStatusDisplay,
+              style: TextStyle(
+                fontSize: 20,
                 color: Colors.black87,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white24,
-                    blurRadius: 15.0,
-                    spreadRadius: 0.5,
-                    offset: Offset(
-                      0.7,
-                      0.7,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Divider(
+              height: 10,
+              color: Colors.grey[400],
+              thickness: 1,
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 90,  // Slightly larger to accommodate the border
+                    height: 90, // Slightly larger to accommodate the border
+                    decoration: BoxDecoration(
+                      color: Colors.white, // Background color for the container
+                      shape: BoxShape.circle, // Ensures the border is circular
+                      border: Border.all(
+                        color: Color.fromARGB(255, 118, 114, 114), // Border color
+                        width: 2, // Border width
+                      ),
+                    ),
+                    child: ClipOval(
+                      child: Image.network(
+                        photoDriver == ''
+                            ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=11c39289-3c10-4355-9537-9003913dbeef"
+                            : photoDriver,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                // Wrap with SingleChildScrollView
-                padding: EdgeInsets.only(bottom: 70), // Adjust bottom padding
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(
-                        height: 5,
-                      ),
-                      //trip status display text
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            tripStatusDisplay,
-                            style: const TextStyle(
-                              fontSize: 19,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(
-                        height: 19,
-                      ),
-                      const Divider(
-                        height: 1,
-                        color: Colors.white70,
-                        thickness: 1,
-                      ),
-                      const SizedBox(
-                        height: 19,
-                      ),
-                      //image - driver name and driver car details
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          ClipOval(
-                            child: Image.network(
-                              photoDriver == ''
-                                  ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=11c39289-3c10-4355-9537-9003913dbeef"
-                                  : photoDriver,
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(
-                            width: 8,
-                          ),
+                  SizedBox(width: 20),
+                  // Additional widgets for driver name and car details
+                
+
                           Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
+                            // mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 '$firstName $lastName',
                                 style: const TextStyle(
                                   fontSize: 20,
-                                  color: Colors.grey,
+                                                      color: Colors.black87,
+                          fontWeight: FontWeight.bold,
                                 ),
                               ),
+                                SizedBox(height: 5),
                               Text(
                                 'Plate Number: $idNumber',
                                 style: const TextStyle(
@@ -1944,16 +1951,17 @@ Positioned(
                           ),
                         ],
                       ),
-                      const SizedBox(
-                        height: 19,
-                      ),
+                ),
+                                 const SizedBox(
+              height: 20,
+            ),
                       const Divider(
                         height: 1,
-                        color: Colors.white70,
+                        color: Colors.grey,
                         thickness: 1,
                       ),
                       const SizedBox(
-                        height: 19,
+                        height: 15,
                       ),
                       //call driver btn
                       Row(
@@ -1974,21 +1982,23 @@ Positioned(
                                         Radius.circular(25)),
                                     border: Border.all(
                                       width: 1,
-                                      color: Colors.white,
+                                      color: const Color.fromARGB(255, 31, 29, 29),
                                     ),
                                   ),
                                   child: const Icon(
                                     Icons.phone,
-                                    color: Colors.white,
+                                    color: Color.fromARGB(255, 21, 20, 20),
                                   ),
                                 ),
                                 const SizedBox(
-                                  height: 11,
+                                  height: 10,
                                 ),
                                 const Text(
                                   "Call",
-                                  style: TextStyle(
-                                    color: Colors.grey,
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
