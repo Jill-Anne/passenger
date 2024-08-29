@@ -722,7 +722,7 @@ if (status == "ended") {
 
 
 void fetchDriverPhoto(String driverId) async {
-  if (driverId != null) {
+  if (driverId.isNotEmpty) {
     final DatabaseReference driverRef = FirebaseDatabase.instance.ref().child('driversAccount').child(driverId);
 
     driverRef.onValue.listen((driverSnapshot) {
@@ -733,6 +733,13 @@ void fetchDriverPhoto(String driverId) async {
         if (driverData["driverPhoto"] != null) {
           photoDriver = driverData["driverPhoto"];
           print('Driver photo URL retrieved: $photoDriver');
+
+          // Update the dataMap with the driver photo and push to Firebase
+          tripRequestRef!.update({"driverPhoto": photoDriver}).then((_) {
+            print("Driver photo updated in trip request.");
+          }).catchError((error) {
+            print('Error updating driver photo in trip request: $error');
+          });
         } else {
           print('Driver photo URL not found.');
         }
@@ -744,6 +751,7 @@ void fetchDriverPhoto(String driverId) async {
     print('Driver ID is not available.');
   }
 }
+
   displayTripDetailsContainer() {
     setState(() {
       requestContainerHeight = 0;
@@ -1243,128 +1251,76 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
           ),
 
 //drawer button HAMBURGER
-          Positioned(
-            top: 36,
-            left: 19,
-            child: GestureDetector(
-              onTap: () {
-                if (isDrawerOpened == true) {
-                  sKey.currentState!.openDrawer();
-                } else {
-                  resetAppNow(context);
-                }
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 5,
-                      spreadRadius: 0.5,
-                      offset: Offset(0.7, 0.7),
-                    ),
-                  ],
+Positioned(
+  left: 0,
+  right: 0,
+  bottom: -150,
+  child: GestureDetector(
+    onTap: () async {
+      var responseFromSearchPage = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (c) => SearchDestinationPage()),
+      );
+
+      if (responseFromSearchPage == "placeSelected") {
+        // Once a place is selected, display user ride details container
+        displayUserRideDetailsContainer();
+      }
+    },
+    child: Container(
+      height: searchContainerHeight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 100,  // Set desired height here
+            margin: EdgeInsets.symmetric(horizontal: 15),
+            decoration: BoxDecoration(
+              color: Color.fromARGB(255, 1, 42, 123),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: Offset(0, 7),
                 ),
-                child: CircleAvatar(
-                  backgroundColor: Colors.grey,
-                  radius: 20,
-                  child: Icon(
-                    isDrawerOpened == true ? Icons.menu : Icons.close,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
+              ],
             ),
-          ),
-
-          ///search location icon button
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: -80,
-            child: Container(
-              height: searchContainerHeight,
+            child: const Padding(
+              padding: EdgeInsets.all(20.0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  // Blue Background
-                  Container(
-                    width: MediaQuery.of(context).size.width *
-                        0.85, // 95% of screen width
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2E3192), // Blue background color
-                      borderRadius: BorderRadius.circular(8), // Rounded corners
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          // White Container
-                          Container(
-                            width: MediaQuery.of(context).size.width *
-                                0.8, // 85% of screen width
-                            decoration: BoxDecoration(
-                              color: Colors.white, // White background color
-                              borderRadius:
-                                  BorderRadius.circular(8), // Rounded corners
-                            ),
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                var responseFromSearchPage =
-                                    await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (c) =>
-                                                SearchDestinationPage()));
-
-                                if (responseFromSearchPage == "placeSelected") {
-                                  // Once a place is selected, display user ride details container
-                                  displayUserRideDetailsContainer();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors
-                                    .transparent, // Transparent background
-                                elevation: 0, // No shadow
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      8), // Rounded corners
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  // Search Icon
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Icon(
-                                      Icons.search, // Search icon
-                                      color: Colors.grey, // Grey color
-                                      size: 25,
-                                    ),
-                                  ),
-                                  // Hint Text
-                                  Text(
-                                    'Where do you want to go', // Hint text
-                                    style: TextStyle(
-                                      color: Colors.grey, // Grey color
-                                      fontSize:
-                                          16, // Adjust font size as needed
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                  // Icon(
+                  //   Icons.search,
+                  //   color: Colors.white,
+                  //   size: 30,
+                  // ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Where do you want to go?',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
                       ),
                     ),
+                  ),
+                  SizedBox(width: 10),
+                  Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 30,
                   ),
                 ],
               ),
             ),
           ),
+          SizedBox(height: 20), // Space for aesthetics, if needed
+        ],
+      ),
+    ),
+  ),
+),
 
 //WHOLE BOX CONFIRMATION BOOKING IN MAP
 //RIDE DETAILS CONTAINER W/ CONFIRM BOOKING
@@ -1777,13 +1733,13 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
             child: Container(
               height: requestContainerHeight,
               decoration: const BoxDecoration(
-                color: Colors.black54,
+                color: const Color.fromARGB(137, 255, 255, 255),
                 borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(16),
                     topRight: Radius.circular(16)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black26,
+                    color: Color.fromARGB(118, 255, 255, 255),
                     blurRadius: 15.0,
                     spreadRadius: 0.5,
                     offset: Offset(
@@ -1793,23 +1749,64 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
                   ),
                 ],
               ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      height: 12,
+                 child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 100,
+            height: 100,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Color.fromARGB(255, 1, 42, 123),
+                      width: 2,
                     ),
-                    SizedBox(
-                      width: 200,
-                      child: LoadingAnimationWidget.flickr(
-                        leftDotColor: Colors.greenAccent,
-                        rightDotColor: Colors.pinkAccent,
-                        size: 50,
+                  ),
+                ),
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: 1),
+                  duration: Duration(seconds: 1),
+                  builder: (context, value, child) {
+                    return Container(
+                      width: 80 * value,
+                      height: 80 * value,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Color.fromARGB(255, 1, 42, 123).withOpacity(0.4),
+                          width: 2,
+                        ),
                       ),
+                    );
+                  },
+                ),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color.fromARGB(0, 255, 255, 255),
+                      width: 8,
                     ),
+                  ),
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 18, 0, 88)),
+                    strokeWidth: 3,
+                    value: null,
+                  ),
+                ),
+              ],
+            ),
+          ),
                     const SizedBox(
                       height: 20,
                     ),
