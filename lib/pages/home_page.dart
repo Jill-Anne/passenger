@@ -70,6 +70,7 @@ class _HomePageState extends State<HomePage> {
   bool requestingDirectionDetailsInfo = false;
    Future<double>? fareAmountFuture;
    String? tripID;
+   String? _profileImageUrl;
    
 
   Marker? driverMarker;
@@ -78,6 +79,8 @@ class _HomePageState extends State<HomePage> {
   late DateTime _startDate;
   late DateTime _endDate;
   TimeOfDay? _selectedTime;
+  
+
 
   void makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
@@ -96,6 +99,24 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+Future<void> _loadUserData() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user.uid);
+      DatabaseEvent event = await userRef.once();
+      if (event.snapshot.value != null) {
+        Map<dynamic, dynamic> userData = event.snapshot.value as Map<dynamic, dynamic>;
+        setState(() {
+          _profileImageUrl = userData['profileImageUrl'];
+          print("Profile Image URL: $_profileImageUrl"); // Debugging output
+        });
+      } else {
+        print("No user data found"); // Debugging output
+      }
+    } else {
+      print("No current user"); // Debugging output
+    }
+  }
   void updateMapTheme(GoogleMapController controller) {
 // Function to update the map theme
     getJsonFileFromThemes("themes/standard_style.json")
@@ -527,6 +548,7 @@ makeTripRequest() async {
     "driverName": "",
     "driverPhone": "",
     "driverPhoto": "",
+    "passengerPhoto": "",
     "fareAmount": "",
     "status": "new",
     "firstName": "",
@@ -751,6 +773,38 @@ void fetchDriverPhoto(String driverId) async {
     print('Driver ID is not available.');
   }
 }
+
+Future<void> fetchAndPushPassengerPhoto(String userId) async {
+  try {
+    // Fetch user data from Firebase Realtime Database
+    DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(userId);
+    DatabaseEvent event = await userRef.once();
+
+    if (event.snapshot.value != null) {
+      Map<dynamic, dynamic> userData = event.snapshot.value as Map<dynamic, dynamic>;
+
+      // Extract profileImageUrl
+      String? profileImageUrl = userData['profileImageUrl'];
+
+      // Check if profileImageUrl is available and not empty
+      if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+        // Push profileImageUrl to tripRequestRef
+        tripRequestRef!.update({"passengerPhoto": profileImageUrl}).then((_) {
+          print('Passenger photo URL updated successfully.');
+        }).catchError((error) {
+          print('Failed to update passenger photo URL: $error');
+        });
+      } else {
+        print('No profile image URL found for user.');
+      }
+    } else {
+      print('User data does not exist.');
+    }
+  } catch (e) {
+    print('Error fetching user data: $e');
+  }
+}
+
 
   displayTripDetailsContainer() {
     setState(() {
@@ -1079,22 +1133,27 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
 
     return Scaffold(
       key: sKey,
-      drawer: Container(
+       drawer: ClipRRect(
+    borderRadius: BorderRadius.horizontal(right: Radius.circular(80)),
+      child: Container(
         width: 255,
-        color: Colors.black87,
+        color:Color.fromARGB(135, 233, 229, 229),
         child: Drawer(
-          backgroundColor: Colors.white10,
+          //backgroundColor:const Color.fromARGB(137, 237, 234, 234),
           child: ListView(
             children: [
               const Divider(
                 height: 1,
-                color: Colors.grey,
+             //   color: Color.fromARGB(255, 110, 108, 108),
                 thickness: 1,
+              ),
+const SizedBox(
+                height: 20,
               ),
 
 //header
               Container(
-                color: Colors.black54,
+                color: const Color.fromARGB(137, 237, 234, 234),
                 height: 160,
                 child: GestureDetector(
                   onTap: () {
@@ -1105,28 +1164,51 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
                       ),
                     );
                   },
+                  
                   child: DrawerHeader(
                     decoration: const BoxDecoration(
-                      color: Colors.white10,
+              //        color: const Color.fromARGB(137, 237, 234, 234),
                     ),
                     child: Row(
                       children: [
-                        Image.asset(
-                          "assets/images/avatarman.png",
-                          width: 60,
-                          height: 60,
-                        ),
-                        const SizedBox(
+Container(
+  width: 60,  // Slightly larger to accommodate the border
+  height: 60, // Slightly larger to accommodate the border
+  decoration: BoxDecoration(
+    
+    shape: BoxShape.circle, // Ensures the border is circular
+    border: Border.all(
+      color: Color.fromARGB(255, 32, 2, 87), // Border color
+      width: 4, // Border width
+    ),
+  ),
+  child: ClipOval(
+    child: _profileImageUrl == null || _profileImageUrl!.isEmpty
+        ? Image.asset(
+            "assets/images/avatarman.png",
+            width: 50,
+            height: 50,
+            fit: BoxFit.cover,
+          )
+        : Image.network(
+            _profileImageUrl!,
+            width: 50,
+            height: 50,
+            fit: BoxFit.cover,
+          ),
+  ),
+)
+,             const SizedBox(
                           width: 16,
                         ),
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              UserData.name,
+                              userName,
                               style: const TextStyle(
                                 fontSize: 16,
-                                color: Colors.grey,
+                                color: Color.fromARGB(255, 12, 12, 12),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -1136,7 +1218,7 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
                             const Text(
                               "Profile",
                               style: TextStyle(
-                                color: Colors.white38,
+                                color: Color.fromARGB(95, 15, 15, 15),
                               ),
                             ),
                           ],
@@ -1149,7 +1231,7 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
 
               const Divider(
                 height: 1,
-                color: Colors.grey,
+                color: Color.fromARGB(255, 205, 198, 198),
                 thickness: 1,
               ),
 
@@ -1169,12 +1251,12 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
                     onPressed: () {},
                     icon: const Icon(
                       Icons.calendar_month,
-                      color: Colors.grey,
+                      color: Color.fromARGB(255, 14, 14, 14),
                     ),
                   ),
                   title: const Text(
                     "Service Ride",
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: Color.fromARGB(255, 12, 12, 12)),
                   ),
                 ),
               ),
@@ -1189,12 +1271,12 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
                     onPressed: () {},
                     icon: const Icon(
                       Icons.history,
-                      color: Colors.grey,
+                      color: Color.fromARGB(255, 12, 12, 12),
                     ),
                   ),
                   title: const Text(
                     "History",
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: Color.fromARGB(255, 12, 12, 12)),
                   ),
                 ),
               ),
@@ -1211,12 +1293,12 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
                     onPressed: () {},
                     icon: const Icon(
                       Icons.logout,
-                      color: Colors.grey,
+                      color: Color.fromARGB(255, 15, 15, 15),
                     ),
                   ),
                   title: const Text(
                     "Logout",
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: Color.fromARGB(255, 13, 13, 13)),
                   ),
                 ),
               ),
@@ -1224,7 +1306,7 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
           ),
         ),
       ),
-
+       ),
 //GOOGLE MAP THEMES
       body: Stack(
         children: [
@@ -1249,6 +1331,22 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
               getCurrentLiveLocationOfUser();
             },
           ),
+
+          // Add GestureDetector and image for opening the drawer
+        Positioned(
+          top: 40,
+          left: 20,
+          child: GestureDetector(
+            onTap: () {
+              sKey.currentState?.openDrawer(); // Open the drawer
+            },
+            child: Image.asset(
+              'assets/images/MENU.png',
+              width: 40,
+              height: 40,
+            ),
+          ),
+        ),
 
 //drawer button HAMBURGER
 Positioned(
@@ -1528,14 +1626,14 @@ Positioned(
                                             CrossAxisAlignment.center,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text(
+                                          const Text(
                                             'Select Service',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 18,
                                             ),
                                           ),
-                                          SizedBox(
+                                          const SizedBox(
                                             height: 10,
                                           ),
                                           Container(
@@ -1579,10 +1677,10 @@ Positioned(
                                                   Image.asset(
                                                     'assets/images/ridenow.png',
                                                   ),
-                                                  SizedBox(
+                                                  const SizedBox(
                                                     width: 10,
                                                   ),
-                                                  Column(
+                                                  const Column(
                                                     crossAxisAlignment:
                                                         CrossAxisAlignment
                                                             .start,
@@ -1659,7 +1757,7 @@ Positioned(
                                                   SizedBox(
                                                     width: 10,
                                                   ),
-                                                  Column(
+                                                  const Column(
                                                     crossAxisAlignment:
                                                         CrossAxisAlignment
                                                             .start,
@@ -1700,9 +1798,9 @@ Positioned(
                               backgroundColor: const Color(
                                   0xFF2E3192), // Use the color from your reusable widget
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Text(
                                   'Confirm Booking', // Custom text for the booking action
                                   style: TextStyle(

@@ -62,6 +62,9 @@ dependencies:
   flutter_local_notifications: ^17.2.2
   googleapis_auth: ^1.6.0
   adaptive_dialog: ^2.1.0
+  firebase_storage: ^11.7.5
+  image_picker: ^1.1.1
+  firebase_app_check: ^0.2.2+5
 
 dev_dependencies:
   flutter_test:
