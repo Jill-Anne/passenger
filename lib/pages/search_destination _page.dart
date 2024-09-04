@@ -90,8 +90,10 @@ class SearchDestinationPageState extends State<SearchDestinationPage> {
 
   @override
   Widget build(BuildContext context) {
+   // Ensure that pickUpLocation is not null
     String userAddress = Provider.of<AppInfo>(context, listen: false)
-        .pickUpLocation!.humanReadableAddress ?? "";
+        .pickUpLocation?.humanReadableAddress ?? "";
+
     pickUpTextEditingController.text = userAddress;
 
 return Scaffold(

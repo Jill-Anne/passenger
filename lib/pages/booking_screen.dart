@@ -90,128 +90,373 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
   }
 
   Widget _buildTripCard(trip) {
+    final startDate = trip['date'].toDate();
+    final endDate = trip['dateto'].toDate();
+    final startTime =
+        trip['time']; // Assuming this field contains the time as a string
+
     return Card(
-      color: Colors.grey[900],
+      color: Colors.white, // Set background color to white
       elevation: 10,
       margin: const EdgeInsets.all(10),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(
+            color: Colors.black, width: 2), // Set border color and width
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-                "Start Date: ${DateFormat.yMMMd().add_jm().format(trip['date'].toDate())}",
-                style: const TextStyle(color: Colors.white)),
-            Text(
-                "End Date: ${DateFormat.yMMMd().add_jm().format(trip['date'].toDate())}",
-                style: const TextStyle(color: Colors.white)),
-            Text("Pick Up Location: ${trip["from"]}",
-                style: const TextStyle(color: Colors.white)),
-            Text("Drop Off Location: ${trip["to"]}",
-                style: const TextStyle(color: Colors.white)),
-            const SizedBox(height: 10),
-            Text("Driver Name:  ${trip["drivername"]}",
-                style: const TextStyle(color: Colors.white)),
-            Text("Driver ID Number: ${trip["driverid"]}",
-                style: const TextStyle(color: Colors.white)),
-            Text("Driver Body Number: ${trip["driverbodynumber"]}",
-                style: const TextStyle(color: Colors.white)),
-            Text("Status: ${trip["status"]}",
-                style: const TextStyle(color: Colors.white)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "${DateFormat.yMMMd().format(startDate)},  $startTime",
+                    style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                trip["status"] != 'Pending'
+                    ? Transform.translate(
+                        offset: const Offset(0,
+                            10), // Adjust the y-offset to move the button down
+                        child: IconButton(
+                          icon: Image.asset(
+                            'assets/images/Call.png',
+                            width: 40, // Set width for the image
+                            height: 40, // Set height for the image
+                            fit: BoxFit
+                                .contain, // Ensure the image fits within the bounds
+                          ),
+                          onPressed: () async {
+                            var text = 'tel:${trip["drivernumber"]}';
+                            if (await canLaunch(text)) {
+                              await launch(text);
+                            }
+                          },
+                        ),
+                      )
+                    : const SizedBox(),
+              ],
+            ),
+            Text.rich(
+              TextSpan(
+                text: 'Status: ',
+                style: const TextStyle(
+                    color: Colors.black54, fontWeight: FontWeight.bold),
+                children: [
+                  TextSpan(
+                    text: '${trip["status"]}',
+                    style: const TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.normal),
+                  ),
+                ],
+              ),
+            ),
 
-            // Additional details as needed
+            // Add a horizontal line
+            Divider(color: Colors.black, thickness: 1),
+            const SizedBox(height: 8),
+
+            // Display Start Date in a single row
+            Row(
+              children: [
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'Start Date: ',
+                      style: const TextStyle(
+                          color: Colors.black54, fontWeight: FontWeight.bold),
+                      children: [
+                        TextSpan(
+                          text: '${DateFormat.yMMMd().format(startDate)}',
+                          style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.normal),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Display End Date in a single row
+            Row(
+              children: [
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'End Date: ',
+                      style: const TextStyle(
+                          color: Colors.black54, fontWeight: FontWeight.bold),
+                      children: [
+                        TextSpan(
+                          text: '${DateFormat.yMMMd().format(endDate)}',
+                          style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.normal),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // Two-column layout for passenger and driver information
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Transform.translate(
+                            offset: const Offset(0, -30),
+                            child: Image.asset(
+                              'assets/images/initial.png',
+                              width: 20,
+                              height: 20,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'PICK-UP: ',
+                                style: const TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold),
+                                children: [
+                                  TextSpan(
+                                    text: '${trip["from"]}',
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.normal),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Transform.translate(
+                            offset: const Offset(0, -10),
+                            child: Image.asset(
+                              'assets/images/final.png',
+                              width: 20,
+                              height: 20,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'DROP-OFF: ',
+                                style: const TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold),
+                                children: [
+                                  TextSpan(
+                                    text: '${trip["to"]}',
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.normal),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Image above the driver name with upward adjustment
+                      Transform.translate(
+                        offset: const Offset(
+                            20, -5), // Slight upward adjustment for the image
+                        child: Image.asset(
+                          'assets/images/toda.png',
+                          width: 100, // Adjust width as needed
+                          height: 100, // Adjust height as needed
+                        ),
+                      ),
+                      // Move text up using Transform.translate
+                      Transform.translate(
+                        offset: const Offset(
+                            0, -26), // Adjust the y-offset to move the text up
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Driver Name: ',
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '${trip["drivername"]}',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Move ID text up using Transform.translate
+                      Transform.translate(
+                        offset: const Offset(
+                            0, -26), // Adjust the y-offset to move the text up
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'ID: ',
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '${trip["driverid"]}',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Move Body # text up using Transform.translate
+                      Transform.translate(
+                        offset: const Offset(
+                            0, -26), // Adjust the y-offset to move the text up
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Body #: ',
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '${trip["driverbodynumber"]}',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Action buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                trip["status"] != 'Pending'
-                    ? ElevatedButton(
-                        onPressed: () async {
-                          var text = 'tel:${trip["drivernumber"]}';
-                          if (await canLaunch(text)) {
-                            await launch(text);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green),
-                        child: const Text('Call Driver'),
-                      )
-                    : const SizedBox(),
-                const SizedBox(
-                  width: 20,
-                ),
+                const SizedBox(width: 20),
                 ElevatedButton(
                   onPressed: () {
                     showDialog(
                       context: context,
                       builder: (context) {
-                        return StatefulBuilder(builder: (context, setState) {
-                          return Dialog(
-                            backgroundColor: const Color(0xFF2E3192),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: SizedBox(
-                                width: 300,
-                                height: 300,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Reject this Service?',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                              color: Colors.white),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              reason.text = 'Changed plans';
-                                            });
-                                          },
-                                          child: const Text(
-                                            '○ Changed plans',
+                        return StatefulBuilder(
+                          builder: (context, setState) {
+                            return Dialog(
+                              backgroundColor: const Color(0xFF2E3192),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: SizedBox(
+                                  width: 300,
+                                  height: 300,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Reject this Service?',
                                             style: TextStyle(
-                                                fontWeight: FontWeight.normal,
-                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18,
                                                 color: Colors.white),
                                           ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              reason.text =
+                                          GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                reason.text = 'Changed plans';
+                                              });
+                                            },
+                                            child: const Text(
+                                              '○ Changed plans',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.normal,
+                                                  fontSize: 12,
+                                                  color: Colors.white),
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                reason.text =
                                                   'Found alternative transportation';
-                                            });
-                                          },
-                                          child: const Text(
+                                              });
+                                            },
+                                            child: const Text(
                                             '○ Found alternative transportation',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.normal,
-                                                fontSize: 12,
-                                                color: Colors.white),
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.normal,
+                                                  fontSize: 12,
+                                                  color: Colors.white),
+                                            ),
                                           ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              reason.text = 'Driver issue';
-                                            });
-                                          },
-                                          child: const Text(
-                                            '○ Driver issue',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.normal,
-                                                fontSize: 12,
-                                                color: Colors.white),
+                                          GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                reason.text = 'Other';
+                                              });
+                                            },
+                                            child: const Text(
+                                              '○ Other',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.normal,
+                                                  fontSize: 12,
+                                                  color: Colors.white),
+                                            ),
                                           ),
-                                        ),
-                                        Padding(
+
+                                          Padding(
                                           padding: const EdgeInsets.all(10.0),
                                           child: TextField(
                                             controller: reason,
@@ -227,53 +472,22 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                                             ),
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(
-                                      height: 10,
-                                    ),
-                                    Row(
-                                      mainAxisAlignment:
+
+                                          const SizedBox(height: 20),
+                                          Row(
+                                            mainAxisAlignment:
                                           MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        Container(
-                                          width: 125,
-                                          // Adjusted margin for better spacing
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(30),
-                                          ),
-                                          child: ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                              // ADD SETSTATE HERE for Confirm Booking Button
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 10),
-                                              backgroundColor: Colors
-                                                  .grey, // Use the color from your reusable widget
-                                            ),
-                                            child: const Text(
-                                              'Back', // Custom text for the booking action
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
+                                            children: [
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  reason.clear();
+                                                  Navigator.pop(context);
+                                                },
+                                                child: const Text('Cancel'),
                                               ),
-                                            ),
-                                          ),
-                                        ),
-                                        Container(
-                                          width: 125,
-                                          // Adjusted margin for better spacing
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(30),
-                                          ),
-                                          child: ElevatedButton(
-                                            onPressed: () async {
+                                              const SizedBox(width: 20),
+                                              ElevatedButton(
+                                                onPressed: () async {
                                               // await FirebaseFirestore.instance
                                               //     .collection(
                                               //         'Advance Bookings')
@@ -294,57 +508,35 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       const SnackBar(
                           content: Text('Advance Booking Rejected Successfully')),
                     );
-                    setState(() {}); // Refresh the list after deletion
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 10),
-                                              backgroundColor: Colors
-                                                  .red, // Use the color from your reusable widget
-                                            ),
-                                            child: const Text(
-                                              'Reject', // Custom text for the booking action
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
+                    setState(() {}); 
+                                                  
+                                                 // Navigator.pop(context);
+                                                },
+                                                child: const Text('Reject'),
                                               ),
-                                            ),
+                                            ],
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        });
+                            );
+                          },
+                        );
                       },
                     );
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Cancel ride'),
+                  child: const Text(
+                    'Reject',
+                    style: TextStyle(
+                      color: Colors.white, // Set text color to white
+                      fontWeight: FontWeight.bold, // Make the text bold
+                    ),
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: () async {
-                    await FirebaseFirestore.instance
-                        .collection('Advance Bookings')
-                        .doc(trip
-                            .id) // Use the document ID to delete the specific trip
-                        .delete(); // Perform the deletion
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Trip deleted successfully')),
-                    );
-                    setState(() {}); // Refresh the list after deletion
-                  },
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text('Delete'),
-                )
               ],
             ),
           ],

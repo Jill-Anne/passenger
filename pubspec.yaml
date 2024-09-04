@@ -91,6 +91,8 @@ flutter:
   assets:
     - assets/images/
     - assets/images/MENU.png
+    - assets/images/Call.png
+    - assets/images/toda.png
     - themes/
 
   # An image asset can refer to one or more resolution-specific "variants", see

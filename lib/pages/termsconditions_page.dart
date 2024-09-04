@@ -83,225 +83,237 @@ class _TermsConditionsPageState extends State<TermsConditionsPage> {
     );
   }
 
-  DateTime? _selectedDate1;
-  DateTimeRange? _selectedDateRange;
-  TimeOfDay? _selectedTime1;
+DateTime? _selectedDate1; // For single date selection
+DateTimeRange? _selectedDateRange; // For date range selection
+TimeOfDay? _selectedTime1; // For time selection
 
-  Future<void> _selectDateRange(BuildContext context) async {
-    final DateTimeRange? pickedDateRange = await showDateRangePicker(
+
+Future<void> _selectDateRange(BuildContext context) async {
+  // Show the date range picker
+  final DateTimeRange? pickedDateRange = await showDateRangePicker(
+    context: context,
+    initialDateRange: DateTimeRange(
+      start: DateTime.now(),
+      end: DateTime.now().add(const Duration(days: 1)),
+    ),
+    firstDate: DateTime.now(),
+    lastDate: DateTime(2101),
+  );
+
+  // If a range is picked, update state
+  if (pickedDateRange != null) {
+    setState(() {
+      _selectedDate1 = null; // Clear single date selection
+      _selectedDateRange = pickedDateRange;
+    });
+
+    // Prompt for time if selecting a single date
+    await _selectTime(context);
+  } else {
+    // Show single date picker if no range is selected
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDateRange: DateTimeRange(
-        start: DateTime.now(),
-        end: DateTime.now().add(const Duration(days: 1)),
-      ),
+      initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2101),
     );
 
-    if (pickedDateRange != null) {
+    if (pickedDate != null) {
       setState(() {
-        _selectedDate1 = pickedDateRange.start;
-        _selectedDateRange = pickedDateRange;
+        _selectedDate1 = pickedDate;
+        _selectedDateRange = null; // Clear date range selection
       });
 
-      // Assuming you want to pick a time for the start date
-      _selectTime(context).whenComplete(() {
-        var pickUpLocation =
-            Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-        var dropOffDestinationLocation =
-            Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+      // Prompt for time if selecting a single date
+      await _selectTime(context);
+    }
+  }
 
-        addAdvanceBooking(
-          widget.name,
-          pickUpLocation!.placeName,
-          dropOffDestinationLocation!.placeName,
-          pickUpLocation.latitudePosition,
-          pickUpLocation.longitudePosition,
-          dropOffDestinationLocation.latitudePosition,
-          dropOffDestinationLocation.longitudePosition,
-          _selectedDateRange!.start,
-          _selectedTime1!.format(context),
-          _selectedDateRange!.end,
-          widget.phone,
-        );
+  var pickUpLocation =
+      Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+  var dropOffDestinationLocation =
+      Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-        showDialog(
-          context: context,
-          builder: (context) {
-            return Dialog(
-              backgroundColor: const Color(0xFF2E3192),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Review Your Details!',
+  addAdvanceBooking(
+    widget.name,
+    pickUpLocation!.placeName,
+    dropOffDestinationLocation!.placeName,
+    pickUpLocation.latitudePosition,
+    pickUpLocation.longitudePosition,
+    dropOffDestinationLocation.latitudePosition,
+    dropOffDestinationLocation.longitudePosition,
+    _selectedDateRange != null ? _selectedDateRange!.start : _selectedDate1!,
+    _selectedTime1 != null ? _selectedTime1!.format(context) : '',
+    _selectedDateRange != null ? _selectedDateRange!.end : null,
+    widget.phone,
+  );
+
+  // Show the review dialog with updated details
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        backgroundColor: const Color(0xFF2E3192),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Review Your Details!',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 16)),
+              const SizedBox(height: 20),
+              Text(
+                  _selectedDateRange != null
+                      ? "${_selectedDateRange!.end.difference(_selectedDateRange!.start).inDays + 1}  Day Service"
+                      : "1 Day Service",
+                  style: const TextStyle(color: Colors.white, fontSize: 14)),
+              const SizedBox(height: 10),
+              // Display the selected date range or single date in the desired format
+ Text(
+  _selectedDateRange != null
+      ? "${DateFormat.yMMMd().format(_selectedDateRange!.start)} - ${DateFormat.yMMMd().format(_selectedDateRange!.end)}${_selectedTime1 != null ? ' at ${_selectedTime1!.format(context)}' : ''}"
+      : "${DateFormat.yMMMd().format(_selectedDate1!)}${_selectedTime1 != null ? ' at ${_selectedTime1!.format(context)}' : ''}",
+  style: const TextStyle(color: Colors.white, fontSize: 12),
+),
+
+              const Divider(),
+              Text(pickUpLocation.placeName!,
+                  style: const TextStyle(color: Colors.white, fontSize: 12)),
+              const SizedBox(height: 10),
+              // Buttons to navigate or book
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Back button
+                  Container(
+                    width: 100,
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        backgroundColor: Colors.grey,
+                      ),
+                      child: const Text(
+                        'Back',
                         style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontSize: 16)),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Text(
-                        "${pickedDateRange.end.difference(pickedDateRange.start).inDays} Day Service",
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 14)),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Text(DateFormat.yMMMd().add_jm().format(_selectedDate1!),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 12)),
-                    const Divider(),
-                    Text(pickUpLocation.placeName!,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 12)),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Container(
-                          width: 100,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical:
-                                  10), // Adjusted margin for better spacing
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              backgroundColor: Colors
-                                  .grey, // Use the color from your reusable widget
-                            ),
-                            child: const Text(
-                              'Back', // Custom text for the booking action
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
-                        Container(
-                          width: 100,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical:
-                                  10), // Adjusted margin for better spacing
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              showDialog(
-                                barrierDismissible: false,
-                                context: context,
-                                builder: (context) {
-                                  return Dialog(
-                                    backgroundColor: Colors.green,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10.0),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Text(
-                                              'Your Service Ride has posted!',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
-                                                  fontSize: 16)),
-                                          Container(
-                                            width: 150,
-                                            margin: const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical:
-                                                    10), // Adjusted margin for better spacing
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                            ),
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.pushReplacement(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (context) =>
-                                                            const HomePage()));
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 10),
-                                                backgroundColor: Colors
-                                                    .grey, // Use the color from your reusable widget
-                                              ),
-                                              child: const Text(
-                                                'Back', // Custom text for the booking action
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                            ),
+                      ),
+                    ),
+                  ),
+                  // Book button
+                  Container(
+                    width: 100,
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        showDialog(
+                          barrierDismissible: false,
+                          context: context,
+                          builder: (context) {
+                            return Dialog(
+                              backgroundColor: Colors.green,
+                              child: Padding(
+                                padding: const EdgeInsets.all(10.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('Your Service Ride has posted!',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                            fontSize: 16)),
+                                    Container(
+                                      width: 150,
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(30),
+                                      ),
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.pushReplacement(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const HomePage()));
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 10),
+                                          backgroundColor: Colors.grey,
+                                        ),
+                                        child: const Text(
+                                          'Back',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     ),
-                                  );
-                                },
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              backgroundColor: Colors
-                                  .green, // Use the color from your reusable widget
-                            ),
-                            child: const Text(
-                              'Book', // Custom text for the booking action
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        backgroundColor: Colors.green,
+                      ),
+                      child: const Text(
+                        'Book',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          },
-        );
-      });
-    }
-  }
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
-  Future<void> _selectTime(BuildContext context) async {
-    final TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
+Future<void> _selectTime(BuildContext context) async {
+  final TimeOfDay? pickedTime = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.now(),
+  );
 
-    if (pickedTime != null && pickedTime != _selectedTime1) {
-      setState(() {
-        _selectedTime1 = pickedTime;
-      });
-    }
+  if (pickedTime != null && pickedTime != _selectedTime1) {
+    setState(() {
+      _selectedTime1 = pickedTime;
+    });
   }
+}
+
 }

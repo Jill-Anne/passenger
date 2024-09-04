@@ -1357,7 +1357,7 @@ Positioned(
     onTap: () async {
       var responseFromSearchPage = await Navigator.push(
         context,
-        MaterialPageRoute(builder: (c) => SearchDestinationPage()),
+        MaterialPageRoute(builder: (c) => const SearchDestinationPage()),
       );
 
       if (responseFromSearchPage == "placeSelected") {
