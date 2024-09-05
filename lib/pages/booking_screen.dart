@@ -88,12 +88,44 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
       ),
     );
   }
+  Future<void> _completeRide(DocumentSnapshot trip) async {
+  try {
+    // Initialize Firestore
+    final firestore = FirebaseFirestore.instance;
+
+    // Reference to the Advance Booking document
+    final bookingRef = firestore.collection('Advance Bookings').doc(trip.id);
+
+    // Retrieve the booking data
+    final bookingData = await bookingRef.get();
+    if (!bookingData.exists) {
+      print("No such document!");
+      return;
+    }
+
+    // Reference to the Advance Booking History document
+    final historyRef = firestore.collection('Advance Booking History').doc(trip.id);
+
+    // Add the data to Advance Booking History
+    await historyRef.set(bookingData.data()!);
+
+    // Delete the document from Advance Bookings
+    await bookingRef.delete();
+
+
+
+    print("Ride completed and data moved successfully.");
+  } catch (e) {
+    print("Error completing ride: $e");
+  }
+}
 
   Widget _buildTripCard(trip) {
     final startDate = trip['date'].toDate();
     final endDate = trip['dateto'].toDate();
     final startTime =
         trip['time']; // Assuming this field contains the time as a string
+         String status = trip['status']; // Assuming status is stored in the trip document
 
     return Card(
       color: Colors.white, // Set background color to white
@@ -514,6 +546,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                                                 },
                                                 child: const Text('Reject'),
                                               ),
+                                              
                                             ],
                                           ),
                                         ],
@@ -537,6 +570,17 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 10),
+              Visibility(
+                visible: status == 'Accepted',
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Implement completion logic here
+                    _completeRide(trip);
+                  },
+                  child: const Text('Complete Ride'),
+                ),
+              ),
               ],
             ),
           ],
