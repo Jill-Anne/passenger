@@ -84,7 +84,7 @@ class PaymentDialog extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      "This is fare amount ( ₱ ${fare.toStringAsFixed(2)} ) to be charged from the passenger.",
+                      "This is fare amount  ₱ ${fare.toStringAsFixed(2)} to be charged from the passenger.",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.grey
