@@ -28,6 +28,16 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
     }
   }
 
+  bool isLatest = true; // To track the sort order
+ 
+  // Function to toggle sorting
+ void toggleSortOrder() {
+  setState(() {
+    isLatest = !isLatest;
+    // The StreamBuilder will automatically re-query with the new sort order
+  });
+}
+
   void _deleteTrip(String key) {
     // Delete the trip entry from Firebase
     tripRequestsRef.child(key).remove().then((_) {
@@ -42,8 +52,9 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
     });
   }
 
+
+
   final reason = TextEditingController();
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -54,38 +65,60 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
               color: Color.fromARGB(255, 12, 1, 35)),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              isLatest ? Icons.arrow_downward : Icons.arrow_upward,
+              color:  Color.fromARGB(255, 18, 2, 56),
+            ),
+            onPressed: toggleSortOrder, // Toggle sort order when icon is clicked
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('Advance Bookings')
-            .where('uid', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-            .where('status', isNotEqualTo: 'Deleted')
-            .snapshots(),
-        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.hasError) {
-            print(snapshot.error);
-            return const Center(child: Text('Error'));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Padding(
-              padding: EdgeInsets.only(top: 50),
-              child: Center(
-                  child: CircularProgressIndicator(
-                color: Colors.black,
-              )),
-            );
-          }
+  stream: FirebaseFirestore.instance
+      .collection('Advance Bookings')
+      .where('uid', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+      .where('status', isNotEqualTo: 'Deleted')
+      .orderBy('date', descending: isLatest)
+      .orderBy('status', descending: isLatest)
+      .orderBy('__name__', descending: isLatest)
+      .snapshots(),
+  builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+    if (snapshot.hasError) {
+      print('Firestore error: ${snapshot.error}');
+      if (snapshot.error is FirebaseException) {
+        FirebaseException firebaseError = snapshot.error as FirebaseException;
+        print('Error Code: ${firebaseError.code}');
+        print('Error Message: ${firebaseError.message}');
+      }
+      return Center(
+        child: Text('Error: ${snapshot.error}'),
+      );
+    }
 
-          final data = snapshot.requireData;
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 50),
+        child: Center(
+            child: CircularProgressIndicator(
+          color: Colors.black,
+        )),
+      );
+    }
 
-          return ListView.builder(
-            itemCount: data.docs.length,
-            itemBuilder: (context, index) {
-              return _buildTripCard(data.docs[index]);
-            },
-          );
-        },
-      ),
+    final data = snapshot.requireData;
+
+    return ListView.builder(
+      itemCount: data.docs.length,
+      itemBuilder: (context, index) {
+        return _buildTripCard(data.docs[index]);
+      },
+    );
+  },
+)
+
+
     );
   }
   Future<void> _completeRide(DocumentSnapshot trip) async {
@@ -165,7 +198,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                                 .contain, // Ensure the image fits within the bounds
                           ),
                           onPressed: () async {
-                            var text = 'tel:${trip["drivernumber"]}';
+                            var text = 'tel:${trip["phoneNumber"]}';
                             if (await canLaunch(text)) {
                               await launch(text);
                             }
@@ -240,7 +273,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
               ],
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
 
             // Two-column layout for passenger and driver information
             Row(
@@ -249,7 +282,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Transform.translate(
@@ -282,11 +315,11 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
                           Transform.translate(
-                            offset: const Offset(0, -10),
+                            offset: const Offset(0, 0),
                             child: Image.asset(
                               'assets/images/final.png',
                               width: 20,
@@ -325,7 +358,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       // Image above the driver name with upward adjustment
                       Transform.translate(
                         offset: const Offset(
-                            20, -5), // Slight upward adjustment for the image
+                            0, -50), // Slight upward adjustment for the image
                         child: Image.asset(
                           'assets/images/toda.png',
                           width: 100, // Adjust width as needed
@@ -335,7 +368,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       // Move text up using Transform.translate
                       Transform.translate(
                         offset: const Offset(
-                            0, -26), // Adjust the y-offset to move the text up
+                            0, -60), // Adjust the y-offset to move the text up
                         child: Text.rich(
                           TextSpan(
                             text: 'Driver Name: ',
@@ -359,7 +392,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       // Move ID text up using Transform.translate
                       Transform.translate(
                         offset: const Offset(
-                            0, -26), // Adjust the y-offset to move the text up
+                            0, -60), // Adjust the y-offset to move the text up
                         child: Text.rich(
                           TextSpan(
                             text: 'ID: ',
@@ -382,7 +415,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       // Move Body # text up using Transform.translate
                       Transform.translate(
                         offset: const Offset(
-                            0, -26), // Adjust the y-offset to move the text up
+                            0, -60), // Adjust the y-offset to move the text up
                         child: Text.rich(
                           TextSpan(
                             text: 'Body #: ',
@@ -393,6 +426,29 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                             children: [
                               TextSpan(
                                 text: '${trip["driverbodynumber"]}',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      Transform.translate(
+                        offset: const Offset(
+                            0, -60), // Adjust the y-offset to move the text up
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Phone #: ',
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '${trip["phoneNumber"]}',
                                 style: const TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.normal,
@@ -561,7 +617,12 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       },
                     );
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+               style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(5), // Set border radius to 5
+      ),
+    ),   
                   child: const Text(
                     'Reject',
                     style: TextStyle(
@@ -569,6 +630,7 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       fontWeight: FontWeight.bold, // Make the text bold
                     ),
                   ),
+                 
                 ),
                 const SizedBox(width: 10),
               Visibility(
@@ -578,6 +640,11 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                     // Implement completion logic here
                     _completeRide(trip);
                   },
+                  style: ElevatedButton.styleFrom(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(5), // Set border radius to 5
+      ),
+    ),
                   child: const Text('Complete Ride'),
                 ),
               ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
+import 'package:passenger/global/global_var.dart';
+import 'package:passenger/pages/service_ride_page.dart';
 import 'package:passenger/widgets/state_management.dart';
 import 'package:provider/provider.dart';
 
@@ -132,89 +134,149 @@ static void setDateTimeCallback(void Function(String, String) callback) {
   }
 
   static void showRideOptionsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Schedule a Ride'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                GestureDetector(
-                  onTap: () {
-                
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        child: SizedBox(
+          width: 300,
+          height: 300,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Alternative Service',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Color(0xFF2E3192),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              /*
+              Container(
+                width: 250,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    // Your action for "Ride now!"
+                    // setState(() {
+                    //   stateOfApp = "requesting";
+                    // });
+
+                    // displayRequestContainer();
+                    // availableNearbyOnlineDriversList = ManageDriversMethods.nearbyOnlineDriversList;
+                    // searchDriver();
                   },
-                  child: Container(
-                    width: 200,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          "assets/images/ridenow.png",
-                          height: 50,
-                          width: 50,
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'Ride Now',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    backgroundColor: const Color(0xFF2E3192),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset('assets/images/ridenow.png'),
+                      const SizedBox(width: 10),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ride now!',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'Available only at 8pm onwards',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w200,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                SizedBox(height: 20),
-                GestureDetector(
-                    onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return buildCalendarDialogButton(context);
-                      },
+              ),
+              SizedBox(height: 10),
+
+              */
+
+              Container(
+                width: 250,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (c) => ServiceRidePage(
+                          name: userName,
+                          phone: userPhone,
+                        ),
+                      ),
                     );
                   },
-                  child: Container(
-                    width: 200,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          "assets/images/calendar.png",
-                          height: 50,
-                          width: 50,
-                        ),
-                        SizedBox(height: 10),
-                        Text(
-                          'Advance Booking',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    backgroundColor: const Color(0xFF2E3192),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/images/Rectangle 1.png',
+                        height: 25,
+                      ),
+                      SizedBox(width: 10),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Service Ride',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'One time ride or Scheduled Ride',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w200,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
+
 
   static void _navigateToTimeSpinner(BuildContext context,
       {required bool closeCalendarDialog}) {

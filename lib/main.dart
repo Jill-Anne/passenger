@@ -87,26 +87,42 @@ Future<void> _fetchAndLogFirebaseToken() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => AppInfo()),
-        ChangeNotifierProvider(create: (context) => TripData()),  // Add this line for trip data management
-      ],
-      child: MaterialApp(
-        title: 'Flutter User App',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
+@override
+Widget build(BuildContext context) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (context) => AppInfo()),
+      ChangeNotifierProvider(create: (context) => TripData()),  // Add this line for trip data management
+    ],
+    child: MaterialApp(
+      title: 'Flutter User App',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        fontFamily: 'Poppins',  // Set the default font to Poppins
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(fontFamily: 'Poppins'),
+          displayMedium: TextStyle(fontFamily: 'Poppins'),
+          displaySmall: TextStyle(fontFamily: 'Poppins'),
+          headlineMedium: TextStyle(fontFamily: 'Poppins'),  // Replaces headline4
+          headlineSmall: TextStyle(fontFamily: 'Poppins'),
+          titleLarge: TextStyle(fontFamily: 'Poppins'),
+          titleMedium: TextStyle(fontFamily: 'Poppins'),
+          titleSmall: TextStyle(fontFamily: 'Poppins'),
+          bodyLarge: TextStyle(fontFamily: 'Poppins'),  // Replaces bodyText1
+          bodyMedium: TextStyle(fontFamily: 'Poppins'), // Replaces bodyText2
+          labelLarge: TextStyle(fontFamily: 'Poppins'), // For buttons and labels
+          bodySmall: TextStyle(fontFamily: 'Poppins'),
+          labelSmall: TextStyle(fontFamily: 'Poppins'),
         ),
-        home: FirebaseAuth.instance.currentUser == null
-            ? LoginScreen()
-            : HomePage(),
-             // Load HomePage if user is authenticated
       ),
-    );
-  }
+      home: FirebaseAuth.instance.currentUser == null
+          ? LoginScreen()
+          : HomePage(),  // Load HomePage if user is authenticated
+    ),
+  );
+}
+
 }
 

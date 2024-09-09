@@ -160,11 +160,16 @@ Future<void> _selectDateRange(BuildContext context) async {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Review Your Details!',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 16)),
+            Center(
+      child: const Text(
+        'Review Your Details!',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+          fontSize: 16,
+        ),
+      ),
+    ),
               const SizedBox(height: 20),
               Text(
                   _selectedDateRange != null
@@ -190,9 +195,9 @@ Future<void> _selectDateRange(BuildContext context) async {
                 children: [
                   // Back button
                   Container(
-                    width: 100,
+                    width: 80,
                     margin: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                        horizontal: 10, vertical: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -203,6 +208,9 @@ Future<void> _selectDateRange(BuildContext context) async {
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         backgroundColor: Colors.grey,
+                         shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(3), // Rounded borders
+      ),
                       ),
                       child: const Text(
                         'Back',
@@ -216,9 +224,9 @@ Future<void> _selectDateRange(BuildContext context) async {
                   ),
                   // Book button
                   Container(
-                    width: 100,
+                    width: 80,
                     margin: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                        horizontal: 10, vertical: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -238,7 +246,7 @@ Future<void> _selectDateRange(BuildContext context) async {
                                     const Text('Your Service Ride has posted!',
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.white,
+                                            color: Colors.black87,
                                             fontSize: 16)),
                                     Container(
                                       width: 150,
@@ -257,14 +265,14 @@ Future<void> _selectDateRange(BuildContext context) async {
                                                       const HomePage()));
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 10),
-                                          backgroundColor: Colors.grey,
-                                        ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(5), // Set border radius to 5
+      ),
+    ),
                                         child: const Text(
                                           'Back',
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: Colors.black87,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
                                           ),
@@ -281,6 +289,9 @@ Future<void> _selectDateRange(BuildContext context) async {
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         backgroundColor: Colors.green,
+                         shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(3), // Rounded borders
+      ),
                       ),
                       child: const Text(
                         'Book',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:lottie/lottie.dart';
 import 'package:passenger/authentication/signup_screen.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
@@ -38,53 +39,105 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> signInUser() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) =>
-          LoadingDialog(messageText: "Allowing you to Login..."),
-    );
+Future<void> signInUser() async {
+  // Show a full-screen dialog with a Lottie animation while logging in
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Dialog(
+        insetPadding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.white,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Lottie animation for "Logging in"
+              Lottie.asset(
+                'assets/images/loading.json',
+                width: MediaQuery.of(context).size.width * 0.9,
+                height: MediaQuery.of(context).size.width * 0.9,
+                fit: BoxFit.cover,
+                repeat: true,
+              ),
+              const SizedBox(height: 50),
+              const Text(
+                "Authenticating",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 1, 42, 123),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 
-    final User? userFirebase = (await FirebaseAuth.instance
-            .signInWithEmailAndPassword(
+  try {
+    final UserCredential userCredential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(
       email: emailTextEditingController.text.trim(),
       password: passwordTextEditingController.text.trim(),
-    )
-            .catchError((errorMsg) {
-      Navigator.pop(context);
-      cMethods.displaySnackBar(errorMsg.toString(), context);
-    }))
-        .user;
+    );
+
+    final User? userFirebase = userCredential.user;
 
     if (!context.mounted) return;
-    Navigator.pop(context);
+    Navigator.pop(context); // Close the dialog
 
     if (userFirebase != null) {
       DatabaseReference usersRef = FirebaseDatabase.instance
           .ref()
           .child("users")
           .child(userFirebase.uid);
-      await usersRef.once().then((snap) {
-        if (snap.snapshot.value != null) {
-          if ((snap.snapshot.value as Map)["blockStatus"] == "no") {
-            userName = (snap.snapshot.value as Map)["name"];
-            Navigator.push(
-                context, MaterialPageRoute(builder: (c) => HomePage()));
-          } else {
-            FirebaseAuth.instance.signOut();
-            cMethods.displaySnackBar(
-                "You are blocked. Contact admin: coloongToda@gmail.com",
-                context);
-          }
+
+      final snapshot = await usersRef.once();
+      if (snapshot.snapshot.value != null) {
+        final userData = snapshot.snapshot.value as Map;
+        if (userData["blockStatus"] == "no") {
+          userName = userData["name"];
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (c) => HomePage()),
+          );
         } else {
           FirebaseAuth.instance.signOut();
           cMethods.displaySnackBar(
-              "Your record does not exist as a User.", context);
+            "Your account has been blocked. Please contact support.",
+            context,
+          );
         }
-      });
+      } else {
+        FirebaseAuth.instance.signOut();
+        cMethods.displaySnackBar(
+          "User record not found. Please check your credentials.",
+          context,
+        );
+      }
+    }
+  } catch (error) {
+    if (context.mounted) {
+      Navigator.pop(context); // Close the dialog in case of an error
+
+      // Print detailed error for debugging
+      print('Error during sign-in: $error');
+
+      // Display user-friendly error message
+      cMethods.displaySnackBar(
+        "An error occurred. Please check your credentials and try again.",
+        context,
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

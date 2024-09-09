@@ -196,7 +196,7 @@ Future<void> _loadUserData() async {
     setState(() {
       searchContainerHeight = 0;
       bottomMapPadding = 240;
-      rideDetailsContainerHeight = 242;
+      rideDetailsContainerHeight = 330;
       isDrawerOpened = false;
     });
   }
@@ -546,7 +546,7 @@ makeTripRequest() async {
     "driverID": "waiting",
     "driverLocation": driverCoOrdinates,
     "driverName": "",
-    "driverPhone": "",
+    "phoneNumber": "",
     "driverPhoto": "",
     "passengerPhoto": "",
     "fareAmount": "",
@@ -672,7 +672,7 @@ tripStreamSubscription =
         } else if (status == "arrived") {
           //update info for arrived - when driver reach at the pickup point of user
           setState(() {
-            tripStatusDisplay = 'Driver has Arrived';
+            tripStatusDisplay = 'Driver has arrived';
           });
         } else if (status == "ontrip") {
           //update info for dropoff to user on UI
@@ -835,7 +835,7 @@ Future<void> fetchAndPushPassengerPhoto(String userId) async {
       print("Driver location: $driverCurrentLocationLatLng");
       setState(() {
         tripStatusDisplay =
-            "Driver is Coming - ${directionDetailsPickup.durationTextString}";
+            "Your driver is coming in ${directionDetailsPickup.durationTextString}";
         // Update the driver's marker position directly within the setState
         markerSet
             .removeWhere((marker) => marker.markerId.value == "driverMarker");
@@ -879,7 +879,7 @@ Future<void> fetchAndPushPassengerPhoto(String userId) async {
 
       setState(() {
         tripStatusDisplay =
-            "Driving to DropOff Location - ${directionDetailsPickup.durationTextString}";
+            "Driving to drop-off location ${directionDetailsPickup.durationTextString}";
       });
 
       requestingDirectionDetailsInfo = false;
@@ -1118,6 +1118,8 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
 }
 
 
+
+
 @override
   void initState() {
     super.initState();
@@ -1130,6 +1132,18 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
   @override
   Widget build(BuildContext context) {
     makeDriverNearbyCarIcon();
+      // Get the pick-up and drop-off locations
+  var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+  var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+
+  // Extract addresses from the location objects
+  String pickUpAddress = pickUpLocation?.placeName ?? 'Unknown pick-up location';
+  String dropOffAddress = dropOffDestinationLocation?.placeName ?? 'Unknown drop-off location';
+
+  // Print the addresses to the console
+  print("Pick-up Location: $pickUpAddress");
+  print("Drop-off Location: $dropOffAddress");
+
 
     return Scaffold(
       key: sKey,
@@ -1239,7 +1253,7 @@ Container(
                 height: 10,
               ),
 
-//body
+//body of drawer
 
               GestureDetector(
                 onTap: () {
@@ -1371,7 +1385,7 @@ Positioned(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            height: 100,  // Set desired height here
+            height: 90,  // Set desired height here
             margin: EdgeInsets.symmetric(horizontal: 15),
             decoration: BoxDecoration(
               color: Color.fromARGB(255, 1, 42, 123),
@@ -1400,6 +1414,8 @@ Positioned(
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -1433,18 +1449,19 @@ Positioned(
               child: Container(
                 height: rideDetailsContainerHeight,
                 decoration: const BoxDecoration(
-                  color: Colors.white, // Set background color to white
+                  color: Color(0xFFF1F3F5), // Set background color to white
                   borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(0),
-                      topRight: Radius.circular(0)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color.fromARGB(31, 130, 91, 91),
-                      blurRadius: 15.0,
-                      spreadRadius: 0.5,
-                      offset: Offset(0.7, 0.7),
-                    ),
-                  ],
+                      topLeft: Radius.circular(50),
+                      topRight: Radius.circular(50)),
+boxShadow: [
+  BoxShadow(
+    color: Color.fromARGB(120, 130, 91, 91), // Increased alpha for darker shadow
+    blurRadius: 15.0,
+    spreadRadius: 2.0, // Increased spreadRadius for a more noticeable shadow
+    offset: Offset(1.0, 1.0), // Slightly adjusted offset for better shadow effect
+  ),
+],
+
                 ),
                 child: SingleChildScrollView(
                   child: Padding(
@@ -1473,346 +1490,414 @@ Positioned(
                                 .arrow_forward), // Icon indicating that clicking will lead to another page
                           ],
                         ),
-                        SizedBox(height: 0), // Adjusted for spacing
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Card(
-                            elevation: 10,
-                            child: Container(
-                              width: MediaQuery.of(context).size.width *
-                                  0.90, // Adjusted width for better visibility
-                              color:
-                                  Colors.white, // Consistent background color
-                              child: Padding(
-                                padding: const EdgeInsets.all(
-                                    16), // Increased padding for better layout
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text(
-                                          "Total Distance:",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.black87,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          tripDirectionDetailsInfo
-                                                  ?.distanceTextString ??
-                                              "",
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8), // Added for spacing
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text(
-                                          "Estimated Travel Time:",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.black87,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          tripDirectionDetailsInfo
-                                                  ?.durationTextString ??
-                                              "",
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8), // Added for spacing
-                                    FutureBuilder<double>(
-                                      future: tripDirectionDetailsInfo != null
-                                          ? cMethods.calculateFareAmount(
-                                              tripDirectionDetailsInfo!)
-                                          : null,
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return const Text(
-                                            "Calculating fare...",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.black,
-                                            ),
-                                          );
-                                        } else if (snapshot.hasError) {
-                                          return const Text(
-                                            "Error calculating fare",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.red,
-                                            ),
-                                          );
-                                        } else if (snapshot.hasData) {
-                                          return Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const Text(
-                                                "Total Fare:",
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.black87,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              Text(
-                                                "\PHP ${snapshot.data!.toStringAsFixed(2)}",
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        } else {
-                                          return const Text(
-                                            "No fare data",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.black,
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+SizedBox(height: 15), // Adjusted for spacing above the card
+ // Adjusted for spacing above the container
+
+Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 16),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.asset(
+            'assets/images/initial.png',
+            width: 24,
+            height: 24, // Adjust the size as needed
+            //fit: BoxFit.cover,
+          ),
+          SizedBox(width: 8), // Space between image and text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "PICK-UP:",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  pickUpAddress,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.normal,
+                  ),
+                  softWrap: true, // Enables wrapping of the text
+                  overflow: TextOverflow.visible, // Allows text to flow to the next line
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      SizedBox(height: 14), // Added for spacing between pick-up and drop-off
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Image.asset(
+            'assets/images/final.png',
+            width: 24,
+            height: 24, // Adjust the size as needed
+            fit: BoxFit.cover,
+          ),
+          SizedBox(width: 7), // Space between image and text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "DROP-OFF:",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  dropOffAddress,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.normal,
+                  ),
+                  softWrap: true, // Enables wrapping of the text
+                  overflow: TextOverflow.visible, // Allows text to flow to the next line
+                ),
+              ],
+            ),
+          ),
+          // Distance and travel time on the right side
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                tripDirectionDetailsInfo?.distanceTextString ?? "Not available",
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+              Text(
+                tripDirectionDetailsInfo?.durationTextString ?? "Not available",
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  ),
+),
+
+
+const SizedBox(height: 12),
+
+Container(
+  color: Color(0xFFD9D9D9), // Background color of the container
+  padding: const EdgeInsets.all(14), // Padding inside the container
+  height: 55, // Fixed height for the container
+  child: FutureBuilder<double>(
+    future: tripDirectionDetailsInfo != null
+        ? cMethods.calculateFareAmount(tripDirectionDetailsInfo!)
+        : null,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center( // Centering the text while calculating
+          child: Text(
+            "Calculating fare...",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black,
+            ),
+          ),
+        );
+      } else if (snapshot.hasError) {
+        return const Center( // Centering the error message
+          child: Text(
+            "Error calculating fare",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.red,
+            ),
+          ),
+        );
+      } else if (snapshot.hasData) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0), // Adds padding on left and right
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "TOTAL FARE:",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                "₱ ${snapshot.data!.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontSize: 19,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        return const Center( // Centering the text for no fare data
+          child: Text(
+            "No fare data",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black,
+            ),
+          ),
+        );
+      }
+    },
+  ),
+)
+,
+
+
+const SizedBox(height: 10),
+// Container for the buttons
+Container(
+  margin: const EdgeInsets.symmetric(horizontal: 35, vertical: 10), // Adjusted margin for better spacing
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween, // Space between the buttons
+    children: [
+// CANCEL BUTTON
+Container(
+  width: 120, // Width for the Cancel button
+  height: 50, // Height for the Cancel button
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(5), // Rounded borders
+  ),
+  child: OutlinedButton(
+    onPressed: () {
+                  Navigator.push(
+                context, MaterialPageRoute(builder: (c) => HomePage()));// Close the dialog or screen
+    },
+    style: OutlinedButton.styleFrom(
+      backgroundColor: Colors.white, // Background color
+      side: const BorderSide(color: Color(0xFF2E3192), width: 2), // Blue border
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(3), // Rounded borders
+      ),
+      padding: const EdgeInsets.all(0), // Remove default padding
+    ),
+    child: const Center(
+      child: Text(
+        'Cancel',
+        style: TextStyle(
+          color: Color(0xFF2E3192),
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
+      ),
+    ),
+  ),
+),
+
+const SizedBox(height: 50),
+      // CONFIRM BOOKING BUTTON
+      Container(
+        width: 130, // Width for the Confirm Booking button
+        height: 50, // Height for the Confirm Booking button
+      //  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Adjusted margin for better spacing
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(3), // Rounded borders
+  ),
+        child: ElevatedButton(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (context) {
+                return Dialog(
+                  
+                  child: SizedBox(
+                    width: 250,
+                    height: 250,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Select Service',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                            color: Color(0xFF2E3192),
                           ),
                         ),
-                            
-
-// CONFIRM BOOKING BUTTON
+                        const SizedBox(height: 10),
                         Container(
-                          width: 170,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical:
-                                  10), // Adjusted margin for better spacing
+                          width: 250,
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(30),
                           ),
                           child: ElevatedButton(
                             onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return Dialog(
-                                    child: SizedBox(
-                                      width: 300,
-                                      height: 300,
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Text(
-                                            'Select Service',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                          const SizedBox(
-                                            height: 10,
-                                          ),
-                                          Container(
-                                            width: 250,
-                                            margin: const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical:
-                                                    10), // Adjusted margin for better spacing
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                            ),
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-                                                setState(() {
-                                                  stateOfApp = "requesting";
-                                                });
+                              Navigator.pop(context);
+                              setState(() {
+                                stateOfApp = "requesting";
+                              });
 
-                                                displayRequestContainer();
-                                                // get nearest avalable online drivers
-                                                availableNearbyOnlineDriversList =
-                                                    ManageDriversMethods
-                                                        .nearbyOnlineDriversList;
+                              displayRequestContainer();
+                              // get nearest available online drivers
+                              availableNearbyOnlineDriversList = ManageDriversMethods.nearbyOnlineDriversList;
 
-                                                //search driver
-                                                searchDriver();
-                                                // ADD SETSTATE HERE for Confirm Booking Button
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 10),
-                                                backgroundColor: const Color(
-                                                    0xFF2E3192), // Use the color from your reusable widget
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Image.asset(
-                                                    'assets/images/ridenow.png',
-                                                  ),
-                                                  const SizedBox(
-                                                    width: 10,
-                                                  ),
-                                                  const Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        'Ride now!', // Custom text for the booking action
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontSize: 14,
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        'Available only at 8pm onwards', // Custom text for the booking action
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.w200,
-                                                          fontSize: 11,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            height: 10,
-                                          ),
-                                          Container(
-                                            width: 250,
-                                            margin: const EdgeInsets.symmetric(
-                                                horizontal: 16,
-                                                vertical:
-                                                    10), // Adjusted margin for better spacing
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                            ),
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.pop(context);
-
-                                                Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                        builder: (c) =>
-                                                            ServiceRidePage(
-                                                              name: userName,
-                                                              phone: userPhone,
-                                                            )));
-
-                                                // _selectDateRange(context);
-
-                                                // ADD SETSTATE HERE for Confirm Booking Button
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 10),
-                                                backgroundColor: const Color(
-                                                    0xFF2E3192), // Use the color from your reusable widget
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Image.asset(
-                                                    'assets/images/Rectangle 1.png',
-                                                    height: 25,
-                                                  ),
-                                                  SizedBox(
-                                                    width: 10,
-                                                  ),
-                                                  const Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        'Service Ride', // Custom text for the booking action
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontSize: 14,
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        'One time ride or Sceduled Ride', // Custom text for the booking action
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.w200,
-                                                          fontSize: 11,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
+                              // search driver
+                              searchDriver();
+                              // ADD SETSTATE HERE for Confirm Booking Button
                             },
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 10),
-                              backgroundColor: const Color(
-                                  0xFF2E3192), // Use the color from your reusable widget
+                              backgroundColor: const Color(0xFF2E3192), // Background color of the button
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(
-                                  'Confirm Booking', // Custom text for the booking action
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                                Image.asset(
+                                  'assets/images/ridenow.png',
+                                ),
+                                const SizedBox(width: 10),
+                                const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Ride now!', // Custom text for the booking action
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Available only at 8pm onwards', // Custom text for the booking action
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w200,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                         ),
+                        SizedBox(height: 5),
+                        Container(
+                          width: 250,
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (c) => ServiceRidePage(
+                                    name: userName,
+                                    phone: userPhone,
+                                  ),
+                                ),
+                              );
+
+                              // _selectDateRange(context);
+
+                              // ADD SETSTATE HERE for Confirm Booking Button
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              backgroundColor: const Color(0xFF2E3192), // Background color of the button
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  'assets/images/Rectangle 1.png',
+                                  height: 25,
+                                ),
+                                SizedBox(width: 10),
+                                const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Service Ride', // Custom text for the booking action
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      'One time ride or Scheduled Ride', // Custom text for the booking action
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w200,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            backgroundColor: const Color(0xFF2E3192), // Background color of the button
+            shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(5), // Border radius here
+      ),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Confirm', // Custom text for the booking action
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  ),
+)
+
+                        
 
 //SizedBox(height: 100), // Add extra space for scrolling
                       ],
@@ -1880,7 +1965,7 @@ Positioned(
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: Color.fromARGB(255, 1, 42, 123).withOpacity(0.4),
-                          width: 2,
+                          width: 3,
                         ),
                       ),
                     );
@@ -1944,8 +2029,8 @@ Positioned(
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(16),
-        topRight: Radius.circular(16),
+        topLeft: Radius.circular(50),
+        topRight: Radius.circular(50),
       ),
       boxShadow: [
         BoxShadow(
@@ -1966,23 +2051,40 @@ Positioned(
             const SizedBox(
               height: 20,
             ),
-            // Trip status display text
-            Text(
-              tripStatusDisplay,
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black87,
-                fontWeight: FontWeight.bold,
-              ),
+
+            Center(
+  child: Container(
+    width: 200, // Adjust the width here
+    child: Divider(
+      height: 8,
+      thickness: 4,
+      color: Colors.grey[400],
+    ),
+  ),
+)
+,
+            const SizedBox(
+              height: 20,
             ),
+
+            // Trip status display text
+Padding(
+  padding: const EdgeInsets.only(left: 10.0), // Adjust the left padding here
+  child: Text(
+    tripStatusDisplay,
+    style: const TextStyle(
+      fontSize: 18,
+      color: Colors.black87,
+      fontWeight: FontWeight.bold,
+      fontFamily: 'Poppins',
+    ),
+  ),
+)
+,
             const SizedBox(
               height: 10,
             ),
-            Divider(
-              height: 10,
-              color: Colors.grey[400],
-              thickness: 1,
-            ),
+
             const SizedBox(
               height: 20,
             ),
@@ -1993,60 +2095,112 @@ Positioned(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 90,  // Slightly larger to accommodate the border
-                    height: 90, // Slightly larger to accommodate the border
+                    width: 75,  // Slightly larger to accommodate the border
+                    height: 75, // Slightly larger to accommodate the border
                     decoration: BoxDecoration(
                       color: Colors.white, // Background color for the container
                       shape: BoxShape.circle, // Ensures the border is circular
                       border: Border.all(
-                        color: Color.fromARGB(255, 118, 114, 114), // Border color
-                        width: 2, // Border width
+                        color: Color.fromARGB(255, 32, 2, 87), // Border color
+                        width: 4, // Border width
                       ),
                     ),
-                    child: ClipOval(
-                      child: Image.network(
-                        photoDriver == ''
-                            ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=11c39289-3c10-4355-9537-9003913dbeef"
-                            : photoDriver,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                   child: ClipOval(
+  child: Image.network(
+    photoDriver == ''
+        ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=11c39289-3c10-4355-9537-9003913dbeef"
+        : photoDriver,
+    width: 65,
+    height: 65,
+    fit: BoxFit.cover,
+    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+      if (loadingProgress == null) {
+        return child; // The image is loaded, return it.
+      }
+      return const CircularProgressIndicator(); // Show a loading indicator while the image is loading.
+    },
+    errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
+      // Fallback to local asset if image fails to load
+      return Image.asset(
+        'assets/images/avatarman.png',
+        width: 65,
+        height: 65,
+        fit: BoxFit.cover,
+      );
+    },
+  ),
+),
+
                   ),
-                  SizedBox(width: 20),
+                  SizedBox(width: 15),
                   // Additional widgets for driver name and car details
                 
 
-                          Column(
-                            // mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '$firstName $lastName',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                                      color: Colors.black87,
-                          fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                                SizedBox(height: 5),
-                              Text(
-                                'Plate Number: $idNumber',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Text(
-                                'Body Number: $bodyNumber',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
+Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(
+      '$firstName $lastName',
+      style: const TextStyle(
+        fontSize: 18,
+        color: Colors.black87,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    SizedBox(height: 1),
+    RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: 'ID #: ',
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.black87,
+              fontWeight: FontWeight.bold, // Make the label bold
+              fontFamily: 'Poppins',
+            ),
+          ),
+          TextSpan(
+            text: idNumber,
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.black54,
+              fontWeight: FontWeight.normal, // Keep the value normal weight
+              fontFamily: 'Poppins',
+            ),
+          ),
+        ],
+      ),
+    ),
+    RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: 'BODY #: ',
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.black87,
+              fontWeight: FontWeight.bold, // Make the label bold
+              fontFamily: 'Poppins',
+            ),
+          ),
+          TextSpan(
+            text: bodyNumber,
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.black54,
+              fontWeight: FontWeight.normal, // Keep the value normal weight
+              fontFamily: 'Poppins',
+            ),
+          ),
+        ],
+      ),
+    ),
+  ],
+)
+
+
+
                         ],
                       ),
                 ),
@@ -2079,8 +2233,8 @@ Positioned(
                                     borderRadius: const BorderRadius.all(
                                         Radius.circular(25)),
                                     border: Border.all(
-                                      width: 1,
-                                      color: const Color.fromARGB(255, 31, 29, 29),
+                                      width: 2,
+                                      color:  const Color(0xFF2E3192),
                                     ),
                                   ),
                                   child: const Icon(

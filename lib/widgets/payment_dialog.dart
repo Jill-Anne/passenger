@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:passenger/models/direction_details.dart'; // Import Firestore
 
 class PaymentDialog extends StatelessWidget {
@@ -38,10 +39,10 @@ class PaymentDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      backgroundColor: Colors.black54,
+      backgroundColor: Colors.transparent,
       child: Container(
         margin: const EdgeInsets.all(5.0),
-        width: double.infinity,
+         width: 100, // Ensure the dialog is the same width
         decoration: BoxDecoration(
           color: Colors.black87,
           borderRadius: BorderRadius.circular(6),
@@ -49,10 +50,20 @@ class PaymentDialog extends StatelessWidget {
         child: FutureBuilder<double>(
           future: getFareAmount(),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator()); // Show a loading indicator while fetching data
-            } else if (snapshot.hasError) {
-              return Center(child: Text("Error: ${snapshot.error}")); // Show an error message if there is an error
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  // Loading state
+                  return Center(
+                    child: LoadingAnimationWidget.discreteCircle(
+                      color: Colors.white,
+                      size: 50, // Adjusted size to fit within the dialog
+                      secondRingColor: Colors.black,
+                      thirdRingColor: Colors.purple,
+                    ),
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Text("Error: ${snapshot.error}", textAlign: TextAlign.center),
+                  );// Show an error message if there is an error
             } else {
               double fare = snapshot.data ?? 0.0;
               return Column(
@@ -92,18 +103,37 @@ class PaymentDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 31,),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context, "paid");
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
-                    child: const Text(
-                      "PAY CASH",
-                    ),
-                  ),
-                  const SizedBox(height: 41,)
+SizedBox(
+  width: 150,  // Set button width
+  height: 50,  // Set button height
+  child: ElevatedButton(
+    onPressed: () async {
+      Navigator.pop(context, "paid");
+      // After payment, clear the latest fare amount from Firestore
+      await FirebaseFirestore.instance
+          .collection('currentFare')
+          .doc('latestFare')
+          .set({'amount': ''}); // Set the amount to 0 or empty
+      print('Latest fare has been cleared.');
+    },
+    style: ElevatedButton.styleFrom(
+      backgroundColor:  const Color(0xFF2E3192),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(5), // Border radius here
+      ),
+    ),
+    child: const Text(
+      "PAY CASH",
+      style: TextStyle(
+        color: Colors.white,  // Set text color to white
+        fontWeight: FontWeight.bold,  // Bold text
+        fontSize: 18,  // Set font size
+      ),
+    ),
+  ),
+),
+const SizedBox(height: 41,)
+
                 ],
               );
             }
