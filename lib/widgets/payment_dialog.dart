@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:passenger/models/direction_details.dart'; // Import Firestore
+import 'package:passenger/global/global_var.dart';
+import 'package:passenger/models/direction_details.dart';
+import 'package:passenger/widgets/rating_dialog.dart'; // Import Firestore
 
 class PaymentDialog extends StatelessWidget {
   final DirectionDetails? directionDetails;
@@ -106,15 +108,30 @@ class PaymentDialog extends StatelessWidget {
 SizedBox(
   width: 150,  // Set button width
   height: 50,  // Set button height
-  child: ElevatedButton(
-    onPressed: () async {
-      Navigator.pop(context, "paid");
-      // After payment, clear the latest fare amount from Firestore
-      await FirebaseFirestore.instance
-          .collection('currentFare')
-          .doc('latestFare')
-          .set({'amount': ''}); // Set the amount to 0 or empty
-      print('Latest fare has been cleared.');
+child: ElevatedButton(
+  onPressed: () async {
+    // Clear the latest fare amount from Firestore
+    await FirebaseFirestore.instance
+        .collection('currentFare')
+        .doc('latestFare')
+        .set({'amount': ''}); // Set the amount to 0 or empty
+    print('Latest fare has been cleared.');
+
+    // Ensure globalTripID is set
+    if (globalTripID!.isNotEmpty) {
+      // Close the payment dialog and wait for it to be fully closed
+      Navigator.of(context).pop("paid");
+      
+      // Show the rating dialog after the payment dialog is dismissed
+      // Using a future to delay until the pop operation is complete
+      await Future.microtask(() => showRatingDialog(context, globalTripID!));
+    } else {
+      print('Global Trip ID is not set');
+    }
+  
+
+
+       
     },
     style: ElevatedButton.styleFrom(
       backgroundColor:  const Color(0xFF2E3192),

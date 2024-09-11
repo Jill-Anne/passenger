@@ -536,6 +536,7 @@ makeTripRequest() async {
   Map<String, Object?> dataMap = {
     "tripID": tripRequestRef!.key,
     "publishDateTime": DateTime.now().toString(),
+    "ratings": "",
     "userName": userName,
     "userPhone": userPhone,
     "userID": userID,
@@ -553,6 +554,7 @@ makeTripRequest() async {
     "status": "new",
     "firstName": "",
     "lastName": "",
+    
     "idNumber": "",
     "tripEndedTime": "",
     "bodyNumber": "",
