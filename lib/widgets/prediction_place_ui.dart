@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // Import Google Maps package for LatLng
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/models/address_model.dart';
 import 'package:passenger/models/prediction_model.dart';
+import 'package:passenger/pages/outside_location.dart';
 import 'package:passenger/widgets/loading_dialog.dart';
 import 'package:provider/provider.dart';
 
@@ -20,10 +22,16 @@ class PredictionPlaceUI extends StatefulWidget {
 }
 
 class _PredictionPlaceUIState extends State<PredictionPlaceUI> {
+  // Define the LatLngBounds for Valenzuela
+  final LatLngBounds valenzuelaBounds = LatLngBounds(
+    southwest: LatLng(14.6445, 120.9545),  // Southwest corner
+    northeast: LatLng(14.7406, 121.0467),  // Northeast corner
+  );
+
   /// Place Details - Places API
   fetchClickedPlaceDetails(String placeID) async {
     if (!mounted) return; // Check if the widget is still mounted
-    
+
     showDialog(
       barrierDismissible: false,
       context: context,
@@ -46,13 +54,32 @@ class _PredictionPlaceUIState extends State<PredictionPlaceUI> {
     }
 
     if (responseFromPlaceDetailsAPI["status"] == "OK") {
+      double latitude = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lat"];
+      double longitude = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lng"];
+      LatLng placeLocation = LatLng(latitude, longitude);
+
+      // Check if the selected place is within the Valenzuela bounds
+      if (!valenzuelaBounds.contains(placeLocation)) {
+        // If the place is outside Valenzuela, show an error message
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(
+        //     content: Text("The selected location is outside Valenzuela."),
+        //   ),
+        // );
+
+         Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => LocationPage()),
+    );
+        return; // Stop further processing
+      }
+
+      // Continue if the place is within Valenzuela
       AddressModel dropOffLocation = AddressModel();
 
       dropOffLocation.placeName = responseFromPlaceDetailsAPI["result"]["name"];
-      dropOffLocation.latitudePosition =
-          responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lat"];
-      dropOffLocation.longitudePosition =
-          responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lng"];
+      dropOffLocation.latitudePosition = latitude;
+      dropOffLocation.longitudePosition = longitude;
       dropOffLocation.placeID = placeID;
 
       Provider.of<AppInfo>(context, listen: false)
