@@ -697,9 +697,22 @@ tripStreamSubscription =
       }
 
 if (status == "ended") {
-   // Fetch the fare amount from Firestore using getFareAmount method
+  // Get the current time for tripEndedTime
+  DateTime tripEndedDateTime = DateTime.now();
+
+  // Format the tripEndedTime
+  String formattedTripEndedTime = formatTripEndedTime(tripEndedDateTime);
+
+  // Update tripEndedTime in Firebase immediately
+  tripRequestRef!.update({"tripEndedTime": formattedTripEndedTime}).then((_) {
+    print("Trip ended time updated: $formattedTripEndedTime");
+  }).catchError((error) {
+    print('Error updating trip ended time: $error');
+  });
+
+  // Fetch the fare amount from Firestore using getFareAmount method
   double fareAmount = await getFareAmount();
-  
+
   if (fareAmount != 0.0) { // Ensure fareAmount is valid
     // Convert fareAmount to string with 2 decimal places
     String formattedFareAmount = fareAmount.toStringAsFixed(2);
@@ -711,19 +724,6 @@ if (status == "ended") {
     );
 
     if (responseFromPaymentDialog == "paid") {
-      // Get the current time for tripEndedTime
-      DateTime tripEndedDateTime = DateTime.now();
-
-      // Format the tripEndedTime
-      String formattedTripEndedTime = formatTripEndedTime(tripEndedDateTime);
-
-      // Update tripEndedTime in Firebase
-      tripRequestRef!.update({"tripEndedTime": formattedTripEndedTime}).then((_) {
-        print("Trip ended time updated: $formattedTripEndedTime");
-      }).catchError((error) {
-        print('Error updating trip ended time: $error');
-      });
-
       // Other actions after payment confirmation
       tripRequestRef!.onDisconnect();
       tripRequestRef = null;
@@ -731,17 +731,16 @@ if (status == "ended") {
       tripStreamSubscription!.cancel();
       tripStreamSubscription = null;
 
+      // Call resetAppNow function or restart the app if needed
       resetAppNow(context);
 
-//ALTERNATIVE FOR THIS GOING TO RESTART APP
-            //    Restart.restartApp();
-          }
-        }
-      }
+      // Alternative for restarting the app
+      // Restart.restartApp();
+    }
+  }
+}
+
     });
-
-
-    
   }
 
 

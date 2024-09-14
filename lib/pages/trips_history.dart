@@ -116,7 +116,8 @@ return Card(
       children: [
         // Trip Ended Time
         Text(
-          '$tripEndedTimeFormatted - $timeOnly',
+         // '$timeOnly - $tripEndedTimeFormatted',
+         '$tripEndedTimeFormatted',
           style: const TextStyle(
             fontSize: 16, // Font size
             fontWeight: FontWeight.bold,
