@@ -142,7 +142,7 @@ Future<void> signInUser() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           CustomColumnWithLogo(), // Logo on the left side

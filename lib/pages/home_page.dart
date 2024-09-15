@@ -1042,6 +1042,18 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
       .child("driversAccount")
       .child(currentDriver.uidDriver.toString());
 
+  // Check if the driver exists before proceeding
+  try {
+    final driverSnapshot = await driverRef.get();
+    if (!driverSnapshot.exists) {
+      print('Driver UID: ${currentDriver.uidDriver} does not exist.');
+      return;
+    }
+  } catch (error) {
+    print('Error fetching driver data: $error');
+    return;
+  }
+
   // Update newTripStatus and currentTripID
   driverRef.child("newTripStatus").set(tripRequestRef!.key).then((_) {
     print('newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
@@ -1049,14 +1061,13 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
     print('Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
   });
 
-  // Add currentTripID node to store the tripID
   driverRef.child("currentTripID").set(tripRequestRef!.key).then((_) {
     print('currentTripID updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
   }).catchError((error) {
     print('Error updating currentTripID for driver UID: ${currentDriver.uidDriver}: $error');
   });
 
-  // Get the current driver device recognition token
+  // Get the current driver's device token
   DatabaseReference tokenOfCurrentDriverRef = driverRef.child("deviceToken");
 
   try {
@@ -1066,7 +1077,7 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
       String deviceToken = dataSnapshot.value.toString();
       print('Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
 
-      // Send notification
+      // Send notification to the driver
       await PushNotificationService.sendNotificationToSelectedDriver(
         deviceToken,
         context,
@@ -1085,13 +1096,13 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
   var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
     requestTimeoutDriver = requestTimeoutDriver - 1;
 
-    // When trip request is not requesting, means trip request cancelled - stop timer
+    // Stop timer if trip request is cancelled
     if (stateOfApp != "requesting") {
       timer.cancel();
       driverRef.child("newTripStatus").set("cancelled");
       driverRef.onDisconnect();
       requestTimeoutDriver = 20;
-      return; // Exit the timer callback function
+      return;
     }
 
     // If 20 seconds passed - send notification to the next nearest online available driver
@@ -1101,9 +1112,10 @@ Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
       driverRef.onDisconnect();
       requestTimeoutDriver = 20;
 
-      // Send notification to the next nearest online available driver
+      // Log and notify the next nearest driver
+      print('Request timed out for driver UID: ${currentDriver.uidDriver}, searching for next available driver.');
       searchDriver();
-      return; // Exit the timer callback function
+      return;
     }
   });
 

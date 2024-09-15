@@ -115,7 +115,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           CustomColumnWithLogo(), // Logo on the left side
           Positioned(
             left: 0,
-            bottom: -10,
+            bottom: 0,
             child: logowidget("assets/images/LOGO.png"),
           ),
           SingleChildScrollView(
