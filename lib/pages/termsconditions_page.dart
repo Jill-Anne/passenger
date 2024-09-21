@@ -5,6 +5,7 @@ import 'package:passenger/global/trip_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/services/add_advancebooking.dart';
+import 'package:passenger/widgets/termsConditionText.dart';
 import 'package:provider/provider.dart';
 
 class TermsConditionsPage extends StatefulWidget {
@@ -23,27 +24,53 @@ class TermsConditionsPage extends StatefulWidget {
 
 class _TermsConditionsPageState extends State<TermsConditionsPage> {
   CommonMethods cMethods = CommonMethods();
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.topLeft,
-                child: IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(Icons.arrow_back)),
-              ),
-              Image.asset(
-                'assets/images/Capture2.PNG',
-              ),
-              Image.asset(
-                'assets/images/Capture3.PNG',
-              ),
+ @override
+ 
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      automaticallyImplyLeading: false, // Prevents the default back button
+      title: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          const SizedBox(width: 7), // Adjust this for the desired spacing
+          Expanded(
+ child: Padding(
+  padding: const EdgeInsets.only(top: 15),
+  child: Container(
+    alignment: Alignment.center, // Center the text within the container
+    child: const Text(
+      'Terms and Conditions for Tri.CO Service Ride',
+      textAlign: TextAlign.center, // Center the text within itself
+      style: TextStyle(
+        color: Color.fromARGB(255, 18, 2, 56),
+        fontSize: 16, // Adjust the font size as needed
+        fontWeight: FontWeight.bold,
+      ),
+      maxLines: 3, // Allow for text wrapping
+      overflow: TextOverflow.ellipsis, // Handle overflow with ellipsis
+    ),
+  ),
+),
+          ),
+
+        ],
+      ),
+    ),
+
+    body: SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+               SizedBox(width: 40),
+              
+ TermsAndConditions(), 
+  SizedBox(height: 15),
               Container(
                 width: 275,
                 margin: const EdgeInsets.symmetric(
@@ -61,6 +88,7 @@ class _TermsConditionsPageState extends State<TermsConditionsPage> {
                     backgroundColor: const Color(
                         0xFF2E3192), // Use the color from your reusable widget
                   ),
+                 
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

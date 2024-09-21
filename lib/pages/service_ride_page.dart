@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:passenger/pages/termsconditions_page.dart';
+import 'package:passenger/widgets/servicerideText.dart';
 
 class ServiceRidePage extends StatelessWidget {
   String name;
@@ -11,27 +12,39 @@ class ServiceRidePage extends StatelessWidget {
     required this.phone,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: IconButton(
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: SafeArea(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+            child: Row(
+              children: [
+                IconButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  icon: const Icon(Icons.arrow_back)),
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                const SizedBox(width: 10), // Adjust this value for desired space
+                const Text(
+                  'Service Ride Information',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(255, 18, 2, 56),
+                  ),
+                ),
+              ],
             ),
-            Image.asset(
-              'assets/images/Capture1.PNG',
-            ),
+          ),
+ServiceRideInfo(),
             Container(
               width: 275,
               margin: const EdgeInsets.symmetric(
-                  horizontal: 16,
+                  horizontal: 20,
                   vertical: 10), // Adjusted margin for better spacing
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(30),

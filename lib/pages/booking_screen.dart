@@ -18,6 +18,8 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
   final DatabaseReference tripRequestsRef =
       FirebaseDatabase.instance.ref().child("tripRequests");
 
+  String selectedReason = '';
+
   bool _isValidDate(String dateStr) {
     try {
       var parsedDate =
@@ -29,14 +31,14 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
   }
 
   bool isLatest = true; // To track the sort order
- 
+
   // Function to toggle sorting
- void toggleSortOrder() {
-  setState(() {
-    isLatest = !isLatest;
-    // The StreamBuilder will automatically re-query with the new sort order
-  });
-}
+  void toggleSortOrder() {
+    setState(() {
+      isLatest = !isLatest;
+      // The StreamBuilder will automatically re-query with the new sort order
+    });
+  }
 
   void _deleteTrip(String key) {
     // Delete the trip entry from Firebase
@@ -52,113 +54,118 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
     });
   }
 
-
-
   final reason = TextEditingController();
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Advance Booking',
-            style: TextStyle(color: Color.fromARGB(255, 18, 2, 56))),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: Color.fromARGB(255, 12, 1, 35)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isLatest ? Icons.arrow_downward : Icons.arrow_upward,
-              color:  Color.fromARGB(255, 18, 2, 56),
-            ),
-            onPressed: toggleSortOrder, // Toggle sort order when icon is clicked
+        appBar: AppBar(
+          title: const Text('Advance Booking',
+              style: TextStyle(color: Color.fromARGB(255, 18, 2, 56))),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back,
+                color: Color.fromARGB(255, 12, 1, 35)),
+            onPressed: () => Navigator.pop(context),
           ),
-        ],
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-  stream: FirebaseFirestore.instance
-      .collection('Advance Bookings')
-      .where('uid', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-      .where('status', isNotEqualTo: 'Deleted')
-      .orderBy('date', descending: isLatest)
-      .orderBy('status', descending: isLatest)
-      .orderBy('__name__', descending: isLatest)
-      .snapshots(),
-  builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-    if (snapshot.hasError) {
-      print('Firestore error: ${snapshot.error}');
-      if (snapshot.error is FirebaseException) {
-        FirebaseException firebaseError = snapshot.error as FirebaseException;
-        print('Error Code: ${firebaseError.code}');
-        print('Error Message: ${firebaseError.message}');
-      }
-      return Center(
-        child: Text('Error: ${snapshot.error}'),
-      );
-    }
+          actions: [
+            IconButton(
+              icon: Icon(
+                isLatest ? Icons.arrow_downward : Icons.arrow_upward,
+                color: Color.fromARGB(255, 18, 2, 56),
+              ),
+              onPressed:
+                  toggleSortOrder, // Toggle sort order when icon is clicked
+            ),
+          ],
+        ),
+        body: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('Advance Bookings')
+              .where('uid', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+              .where('status', isNotEqualTo: 'Deleted')
+              .orderBy('date', descending: isLatest)
+              .orderBy('status', descending: isLatest)
+              .orderBy('__name__', descending: isLatest)
+              .snapshots(),
+          builder:
+              (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+            if (snapshot.hasError) {
+              print('Firestore error: ${snapshot.error}');
+              if (snapshot.error is FirebaseException) {
+                FirebaseException firebaseError =
+                    snapshot.error as FirebaseException;
+                print('Error Code: ${firebaseError.code}');
+                print('Error Message: ${firebaseError.message}');
+              }
+              return Center(
+                child: Text('Error: ${snapshot.error}'),
+              );
+            }
 
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 50),
-        child: Center(
-            child: CircularProgressIndicator(
-          color: Colors.black,
-        )),
-      );
-    }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.only(top: 50),
+                child: Center(
+                    child: CircularProgressIndicator(
+                  color: Colors.black,
+                )),
+              );
+            }
 
-    final data = snapshot.requireData;
+            final data = snapshot.requireData;
 
-    return ListView.builder(
-      itemCount: data.docs.length,
-      itemBuilder: (context, index) {
-        return _buildTripCard(data.docs[index]);
-      },
-    );
-  },
-)
-
-
-    );
+            return ListView.builder(
+              itemCount: data.docs.length,
+              itemBuilder: (context, index) {
+                return _buildTripCard(data.docs[index]);
+              },
+            );
+          },
+        ));
   }
+
   Future<void> _completeRide(DocumentSnapshot trip) async {
-  try {
-    // Initialize Firestore
-    final firestore = FirebaseFirestore.instance;
+    try {
+      // Initialize Firestore
+      final firestore = FirebaseFirestore.instance;
 
-    // Reference to the Advance Booking document
-    final bookingRef = firestore.collection('Advance Bookings').doc(trip.id);
+      // Reference to the Advance Booking document
+      final bookingRef = firestore.collection('Advance Bookings').doc(trip.id);
 
-    // Retrieve the booking data
-    final bookingData = await bookingRef.get();
-    if (!bookingData.exists) {
-      print("No such document!");
-      return;
+      // Retrieve the booking data
+      final bookingData = await bookingRef.get();
+      if (!bookingData.exists) {
+        print("No such document!");
+        return;
+      }
+
+      // Reference to the Advance Booking History document
+      final historyRef =
+          firestore.collection('Advance Booking History').doc(trip.id);
+
+      // Add the data to Advance Booking History
+      await historyRef.set(bookingData.data()!);
+
+      // Delete the document from Advance Bookings
+      await bookingRef.delete();
+
+      print("Ride completed and data moved successfully.");
+    } catch (e) {
+      print("Error completing ride: $e");
     }
-
-    // Reference to the Advance Booking History document
-    final historyRef = firestore.collection('Advance Booking History').doc(trip.id);
-
-    // Add the data to Advance Booking History
-    await historyRef.set(bookingData.data()!);
-
-    // Delete the document from Advance Bookings
-    await bookingRef.delete();
-
-
-
-    print("Ride completed and data moved successfully.");
-  } catch (e) {
-    print("Error completing ride: $e");
   }
-}
 
   Widget _buildTripCard(trip) {
     final startDate = trip['date'].toDate();
     final endDate = trip['dateto'].toDate();
     final startTime =
         trip['time']; // Assuming this field contains the time as a string
-         String status = trip['status']; // Assuming status is stored in the trip document
+    String status =
+        trip['status']; // Assuming status is stored in the trip document
+        
+
+    double leftPadding = 40.0;
+    double topPadding = 0;
+    double rightPadding = 40.0;
+    double bottomPadding = 0;
 
     return Card(
       color: Colors.white, // Set background color to white
@@ -371,19 +378,18 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                             0, -60), // Adjust the y-offset to move the text up
                         child: Text.rich(
                           TextSpan(
-                            text: 'Driver Name: ',
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        
                             children: [
                               TextSpan(
-                                text: '${trip["drivername"]}',
+                                text: '${trip["drivername"]} ${trip["driverlastName"]}',
+                                
                                 style: const TextStyle(
                                   color: Colors.black,
-                                  fontWeight: FontWeight.normal,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                               ),
+                              
                             ],
                           ),
                         ),
@@ -479,130 +485,133 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                             return Dialog(
                               backgroundColor: const Color(0xFF2E3192),
                               child: Padding(
-                                padding: const EdgeInsets.all(20.0),
+                                padding: EdgeInsets.fromLTRB(leftPadding,
+                                    topPadding, rightPadding, bottomPadding),
                                 child: SizedBox(
                                   width: 300,
-                                  height: 300,
+                                  height: 280,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment:
                                         CrossAxisAlignment.center,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      const Text(
+                                        'Reject this Service?',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                            color: Colors.white),
+                                      ),
+                                      const SizedBox(height: 20),
                                       Column(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                            CrossAxisAlignment.center,
                                         children: [
-                                          const Text(
-                                            'Reject this Service?',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 18,
-                                                color: Colors.white),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                reason.text = 'Changed plans';
-                                              });
-                                            },
-                                            child: const Text(
-                                              '○ Changed plans',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.normal,
-                                                  fontSize: 12,
-                                                  color: Colors.white),
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                reason.text =
-                                                  'Found alternative transportation';
-                                              });
-                                            },
-                                            child: const Text(
-                                            '○ Found alternative transportation',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.normal,
-                                                  fontSize: 12,
-                                                  color: Colors.white),
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                reason.text = 'Other';
-                                              });
-                                            },
-                                            child: const Text(
-                                              '○ Other',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.normal,
-                                                  fontSize: 12,
-                                                  color: Colors.white),
-                                            ),
-                                          ),
+ 
 
-                                          Padding(
-                                          padding: const EdgeInsets.all(10.0),
-                                          child: TextField(
-                                            controller: reason,
-                                            decoration: const InputDecoration(
-                                              filled: true,
-                                              fillColor: Colors.white,
-                                              labelText: 'Other',
-                                              labelStyle: TextStyle(
-                                                  fontWeight: FontWeight.normal,
-                                                  fontSize: 12,
-                                                  color: Colors.black),
-                                              border: OutlineInputBorder(),
-                                            ),
-                                          ),
-                                        ),
+     Center(
+  child: const Text(
+    'Please contact the driver to discuss any concerns before rejecting the service request.',
+    textAlign: TextAlign.center, // Optional: centers the text within the Text widget itself
+    style: TextStyle(
+      fontWeight: FontWeight.bold,
+      fontSize: 15,
+      color: Colors.white70,
+    ),
+  ),
+),
 
-                                          const SizedBox(height: 20),
+
+                                            
+                                 
+                                          const SizedBox(height: 40),
                                           Row(
                                             mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
+                                                MainAxisAlignment.spaceEvenly,
                                             children: [
                                               ElevatedButton(
-                                                onPressed: () {
-                                                  reason.clear();
-                                                  Navigator.pop(context);
-                                                },
-                                                child: const Text('Cancel'),
-                                              ),
+                                                  onPressed: () {
+                                                    reason.clear();
+                                                    Navigator.pop(context);
+                                                  },
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.white,
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              5), // Set border radius to 5
+                                                    ),
+                                                    minimumSize: const Size(100, 40), 
+                                                  ),
+                                                  child: const Text(
+                                                    'Back',
+                                                    style: TextStyle(
+                                                      color: Colors
+                                                          .black87, // Set text color to white
+                                                      fontWeight: FontWeight
+                                                          .bold, 
+                                                      fontSize: 16,
+                                                    ),
+                                                  )),
                                               const SizedBox(width: 20),
                                               ElevatedButton(
-                                                onPressed: () async {
-                                              // await FirebaseFirestore.instance
-                                              //     .collection(
-                                              //         'Advance Bookings')
-                                              //     .doc()
-                                              //     .update({
-                                              //   'status': 'Deleted',
-                                              // });
-                                              // Navigator.pop(context);
-                                              // ADD SETSTATE HERE for Confirm Booking Button
+                                                  onPressed: () async {
+                                                    // await FirebaseFirestore.instance
+                                                    //     .collection(
+                                                    //         'Advance Bookings')
+                                                    //     .doc()
+                                                    //     .update({
+                                                    //   'status': 'Deleted',
+                                                    // });
+                                                    // Navigator.pop(context);
+                                                    // ADD SETSTATE HERE for Confirm Booking Button
 
-                                                                  await FirebaseFirestore.instance
-                        .collection('Advance Bookings')
-                        .doc(trip
-                            .id) // Use the document ID to delete the specific trip
-                        .delete(); // Perform the deletion
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Advance Booking Rejected Successfully')),
-                    );
-                    setState(() {}); 
-                                                  
-                                                 // Navigator.pop(context);
-                                                },
-                                                child: const Text('Reject'),
-                                              ),
-                                              
+                                                    await FirebaseFirestore
+                                                        .instance
+                                                        .collection(
+                                                            'Advance Bookings')
+                                                        .doc(trip
+                                                            .id) // Use the document ID to delete the specific trip
+                                                        .delete(); // Perform the deletion
+                                                    Navigator.pop(context);
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text(
+                                                              'Advance Booking Rejected Successfully')),
+                                                    );
+                                                    setState(() {});
+
+                                                    // Navigator.pop(context);
+                                                  },
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        const Color(0xFF922E2E),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              5), // Set border radius to 5
+                                                    ),
+                                                    minimumSize: const Size(100, 43), 
+                                                  ),
+                                                  child: const Text(
+                                                    'Confirm',
+                                                    // 'Reject',
+                                                    style: TextStyle(
+                                                      color: Colors
+                                                          .white, // Set text color to white
+                                                      fontWeight: FontWeight
+                                                          .bold, 
+                                                      fontSize: 16,
+                                                    ),
+                                                  )),
                                             ],
                                           ),
                                         ],
@@ -617,12 +626,13 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       },
                     );
                   },
-               style: ElevatedButton.styleFrom(
+                  style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(5), // Set border radius to 5
-      ),
-    ),   
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(5), // Set border radius to 5
+                    ),
+                  ),
                   child: const Text(
                     'Reject',
                     style: TextStyle(
@@ -630,24 +640,24 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       fontWeight: FontWeight.bold, // Make the text bold
                     ),
                   ),
-                 
                 ),
                 const SizedBox(width: 10),
-              Visibility(
-                visible: status == 'Accepted',
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Implement completion logic here
-                    _completeRide(trip);
-                  },
-                  style: ElevatedButton.styleFrom(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(5), // Set border radius to 5
-      ),
-    ),
-                  child: const Text('Complete Ride'),
+                Visibility(
+                  visible: status == 'Accepted',
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Implement completion logic here
+                      _completeRide(trip);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(5), // Set border radius to 5
+                      ),
+                    ),
+                    child: const Text('Complete Ride'),
+                  ),
                 ),
-              ),
               ],
             ),
           ],

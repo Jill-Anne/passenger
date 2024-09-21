@@ -4,6 +4,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/firebase_options.dart';
@@ -89,6 +90,12 @@ class MyApp extends StatelessWidget {
 
 @override
 Widget build(BuildContext context) {
+    // Set the status bar color to transparent
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Color.fromARGB(255, 1, 42, 123),//Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+  ));
+  
   return MultiProvider(
     providers: [
       ChangeNotifierProvider(create: (context) => AppInfo()),
