@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:passenger/pages/booking_screen.dart';
+import 'package:passenger/serviceRequest/booking_screen.dart';
 
 class InfoDialog extends StatefulWidget
 {

@@ -102,10 +102,18 @@ Widget build(BuildContext context) {
       ChangeNotifierProvider(create: (context) => TripData()),  // Add this line for trip data management
     ],
     child: MaterialApp(
-      title: 'Flutter User App',
+      title: 'Passenger App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          scaffoldBackgroundColor: Colors.white, // Set Scaffold background color
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Color.fromARGB(255, 1, 42, 123), // AppBar background color
+    foregroundColor: Colors.white, // AppBar text color
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Color.fromARGB(255, 1, 42, 123), // Status bar color
+      statusBarIconBrightness: Brightness.light, // Status bar icon brightness
+    ),
+  ),
         useMaterial3: true,
         fontFamily: 'Poppins',  // Set the default font to Poppins
         textTheme: const TextTheme(

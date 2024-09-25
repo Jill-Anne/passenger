@@ -162,19 +162,19 @@ Future<void> _selectDateRange(BuildContext context) async {
   var dropOffDestinationLocation =
       Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-  addAdvanceBooking(
-    widget.name,
-    pickUpLocation!.placeName,
-    dropOffDestinationLocation!.placeName,
-    pickUpLocation.latitudePosition,
-    pickUpLocation.longitudePosition,
-    dropOffDestinationLocation.latitudePosition,
-    dropOffDestinationLocation.longitudePosition,
-    _selectedDateRange != null ? _selectedDateRange!.start : _selectedDate1!,
-    _selectedTime1 != null ? _selectedTime1!.format(context) : '',
-    _selectedDateRange != null ? _selectedDateRange!.end : null,
-    widget.phone,
-  );
+addAdvanceBooking(
+  widget.name,
+  pickUpLocation!.placeName!, // Assert that placeName is not null
+  dropOffDestinationLocation!.placeName!, // Assert that placeName is not null
+  pickUpLocation.latitudePosition!, // Assert that latitudePosition is not null
+  pickUpLocation.longitudePosition!, // Assert that longitudePosition is not null
+  dropOffDestinationLocation.latitudePosition!, // Assert that latitudePosition is not null
+  dropOffDestinationLocation.longitudePosition!, // Assert that longitudePosition is not null
+  _selectedDateRange != null ? _selectedDateRange!.start : _selectedDate1!, 
+  _selectedTime1 != null ? _selectedTime1!.format(context) : '',
+  _selectedDateRange != null ? _selectedDateRange!.end : _selectedDate1!,
+  widget.phone,
+);
 
   // Show the review dialog with updated details
   showDialog(

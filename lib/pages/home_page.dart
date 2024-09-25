@@ -19,7 +19,7 @@ import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/methods/manage_drivers_methods.dart';
 import 'package:passenger/methods/push_notification_service.dart';
 import 'package:passenger/models/direction_details.dart';
-import 'package:passenger/pages/booking_screen.dart';
+import 'package:passenger/serviceRequest/booking_screen.dart';
 import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/profile_screen.dart';
 import 'package:passenger/pages/search_destination _page.dart';
@@ -2311,15 +2311,15 @@ Column(
 
         addAdvanceBooking(
             userName,
-            pickUpLocation!.placeName,
-            dropOffDestinationLocation!.placeName,
-            pickUpLocation.latitudePosition,
-            pickUpLocation.longitudePosition,
-            dropOffDestinationLocation.latitudePosition,
-            dropOffDestinationLocation.longitudePosition,
-            _selectedDateRange!.start,
-            _selectedTime1!.format(context),
-            _selectedDateRange!.end,
+  pickUpLocation?.placeName ?? 'Unknown Pickup Location', // Fallback if null
+  dropOffDestinationLocation?.placeName ?? 'Unknown Dropoff Location', // Fallback if null
+  pickUpLocation?.latitudePosition ?? 0.0, // Fallback if null
+  pickUpLocation?.longitudePosition ?? 0.0, // Fallback if null
+  dropOffDestinationLocation?.latitudePosition ?? 0.0, // Fallback if null
+  dropOffDestinationLocation?.longitudePosition ?? 0.0, // Fallback if null
+  _selectedDateRange != null ? _selectedDateRange!.start : _selectedDate1!, 
+  _selectedTime1 != null ? _selectedTime1!.format(context) : '',
+  _selectedDateRange != null ? _selectedDateRange!.end : _selectedDate1!,
             userPhone);
 
         Navigator.pushReplacement(
