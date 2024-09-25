@@ -3,27 +3,123 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart'; // Import Firestore if needed
 
-
-
-class FullDetails extends StatelessWidget {
+class FullDetails extends StatefulWidget {
   final DocumentSnapshot trip;
 
   const FullDetails({Key? key, required this.trip}) : super(key: key);
-  
+
+  @override
+  _FullDetailsState createState() => _FullDetailsState();
+}
+
+class _FullDetailsState extends State<FullDetails> with SingleTickerProviderStateMixin {
+   late TabController _tabController;
+  List<Map<String, dynamic>> pendingDates = [];
+  List<Map<String, dynamic>> completedDates = [];
+  List<bool> _isAnimating = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadDates();
+    _isAnimating = List.generate(pendingDates.length, (_) => false); // Initialize animation states
+  }
+
+  void _loadDates() {
+    // Load dates into pending and completed lists from the trip document
+    if (widget.trip['dates'] != null) {
+      for (var dateEntry in widget.trip['dates']) {
+        if (dateEntry['status'] == 'Completed') {
+          completedDates.add(dateEntry);
+        } else if (dateEntry['status'] == 'active') {
+          pendingDates.add(dateEntry);
+        }
+      }
+    }
+  }
+Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete, int index) async {
+    try {
+        final firestore = FirebaseFirestore.instance;
+
+        // Reference to the specific Advance Booking document
+        final bookingRef = firestore.collection('Advance Bookings').doc(trip.id);
+        final bookingData = await bookingRef.get();
+
+        if (!bookingData.exists) {
+            print("No such document in Advance Bookings!");
+            return; // Exiting gracefully
+        }
+
+        // Get the current date and time for completion
+        DateTime now = DateTime.now();
+        String completedTimeFormatted = DateFormat('MMMM d, yyyy').format(now) +
+            " at " +
+            DateFormat('h:mm a').format(now);
+
+        // Update the booking data
+        Map<String, dynamic> updatedData = bookingData.data()!;
+        List<dynamic> dates = updatedData['dates'];
+
+        // Find the date to complete in the dates array
+        bool found = false;
+        for (var dateEntry in dates) {
+            if ((dateEntry['date'] as Timestamp).toDate().isSameDay(dateToComplete)) {
+                // Update the status of the specific date entry to 'Completed'
+                dateEntry['status'] = 'Completed';
+                dateEntry['completed time'] = completedTimeFormatted;
+                found = true;
+                break;
+            }
+        }
+
+        if (found) {
+            // Update the booking document
+            await bookingRef.update({'dates': dates});
+            print("Date completed successfully in Advance Bookings.");
+
+            // Trigger animation (optional)
+            if (index >= 0 && index < pendingDates.length) {
+                setState(() {
+                    _isAnimating[index] = true; // Start the animation for the specific card
+                });
+
+                // Delay to allow the animation to complete
+                await Future.delayed(Duration(milliseconds: 300));
+
+                // Remove the completed ride from the pending list
+                setState(() {
+                    if (index < pendingDates.length) {
+                        pendingDates.removeAt(index); // Remove from pending
+                    }
+
+                    // Add to completedDates if necessary
+                    completedDates.add(dates.firstWhere((entry) => (entry['date'] as Timestamp).toDate().isSameDay(dateToComplete)));
+                    _isAnimating.removeAt(index); // Remove the animation state for the removed card
+                });
+
+                // Pop the screen or navigate back to the previous screen
+                Navigator.pop(context); // Use Navigator.pop() to go back
+            }
+        } else {
+            print("No matching date found to complete.");
+        }
+    } catch (e) {
+        print("Error completing ride: $e");
+    }
+}
+
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final startDate = trip['date'].toDate();
-    final endDate = trip['dateto'].toDate();
-    final startTime = trip['time'];
-    String status = trip['status'];
-
-    
-    double leftPadding = 30.0;
-    double topPadding = 0;
-    double rightPadding = 30.0;
-    double bottomPadding = 0;
-
+    final startDate = widget.trip['date'].toDate();
+    final endDate = widget.trip['dateto'].toDate();
 
     // Generate a list of dates from startDate to endDate
     List<DateTime> dates = [];
@@ -33,296 +129,349 @@ class FullDetails extends StatelessWidget {
       dates.add(date);
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Trip Details'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView.builder(
-  itemCount: dates.length,
-  itemBuilder: (context, index) {
-    // Get the current date being processed
-    final date = dates[index]; // This is a DateTime object
-
-    // Check the status for this date from the Firestore structure
-    String status = 'unknown'; // Default status
-    if (trip['dates'] != null && trip['dates'] is List) {
-      for (var dateEntry in trip['dates']) {
-        // Compare the date with the entries in Firestore
-        if ((dateEntry['date'] as Timestamp).toDate().isSameDay(date)) {
-          status = dateEntry['status']; // Get the status from Firestore
-          break; // Exit the loop once the status is found
+    // Filter completed and pending service requests
+    List<Map<String, dynamic>> completedDates = [];
+    List<Map<String, dynamic>> pendingDates = [];
+    if (widget.trip['dates'] != null) {
+      for (var dateEntry in widget.trip['dates']) {
+        if (dateEntry['status'] == 'Completed') {
+          completedDates.add(dateEntry);
+        } else if (dateEntry['status'] == 'active') {
+          pendingDates.add(dateEntry);
         }
       }
     }
-            return Card(
-              color: Colors.white,
-              elevation: 10,
-              margin: const EdgeInsets.all(10),
-              shape: RoundedRectangleBorder(
-                side: BorderSide(color: Colors.black, width: 2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            "${DateFormat.yMMMd().format(date)}, $startTime",
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Trip Details'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Pending Service'),
+            Tab(text: 'Completed Service'),
+          ],
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.grey,
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Pending Service Tab
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20.0),
+            child: pendingDates.isEmpty
+                ? const Center(child: Text('No Pending Service Request'))
+                : ListView.builder(
+                    itemCount: pendingDates.length,
+                    itemBuilder: (context, index) {
+                      var dateEntry = pendingDates[index];
+                      DateTime currentDate = (dateEntry['date'] as Timestamp).toDate();
+
+                      return AnimatedSize(
+                        duration: const Duration(milliseconds: 300),
+                        child: _isAnimating.length > index && _isAnimating[index]
+                            ? SizedBox.shrink() // Collapsing the card
+                            : _buildTripCard(currentDate, dateEntry, context, index), // Pass index for removal
+                      );
+                    },
+                  ),
+          ),
+          // Completed Service Tab
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20.0),
+            child: completedDates.isEmpty
+                ? const Center(child: Text('No Completed Service Request'))
+                : ListView.builder(
+                    itemCount: completedDates.length,
+                    itemBuilder: (context, index) {
+                      var dateEntry = completedDates[index];
+                      DateTime currentDate = (dateEntry['date'] as Timestamp).toDate();
+                      return _buildTripCard(currentDate, dateEntry, context);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTripCard(DateTime date, Map<String, dynamic> dateEntry, BuildContext context, [int? index]) {
+        final startDate = widget.trip['date'].toDate();
+    final endDate = widget.trip['dateto'].toDate();
+    final startTime = widget.trip['time'];
+    String status = widget.trip['status'];
+    
+
+    double leftPadding = 30.0;
+    double topPadding = 0;
+    double rightPadding = 30.0;
+    double bottomPadding = 0;
+    return Card(
+      color: Colors.white,
+      elevation: 10,
+      margin: const EdgeInsets.all(10),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Colors.black, width: 2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "${DateFormat.yMMMd().format(date)}, $startTime",
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                status != 'Pending'
+                    ? IconButton(
+                        icon: Image.asset(
+                          'assets/images/Call.png',
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
                         ),
-                        status != 'Pending'
-                            ? IconButton(
-                                icon: Image.asset(
-                                  'assets/images/Call.png',
-                                  width: 40,
-                                  height: 40,
-                                  fit: BoxFit.contain,
-                                ),
-                                onPressed: () async {
-                                  var text = 'tel:${trip["phoneNumber"]}';
-                                  if (await canLaunch(text)) {
-                                    await launch(text);
-                                  }
-                                },
-                              )
-                            : const SizedBox(),
+                        onPressed: () async {
+                          var text = 'tel:${widget.trip["phoneNumber"]}';
+                          if (await canLaunch(text)) {
+                            await launch(text);
+                          }
+                        },
+                      )
+                    : const SizedBox(),
+              ],
+            ),
+            Text.rich(
+              TextSpan(
+                text: 'Status: ',
+                style: const TextStyle(
+                    color: Colors.black54, fontWeight: FontWeight.bold),
+                children: [
+                  TextSpan(
+                    text: '${dateEntry['status']}',
+                    style: TextStyle(
+                        color:
+                            status == 'Cancelled' ? Colors.red : Colors.black,
+                        fontWeight: FontWeight.normal),
+                  ),
+                ],
+              ),
+            ),
+            Divider(color: Colors.black, thickness: 1),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'Start Date: ',
+                      style: const TextStyle(
+                          color: Colors.black54, fontWeight: FontWeight.bold),
+                      children: [
+                        TextSpan(
+                          text: '${DateFormat.yMMMd().format(startDate)}',
+                          style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.normal),
+                        ),
                       ],
                     ),
- Text.rich(
-            TextSpan(
-              text: 'Status: ',
-              style: const TextStyle(
-                  color: Colors.black54, fontWeight: FontWeight.bold),
-              children: [
-                TextSpan(
-                  text: '$status',
-                  style: TextStyle(
-                      color: status == 'Cancelled' ? Colors.red : Colors.black,
-                      fontWeight: FontWeight.normal),
+                  ),
                 ),
               ],
             ),
- ),
-                    Divider(color: Colors.black, thickness: 1),
-                    const SizedBox(height: 8),
-                    Row(
+            Row(
+              children: [
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'End Date: ',
+                      style: const TextStyle(
+                          color: Colors.black54, fontWeight: FontWeight.bold),
                       children: [
-                        Expanded(
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'Start Date: ',
-                              style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontWeight: FontWeight.bold),
-                              children: [
-                                TextSpan(
-                                  text:
-                                      '${DateFormat.yMMMd().format(startDate)}',
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.normal),
-                                ),
-                              ],
-                            ),
-                          ),
+                        TextSpan(
+                          text: '${DateFormat.yMMMd().format(endDate)}',
+                          style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.normal),
                         ),
                       ],
                     ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text.rich(
-                            TextSpan(
-                              text: 'End Date: ',
-                              style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontWeight: FontWeight.bold),
-                              children: [
-                                TextSpan(
-                                  text: '${DateFormat.yMMMd().format(endDate)}',
-                                  style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.normal),
-                                ),
-                              ],
-                            ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Image.asset(
+                            'assets/images/initial.png',
+                            width: 20,
+                            height: 20,
+                            fit: BoxFit.contain,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'PICK-UP: ',
+                                style: const TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold),
                                 children: [
-                                  Image.asset(
-                                    'assets/images/initial.png',
-                                    width: 20,
-                                    height: 20,
-                                    fit: BoxFit.contain,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text.rich(
-                                      TextSpan(
-                                        text: 'PICK-UP: ',
-                                        style: const TextStyle(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.bold),
-                                        children: [
-                                          TextSpan(
-                                            text: '${trip["from"]}',
-                                            style: const TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.normal),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                  TextSpan(
+                                    text: '${widget.trip["from"]}',
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.normal),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 10),
-                              Row(
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Image.asset(
+                            'assets/images/final.png',
+                            width: 20,
+                            height: 20,
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'DROP-OFF: ',
+                                style: const TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold),
                                 children: [
-                                  Image.asset(
-                                    'assets/images/final.png',
-                                    width: 20,
-                                    height: 20,
-                                    fit: BoxFit.contain,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text.rich(
-                                      TextSpan(
-                                        text: 'DROP-OFF: ',
-                                        style: const TextStyle(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.bold),
-                                        children: [
-                                          TextSpan(
-                                            text: '${trip["to"]}',
-                                            style: const TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.normal),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                  TextSpan(
+                                    text: '${widget.trip["to"]}',
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.normal),
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Image.asset(
+                        'assets/images/toda.png',
+                        width: 100,
+                        height: 100,
+                      ),
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text:
+                                  '${widget.trip["drivername"]} ${widget.trip["driverlastName"]}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Image.asset(
-                                'assets/images/toda.png',
-                                width: 100,
-                                height: 100,
-                              ),
-                              Text.rich(
-                                TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text:
-                                          '${trip["drivername"]} ${trip["driverlastName"]}',
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text.rich(
-                                TextSpan(
-                                  text: 'ID: ',
-                                  style: const TextStyle(
-                                    color: Colors.black54,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: '${trip["driverid"]}',
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.normal,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text.rich(
-                                TextSpan(
-                                  text: 'Body #: ',
-                                  style: const TextStyle(
-                                    color: Colors.black54,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: '${trip["driverbodynumber"]}',
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.normal,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text.rich(
-                                TextSpan(
-                                  text: 'Phone #: ',
-                                  style: const TextStyle(
-                                    color: Colors.black54,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: '${trip["phoneNumber"]}',
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.normal,
-                                        fontSize: 12,
-                                        
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                      ),
+                      Text.rich(
+                        TextSpan(
+                          text: 'ID: ',
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
                           ),
+                          children: [
+                            TextSpan(
+                              text: '${widget.trip["driverid"]}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
- Row(
+                      ),
+                      Text.rich(
+                        TextSpan(
+                          text: 'Body #: ',
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '${widget.trip["driverbodynumber"]}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text.rich(
+                        TextSpan(
+                          text: 'Phone #: ',
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '${widget.trip["phoneNumber"]}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 const SizedBox(width: 20),
@@ -359,23 +508,18 @@ class FullDetails extends StatelessWidget {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.center,
                                         children: [
- 
-
-     Center(
-  child: const Text(
-    'Please contact the driver to discuss any concerns before rejecting the service request.',
-    textAlign: TextAlign.center, // Optional: centers the text within the Text widget itself
-    style: TextStyle(
-      fontWeight: FontWeight.bold,
-      fontSize: 15,
-      color: Colors.white70,
-    ),
-  ),
-),
-
-
-                                            
-                                 
+                                          Center(
+                                            child: const Text(
+                                              'Please contact the driver to discuss any concerns before rejecting the service request.',
+                                              textAlign: TextAlign
+                                                  .center, // Optional: centers the text within the Text widget itself
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          ),
                                           const SizedBox(height: 40),
                                           Row(
                                             mainAxisAlignment:
@@ -383,8 +527,7 @@ class FullDetails extends StatelessWidget {
                                             children: [
                                               ElevatedButton(
                                                   onPressed: () {
-                                                    
-                                                   // reason.clear();
+                                                    // reason.clear();
                                                     Navigator.pop(context);
                                                   },
                                                   style:
@@ -397,15 +540,16 @@ class FullDetails extends StatelessWidget {
                                                           BorderRadius.circular(
                                                               5), // Set border radius to 5
                                                     ),
-                                                    minimumSize: const Size(100, 40), 
+                                                    minimumSize:
+                                                        const Size(100, 40),
                                                   ),
                                                   child: const Text(
                                                     'Back',
                                                     style: TextStyle(
                                                       color: Colors
                                                           .black87, // Set text color to white
-                                                      fontWeight: FontWeight
-                                                          .bold, 
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 16,
                                                     ),
                                                   )),
@@ -422,9 +566,9 @@ class FullDetails extends StatelessWidget {
                                                     // Navigator.pop(context);
                                                     // ADD SETSTATE HERE for Confirm Booking Button
 
-                                                    await _rejectRide(trip, date); // Pass the date directly
+                                                    await _rejectRide(widget.trip,
+                                                        date); // Pass the date directly
 
-                                                    
                                                     Navigator.pop(context);
                                                     ScaffoldMessenger.of(
                                                             context)
@@ -447,7 +591,8 @@ class FullDetails extends StatelessWidget {
                                                           BorderRadius.circular(
                                                               5), // Set border radius to 5
                                                     ),
-                                                    minimumSize: const Size(100, 43), 
+                                                    minimumSize:
+                                                        const Size(100, 43),
                                                   ),
                                                   child: const Text(
                                                     'Confirm',
@@ -455,8 +600,8 @@ class FullDetails extends StatelessWidget {
                                                     style: TextStyle(
                                                       color: Colors
                                                           .white, // Set text color to white
-                                                      fontWeight: FontWeight
-                                                          .bold, 
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 16,
                                                     ),
                                                   )),
@@ -490,16 +635,29 @@ class FullDetails extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-Visibility(
-              visible: status == 'active',
-              child: ElevatedButton(
+//  Column(
+//           children: [
+//             Text('Date: ${date.toLocal()}'),
+//             Text('Status: ${dateEntry['status']}'),
+//             if (dateEntry['status'] == 'active' && index != null) // Show button only for active entries
+//               ElevatedButton(
+//                 onPressed: () {
+//                   _completeRide(widget.trip, date, index); // Call the completion function
+//                 },
+//                 child: const Text('Complete Ride'),
+//               ),
+//           ],
+//         ),
+                
+ if (dateEntry['status'] == 'active' && index != null) // Show button only for active entries
+ElevatedButton(
                 onPressed: () async {
-                  await _completeRide(trip, date); // Call your completion logic
+                   _completeRide(widget.trip, date, index); // Call the completion function
 
                   // Update Firestore directly here if needed
                   await FirebaseFirestore.instance
                       .collection('Advance Bookings')
-                      .doc(trip.id)
+                      .doc(widget.trip.id)
                       .update({'status': 'Completed'});
                 },
                 style: ElevatedButton.styleFrom(
@@ -509,76 +667,17 @@ Visibility(
                 ),
                 child: const Text('Complete Ride'),
               ),
-            ),
+
+
+                
               ],
             ),
-
-                  ],
-                ),
-              ),
-            );
-          },
+          ],
         ),
       ),
     );
   }
 }
-
-Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete) async {
-  try {
-    final firestore = FirebaseFirestore.instance;
-
-    // Reference to the specific Advance Booking document
-    final bookingRef = firestore.collection('Advance Bookings').doc(trip.id);
-
-    // Retrieve the booking data
-    final bookingData = await bookingRef.get();
-
-    if (!bookingData.exists) {
-      print("No such document in Advance Bookings!");
-      return;
-    }
-
-    // Get the current date and time for completion
-    DateTime now = DateTime.now();
-    String completedTimeFormatted = DateFormat('MMMM d, yyyy').format(now) + " at " + DateFormat('h:mm a').format(now);
-
-    // Update the status in the booking data
-    Map<String, dynamic> updatedData = bookingData.data()!;
-
-    // Get the existing dates array
-    List<dynamic> dates = updatedData['dates'];
-
-    // Find the date to complete in the dates array
-    for (var dateEntry in dates) {
-      if ((dateEntry['date'] as Timestamp).toDate().isSameDay(dateToComplete)) {
-        // Update the status of the specific date entry to 'Completed'
-        dateEntry['status'] = 'Completed';
-        
-        // Add the completed time to the specific date entry
-        dateEntry['completed time'] = completedTimeFormatted;
-        break; // Exit the loop once the date is found
-      }
-    }
-
-    // Update the booking document with the modified dates array in "Advance Bookings"
-    await bookingRef.update({'dates': dates});
-    print("Date completed successfully in Advance Bookings.");
-
-    // Optionally update the completed time in the main document
-   // updatedData['completed time'] = completedTimeFormatted;
-
-    // Move the updated data to "Advance Booking History"
-    //await firestore.collection('Advance Booking History').doc(trip.id).set(updatedData);
-    //print("Status updated and data moved to Advance Booking History.");
-
-  } catch (e) {
-    print("Error completing ride: $e");
-  }
-}
-
-
-
 
 
 Future _rejectRide(DocumentSnapshot trip, DateTime dateToReject) async {
@@ -620,7 +719,6 @@ Future _rejectRide(DocumentSnapshot trip, DateTime dateToReject) async {
       'cancelledDate': dateToReject, // Record the specific cancelled date
     });
     print("Data moved to Cancelled Service with updated status.");
-
   } catch (e) {
     print("Error rejecting ride: $e");
   }
@@ -632,4 +730,3 @@ extension DateTimeComparison on DateTime {
     return year == other.year && month == other.month && day == other.day;
   }
 }
-
