@@ -29,69 +29,89 @@ class _PredictionPlaceUIState extends State<PredictionPlaceUI> {
   );
 
   /// Place Details - Places API
-  fetchClickedPlaceDetails(String placeID) async {
-    if (!mounted) return; // Check if the widget is still mounted
+ fetchClickedPlaceDetails(String placeID) async {
+  if (!mounted) return; // Check if the widget is still mounted
 
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) =>
-          LoadingDialog(messageText: "Getting details..."),
-    );
+  showDialog(
+    barrierDismissible: false,
+    context: context,
+    builder: (BuildContext context) =>
+        LoadingDialog(messageText: "Getting details..."),
+  );
 
-    String urlPlaceDetailsAPI =
-        "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeID&key=$googleMapKey";
+  String urlPlaceDetailsAPI =
+      "https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeID&key=$googleMapKey";
 
-    var responseFromPlaceDetailsAPI =
-        await CommonMethods.sendRequestToAPI(urlPlaceDetailsAPI);
+  var responseFromPlaceDetailsAPI =
+      await CommonMethods.sendRequestToAPI(urlPlaceDetailsAPI);
 
-    Navigator.pop(context);
+  Navigator.pop(context);
 
-    if (!mounted) return; // Check if the widget is still mounted after async operation
+  if (!mounted) return; // Check if the widget is still mounted after async operation
 
-    if (responseFromPlaceDetailsAPI == "error") {
-      return;
-    }
-
-    if (responseFromPlaceDetailsAPI["status"] == "OK") {
-      double latitude = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lat"];
-      double longitude = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lng"];
-      LatLng placeLocation = LatLng(latitude, longitude);
-
-      // Check if the selected place is within the Valenzuela bounds
-      if (!valenzuelaBounds.contains(placeLocation)) {
-        // If the place is outside Valenzuela, show an error message
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   const SnackBar(
-        //     content: Text("The selected location is outside Valenzuela."),
-        //   ),
-        // );
-
-         Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => LocationPage()),
-    );
-        return; // Stop further processing
-      }
-
-      // Continue if the place is within Valenzuela
-      AddressModel dropOffLocation = AddressModel();
-
-      dropOffLocation.placeName = responseFromPlaceDetailsAPI["result"]["name"];
-      dropOffLocation.latitudePosition = latitude;
-      dropOffLocation.longitudePosition = longitude;
-      dropOffLocation.placeID = placeID;
-
-      Provider.of<AppInfo>(context, listen: false)
-          .updateDropOffLocation(dropOffLocation);
-
-      if (!mounted) return; // Check if the widget is still mounted before navigating
-
-      Future.delayed(Duration.zero, () {
-        Navigator.pop(context, "placeSelected");
-      });
-    }
+  if (responseFromPlaceDetailsAPI == "error") {
+    return;
   }
+
+  if (responseFromPlaceDetailsAPI["status"] == "OK") {
+    double latitude = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lat"];
+    double longitude = responseFromPlaceDetailsAPI["result"]["geometry"]["location"]["lng"];
+    LatLng placeLocation = LatLng(latitude, longitude);
+
+    // Debug logs
+    print("Place Location: $placeLocation");
+    print("Valenzuela Bounds Southwest: ${valenzuelaBounds.southwest}");
+    print("Valenzuela Bounds Northeast: ${valenzuelaBounds.northeast}");
+
+    // Check if the selected place is within the Valenzuela bounds and not in excluded areas
+    if (!valenzuelaBounds.contains(placeLocation) || isLocationExcluded(placeLocation)) {
+      print("Selected location is outside Valenzuela or is excluded.");
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => LocationPage()),
+      );
+      return; // Stop further processing
+    }
+
+    // Continue if the place is within Valenzuela
+    AddressModel dropOffLocation = AddressModel();
+
+    dropOffLocation.placeName = responseFromPlaceDetailsAPI["result"]["name"];
+    dropOffLocation.latitudePosition = latitude;
+    dropOffLocation.longitudePosition = longitude;
+    dropOffLocation.placeID = placeID;
+
+    Provider.of<AppInfo>(context, listen: false)
+        .updateDropOffLocation(dropOffLocation);
+
+    if (!mounted) return; // Check if the widget is still mounted before navigating
+
+    Future.delayed(Duration.zero, () {
+      Navigator.pop(context, "placeSelected");
+    });
+  }
+}
+
+// Define the specific areas to exclude
+final List<LatLng> excludedAreas = [
+  LatLng(14.6680747, 120.9658454), // Example excluded location
+  LatLng(14.6610, 120.9600),       // Another example
+  LatLng(14.6700, 120.9700),       // Add more as needed
+  LatLng(14.6750, 120.9500),       // Another location to exclude
+  LatLng(14.6400, 120.9600),    
+  LatLng(14.6489906, 120.9906299),   // Add any additional locations
+];
+
+bool isLocationExcluded(LatLng location) {
+  // Check if the location is close to any excluded areas
+  return excludedAreas.any((excludedLocation) {
+    // Adjust logic to include a radius if necessary
+    // Here we check for exact matches
+    return (location.latitude == excludedLocation.latitude &&
+            location.longitude == excludedLocation.longitude);
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {

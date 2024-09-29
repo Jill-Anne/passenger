@@ -13,6 +13,9 @@ class TripsHistoryPage extends StatefulWidget {
 class _TripsHistoryPageState extends State<TripsHistoryPage> {
   final completedTripRequestsOfCurrentUser =
       FirebaseDatabase.instance.ref().child("tripRequests");
+      String formattedPublishDate = ""; // Default value
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +74,7 @@ class _TripsHistoryPageState extends State<TripsHistoryPage> {
 
                 // Initialize the formatted trip ended time
                 String tripEndedTimeFormatted = "N/A";
+                String formattedPublishDate = "N/A"; // Move declaration here
                 String timeOnly = "N/A";
 if (tripsList[index]["tripEndedTime"] != null) {
   try {
@@ -89,17 +93,26 @@ if (tripsList[index]["tripEndedTime"] != null) {
   }
 }
 
-                    // Try parsing the publish date and time
-                    if (tripsList[index]["publishDateTime"] != null) {
-                      try {
-                        DateFormat dateFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
-                        DateTime publishDateTime = dateFormat.parse(tripsList[index]["publishDateTime"]);
-                        timeOnly = DateFormat('h:mm a').format(publishDateTime);
-                      } catch (e) {
-                        timeOnly = "Invalid time format";
-                        print("Time parsing error: $e");
-                      }
-                    }
+// Try parsing the publish date and time
+      if (tripsList[index]["publishDateTime"] != null) {
+        try {
+          DateFormat dateFormat = DateFormat("yyyy-MM-dd HH:mm:ss");
+          DateTime publishDateTime = dateFormat.parse(tripsList[index]["publishDateTime"]);
+          
+          // Format the time only
+          timeOnly = DateFormat('h:mm a').format(publishDateTime);
+          
+          // Format the date
+          formattedPublishDate = DateFormat('MMMM d, yyyy').format(publishDateTime);
+          
+          // Debug print statements
+          print("Time: $timeOnly");
+          print("Publish Date: $formattedPublishDate");
+        } catch (e) {
+          print("Time parsing error: $e");
+        }
+      }
+
 return Card(
   color: Colors.white, // Ensure the card background is plain white
   elevation: 0, // Set elevation to 0 to remove any shadow effects
@@ -117,9 +130,9 @@ return Card(
         // Trip Ended Time
         Text(
          // '$timeOnly - $tripEndedTimeFormatted',
-         '$tripEndedTimeFormatted',
+       "Started: $formattedPublishDate $timeOnly \nEnded: $tripEndedTimeFormatted",
           style: const TextStyle(
-            fontSize: 16, // Font size
+            fontSize: 14, // Font size
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),

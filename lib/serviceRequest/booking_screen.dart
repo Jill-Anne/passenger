@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:passenger/serviceRequest/fullDetails.dart';
-
+import 'package:passenger/serviceRequest/service_history.dart';
 
 class AdvanceBooking extends StatefulWidget {
   const AdvanceBooking({Key? key}) : super(key: key);
@@ -29,7 +29,6 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
       statusBarIconBrightness: Brightness.light,
     ));
 
-    // Get the current date
     String formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
 
     return Scaffold(
@@ -52,55 +51,58 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
       ),
       body: Column(
         children: [
-          // Current date and service history display
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), // Reduced vertical padding
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'As of $formattedDate',
                   style: const TextStyle(
-                    fontSize: 15, // Adjust font size
-                    color: Color.fromARGB(255, 1, 42, 123), // Adjust font color
-                    fontWeight: FontWeight.bold, // Bold font
+                    fontSize: 15,
+                    color: Color.fromARGB(255, 1, 42, 123),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                // Service History button with icon
                 IconButton(
                   icon: const Row(
                     children: [
-                      Icon(Icons.history, color:Color.fromARGB(255, 1, 42, 123)), // Icon
-                      SizedBox(width: 5), // Space between icon and text
+                      Icon(Icons.history,
+                          color: Color.fromARGB(255, 1, 42, 123)),
+                      SizedBox(width: 5),
                       Text(
                         'Service History',
-                        style: TextStyle(color:Color.fromARGB(255, 1, 42, 123)), // Text color
+                        style:
+                            TextStyle(color: Color.fromARGB(255, 1, 42, 123)),
                       ),
                     ],
                   ),
                   onPressed: () {
-                    // Navigate to service history page
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => const ServiceHistory(), // Replace with your ServiceHistory widget
-                    //   ),
-                    // );
+                    // Navigate to service history
+             
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ServiceHistory(),
+                      ),
+                    );
+
                   },
                 ),
               ],
             ),
           ),
-          // StreamBuilder for listing requests
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('Advance Bookings')
-                  .where('uid', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+                  .where('uid',
+                      isEqualTo: FirebaseAuth.instance.currentUser!.uid)
                   .where('status', isNotEqualTo: 'Deleted')
                   .orderBy('date', descending: isLatest)
                   .snapshots(),
-              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
@@ -110,11 +112,25 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                 }
 
                 final data = snapshot.requireData;
+                final DateTime now = DateTime.now();
 
                 // Grouping the trips by their start date
                 Map<DateTime, List<DocumentSnapshot>> groupedTrips = {};
                 for (var doc in data.docs) {
                   DateTime startDate = doc['date'].toDate();
+                  DateTime endDate = doc['dateto'].toDate();
+
+                  // Check if the end date is in the past
+                  if (endDate.isBefore(now)) {
+                    // If end date has passed, update status to "No Appearance"
+                    FirebaseFirestore.instance
+                        .collection('Advance Bookings')
+                        .doc(doc.id)
+                        .update({'status': 'No Appearance'});
+                    continue; // Skip showing this trip
+                  }
+
+                  // Group trips by their start date
                   if (!groupedTrips.containsKey(startDate)) {
                     groupedTrips[startDate] = [];
                   }
@@ -131,9 +147,10 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                       children: [
                         // Display the group header (date)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
                           child: Text(
-                            DateFormat.yMMMd().format(groupDate), // Format the date for display
+                            DateFormat.yMMMd().format(groupDate),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -141,15 +158,18 @@ class _AdvanceBookingState extends State<AdvanceBooking> {
                             ),
                           ),
                         ),
-                        /// Display the ListTiles for each trip in this group
+                        // Display the ListTiles for each trip in this group
                         ...trips.map((trip) {
                           return Column(
                             children: [
                               _buildTripListTile(trip),
-                               Container(
-                    width: 345,
-                    child: Divider(height: 1, thickness: 2, color: Colors.grey[400]),
-                  ),
+                              Container(
+                                width: 345,
+                                child: Divider(
+                                    height: 1,
+                                    thickness: 2,
+                                    color: Colors.grey[400]),
+                              ),
                             ],
                           );
                         }).toList(),

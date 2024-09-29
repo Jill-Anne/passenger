@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 
 String nameDriver = '';
 String photoDriver = '';
-String phoneNumberDriver = '';
+String? phoneNumber = '';
+String? driverphoneNumber = '';
 int requestTimeoutDriver = 20;
 String status = '';
 String carDetailsDriver = '';
@@ -26,6 +27,8 @@ class UserData {
   static String name = '';
   static String phone = '';
   static String email = '';
+
+  String? phoneNumber;
 
   static Future<void> fetchUserData() async {
     User? user = FirebaseAuth.instance.currentUser;

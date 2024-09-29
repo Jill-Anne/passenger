@@ -24,7 +24,7 @@ import 'package:passenger/pages/online_nearby_drivers.dart';
 import 'package:passenger/pages/profile_screen.dart';
 import 'package:passenger/pages/search_destination _page.dart';
 import 'package:passenger/pages/service_ride_page.dart';
-import 'package:passenger/pages/trips_history.dart';
+import 'package:passenger/TripHistory/trips_history.dart';
 import 'package:passenger/services/add_advancebooking.dart';
 import 'package:passenger/widgets/dialog_utils.dart';
 import 'package:passenger/widgets/info_dialog.dart';
@@ -68,19 +68,16 @@ class _HomePageState extends State<HomePage> {
   List<OnlineNearbyDrivers>? availableNearbyOnlineDriversList;
   StreamSubscription<DatabaseEvent>? tripStreamSubscription;
   bool requestingDirectionDetailsInfo = false;
-   Future<double>? fareAmountFuture;
-   String? tripID;
-   String? _profileImageUrl;
-   
-
+  Future<double>? fareAmountFuture;
+  String? tripID;
+  String? _profileImageUrl;
+String updatedPhoneNumber = ''; // Declare it at the start of your widget state
   Marker? driverMarker;
   LatLng? driverCurrentLocationLatLng;
 
   late DateTime _startDate;
   late DateTime _endDate;
   TimeOfDay? _selectedTime;
-  
-
 
   void makeDriverNearbyCarIcon() {
     if (carIconNearbyDriver == null) {
@@ -99,13 +96,15 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-Future<void> _loadUserData() async {
+  Future<void> _loadUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(user.uid);
+      DatabaseReference userRef =
+          FirebaseDatabase.instance.ref().child("users").child(user.uid);
       DatabaseEvent event = await userRef.once();
       if (event.snapshot.value != null) {
-        Map<dynamic, dynamic> userData = event.snapshot.value as Map<dynamic, dynamic>;
+        Map<dynamic, dynamic> userData =
+            event.snapshot.value as Map<dynamic, dynamic>;
         setState(() {
           _profileImageUrl = userData['profileImageUrl'];
           print("Profile Image URL: $_profileImageUrl"); // Debugging output
@@ -117,6 +116,7 @@ Future<void> _loadUserData() async {
       print("No current user"); // Debugging output
     }
   }
+
   void updateMapTheme(GoogleMapController controller) {
 // Function to update the map theme
     getJsonFileFromThemes("themes/standard_style.json")
@@ -472,158 +472,262 @@ Future<void> _loadUserData() async {
       }
     });
   }
-  // Fetch fare amount from Firestore
-Future<double> getFareAmount() async {
-  try {
-    DocumentSnapshot fareDoc = await FirebaseFirestore.instance
-        .collection('currentFare')
-        .doc('latestFare')
-        .get();
 
-    if (fareDoc.exists) {
-      double fareAmount = (fareDoc['amount'] as num).toDouble();
-      return fareAmount;
+// Fetch fare amount from Firestore
+Future<double> getFareAmount() async {
+  if (globalTripID == null || globalTripID!.isEmpty) {
+    print('Global Trip ID is not set');
+    return 0.0; // Return 0.0 if ID is not set
+  }
+
+  DatabaseReference tripRequestRef = FirebaseDatabase.instance
+      .ref()
+      .child('tripRequests')
+      .child(globalTripID!);
+  
+  try {
+    final snapshot = await tripRequestRef.get();
+
+    if (snapshot.exists) {
+      final data = snapshot.value;
+
+      // Ensure the data is a map
+      if (data is Map) {
+        // Retrieve the fareAmount directly
+        final fareAmount = data['fareAmount'];
+
+        // Safely convert fareAmount to double if possible
+        if (fareAmount is num) {
+          return fareAmount.toDouble();
+        } else {
+          print("Fare amount is not a valid number: $fareAmount");
+          return 0.0; // Return default if invalid
+        }
+      } else {
+        print("Data is not a valid map: $data");
+        return 0.0; // Return default if data structure is invalid
+      }
     } else {
-      print("No data found at 'currentFare/latestFare'");
-      return 0.0; // Return default value if no data is found
+      print("No data available for tripID: $globalTripID");
+      return 0.0; // Return default if no data found
     }
-  } catch (e) {
-    print("Error fetching fare amount: $e");
-    return 0.0; // Return default value or handle error
+  } catch (error) {
+    print("Error fetching fare amount: $error");
+    return 0.0; // Return default on error
   }
 }
 
+
 // Function to format tripEndedTime
-String formatTripEndedTime(DateTime tripEndedTime) {
-  // Create a DateFormat instance with the desired pattern
-  DateFormat dateFormat = DateFormat('MMMM d, yyyy h:mm a');
-  
-  // Format the DateTime object to the desired string
-  return dateFormat.format(tripEndedTime);
-}
+  String formatTripEndedTime(DateTime tripEndedTime) {
+    // Create a DateFormat instance with the desired pattern
+    DateFormat dateFormat = DateFormat('MMMM d, yyyy h:mm a');
 
-makeTripRequest() async {
-  // Push the trip request to Firebase
-  tripRequestRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
-  
-  // Store the tripID (Firebase-generated key)
-  globalTripID = tripRequestRef!.key;
+    // Format the DateTime object to the desired string
+    return dateFormat.format(tripEndedTime);
+  }
 
-  // Log trip request creation
-  print('Trip request created with Trip ID: $globalTripID');
+  makeTripRequest() async {
+    // Push the trip request to Firebase
+    tripRequestRef =
+        FirebaseDatabase.instance.ref().child("tripRequests").push();
 
-  var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-  var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+    // Store the tripID (Firebase-generated key)
+    globalTripID = tripRequestRef!.key;
 
-  Map<String, String> pickUpCoOrdinatesMap = {
-    "latitude": pickUpLocation!.latitudePosition.toString(),
-    "longitude": pickUpLocation.longitudePosition.toString(),
-  };
+    // Log trip request creation
+    print('Trip request created with Trip ID: $globalTripID');
 
-  Map<String, String> dropOffDestinationCoOrdinatesMap = {
-    "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
-    "longitude": dropOffDestinationLocation.longitudePosition.toString(),
-  };
+    var pickUpLocation =
+        Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+    var dropOffDestinationLocation =
+        Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-  Map<String, String> driverCoOrdinates = {
-    "latitude": "",
-    "longitude": "",
-  };
+    Map<String, String> pickUpCoOrdinatesMap = {
+      "latitude": pickUpLocation!.latitudePosition.toString(),
+      "longitude": pickUpLocation.longitudePosition.toString(),
+    };
 
-  var tripData = Provider.of<TripData>(context, listen: false);
-  DateFormat dateFormat = DateFormat('MMM d, yyyy');
+    Map<String, String> dropOffDestinationCoOrdinatesMap = {
+      "latitude": dropOffDestinationLocation!.latitudePosition.toString(),
+      "longitude": dropOffDestinationLocation.longitudePosition.toString(),
+    };
 
-  Map<String, Object?> dataMap = {
-    "tripID": tripRequestRef!.key,
-    "publishDateTime": DateTime.now().toString(),
-    "ratings": "",
-    "userName": userName,
-    "userPhone": userPhone,
-    "userID": userID,
-    "pickUpLatLng": pickUpCoOrdinatesMap,
-    "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
-    "pickUpAddress": pickUpLocation.placeName,
-    "dropOffAddress": dropOffDestinationLocation.placeName,
-    "driverID": "waiting",
-    "driverLocation": driverCoOrdinates,
-    "driverName": "",
-    "phoneNumber": "",
-    "driverPhoto": "",
-    "passengerPhoto": "",
-    "fareAmount": "",
-    "status": "new",
-    "firstName": "",
-    "lastName": "",
-    
-    "idNumber": "",
-    "tripEndedTime": "",
-    "bodyNumber": "",
-    "tripStartDate": tripData.startDate != null
-        ? DateFormat('MMMM d, yyyy').format(tripData.startDate!)
-        : "Not set",
-    "tripEndDate": tripData.endDate != null
-        ? DateFormat('MMMM d, yyyy').format(tripData.endDate!)
-        : "Not set",
-    "tripTime": tripData.selectedTime != null
-        ? tripData.selectedTime.format(context)
-        : "Not set",
-  };
+    Map<String, String> driverCoOrdinates = {
+      "latitude": "",
+      "longitude": "",
+    };
 
-  // Set the initial trip request data to Firebase
-  tripRequestRef!.set(dataMap).then((_) async {
-    print('Trip request created successfully!');
-    print('Trip ID: $globalTripID');
-    
+    var tripData = Provider.of<TripData>(context, listen: false);
+    DateFormat dateFormat = DateFormat('MMM d, yyyy');
 
-    // Retrieve passenger's device token after pushing the initial data
-    String? deviceToken = await FirebaseMessaging.instance.getToken();
+    Map<String, Object?> dataMap = {
+      "tripID": tripRequestRef!.key,
+      "publishDateTime": DateTime.now().toString(),
+      "ratings": "",
+      "userName": userName,
+      "userPhone": userPhone,
+      "userID": userID,
+      "pickUpLatLng": pickUpCoOrdinatesMap,
+      "dropOffLatLng": dropOffDestinationCoOrdinatesMap,
+      "pickUpAddress": pickUpLocation.placeName,
+      "dropOffAddress": dropOffDestinationLocation.placeName,
+      "driverID": "waiting",
+      "driverLocation": driverCoOrdinates,
+      "driverName": "",
+      // "driverphoneNumber": "",
+      
+      "driverPhoto": "",
+      "passengerPhoto": "",
+      "fareAmount": "",
+      "status": "new",
+      "firstName": "",
+      "lastName": "",
+      "idNumber": "",
+      "tripEndedTime": "",
+      "bodyNumber": "",
+      "tripStartDate": tripData.startDate != null
+          ? DateFormat('MMMM d, yyyy').format(tripData.startDate!)
+          : "Not set",
+      "tripEndDate": tripData.endDate != null
+          ? DateFormat('MMMM d, yyyy').format(tripData.endDate!)
+          : "Not set",
+      "tripTime": tripData.selectedTime != null
+          ? tripData.selectedTime.format(context)
+          : "Not set",
+    };
+    // Update dataMap before pushing to Firebase
+    dataMap["driverPhoto"] =
+        photoDriver; // assuming photoDriver is updated in fetchDriverInfoAndUpdateMap
+    dataMap["phoneNumber"] =
+        phoneNumber; // assuming phoneNumber is updated in fetchDriverInfoAndUpdateMap
 
-    if (deviceToken != null) {
-      // Update the dataMap with the device token
-      dataMap["deviceToken"] = deviceToken;
+    // Set the initial trip request data to Firebase
+    tripRequestRef!.set(dataMap).then((_) async {
+      print('Trip request created successfully!');
+      print('Trip ID: $globalTripID');
 
-      // Update the trip request in Firebase with the new dataMap
-      tripRequestRef!.update(dataMap as Map<String, Object?>).then((_) {
-        print("Device token added to trip request: $deviceToken");
-      }).catchError((error) {
-        print('Error updating trip request with device token: $error');
-      });
-    } else {
-      print("Error: Passenger's device token is null.");
-    }
-  }).catchError((error) {
-    print('Error creating trip request: $error');
-  });
+      // Retrieve passenger's device token after pushing the initial data
+      String? deviceToken = await FirebaseMessaging.instance.getToken();
 
+      if (deviceToken != null) {
+        // Update the dataMap with the device token
+        dataMap["deviceToken"] = deviceToken;
 
+        // Update the trip request in Firebase with the new dataMap
+        tripRequestRef!.update(dataMap as Map<String, Object?>).then((_) {
+          print("Device token added to trip request: $deviceToken");
+        }).catchError((error) {
+          print('Error updating trip request with device token: $error');
+        });
+      } else {
+        print("Error: Passenger's device token is null.");
+      }
+    }).catchError((error) {
+      print('Error creating trip request: $error');
+    });
+
+///RETRIEVE LISTEN TO DRIVER INFO
 tripStreamSubscription =
         tripRequestRef!.onValue.listen((eventSnapshot) async {
       if (eventSnapshot.snapshot.value == null) {
+        print("No data available for the trip.");
         return;
       }
 
-        Map<String, dynamic> tripData = Map<String, dynamic>.from(eventSnapshot.snapshot.value as Map);
+      Map<String, dynamic> tripData =
+          Map<String, dynamic>.from(eventSnapshot.snapshot.value as Map);
 
-    // Retrieve and print the trip data
-    firstName = tripData["firstName"] ?? 'Not found';
-    lastName = tripData["lastName"] ?? 'Not found';
-    idNumber = tripData["idNumber"] ?? 'Not found';
-    bodyNumber = tripData["bodyNumber"] ?? 'Not found';
-    photoDriver = tripData["driverPhoto"] ?? 'Not found';
-    carDetailsDriver = tripData["carDetails"] ?? 'Not found';
-    status = tripData["status"] ?? 'Not found';
-    
-    print('Retrieved trip data: ${tripData}');
-    print('First Name: $firstName');
-    print('Last Name: $lastName');
-    print('Driver Photo URL: $photoDriver');
+      // Print trip data for debugging
+      print("Trip data retrieved:");
+      tripData.forEach((key, value) {
+        print('$key: $value');
+      });
 
-    if (tripData["driverID"] != null) {
-      String driverID = tripData["driverID"];
-      fetchDriverPhoto(driverID);
+      
+
+      // Check if 'driverID' is present
+      String? driverId = tripData["driverID"];
+      if (driverId == null) {
+        print('Driver ID not found in trip data.');
+        return;
+      }
+      print('Driver ID: $driverId');
+      
+
+      // Locate the correct driver using the Firebase node key
+      final DatabaseReference driverListRef =
+          FirebaseDatabase.instance.ref().child('driversAccount');
+      driverListRef.once().then((driversSnapshot) {
+        if (driversSnapshot.snapshot.value != null) {
+          Map<String, dynamic> driversData =
+              Map<String, dynamic>.from(driversSnapshot.snapshot.value as Map);
+
+          // Iterate through the driver nodes to find the correct driver by uid
+          String? driverKey;
+          driversData.forEach((key, driverInfo) {
+            if (driverInfo["uid"] == driverId) {
+              driverKey = key; // Capture the key that matches the driverID
+            }
+          });
+
+          if (driverKey != null) {
+            // Now that we have the correct key, fetch driver details
+            DatabaseReference specificDriverRef =
+                driverListRef.child(driverKey!);
+            specificDriverRef.once().then((specificDriverSnapshot) {
+              if (specificDriverSnapshot.snapshot.value != null) {
+                Map<String, dynamic> driverData = Map<String, dynamic>.from(
+                    specificDriverSnapshot.snapshot.value as Map);
+
+                // Retrieve the driver's phone number and photo
+                String phoneNumber = driverData["phoneNumber"]?.toString() ??
+                    'No phone number available';
+                String driverPhoto = driverData["driverPhoto"]?.toString() ??
+                    'No driver photo available';
+
+                print('Driver Phone Number: $phoneNumber');
+                print('Driver Photo URL: $driverPhoto');
+
+                // Update the trip request with driver's phone number and photo
+                tripRequestRef!.update({
+                  'driverPhoneNumber': phoneNumber,
+                  'driverPhoto': driverPhoto,
+                }).then((_) {
+                  print(
+                      'Driver information successfully updated in tripRequests.');
+                }).catchError((error) {
+                  print(
+                      'Failed to update tripRequests with driver information: $error');
+                });
+              } else {
+                print('No data found for driver with key: $driverKey');
+              }
+            }).catchError((error) {
+              print('Error retrieving specific driver data: $error');
+            });
+          } else {
+            print('Driver with ID $driverId not found.');
+          }
+        } else {
+          print('No drivers data found.');
+        }
+      }).catchError((error) {
+        print('Error retrieving drivers list: $error');
+      });
+
+  // After the update, listen again to fetch the updated phoneNumber
+  tripRequestRef!.once().then((eventSnapshot) {
+    if ((eventSnapshot.snapshot.value as Map)["driverPhoneNumber"] != null) {
+      String updatedPhoneNumber = (eventSnapshot.snapshot.value as Map)["driverPhoneNumber"];
+      print('Updated phoneNumber: $updatedPhoneNumber');
     } else {
-      print('Driver ID not found in trip data.');
+      print('Updated phoneNumber not found in trip data.');
     }
+  }).catchError((error) {
+    print('Error retrieving updated trip data: $error');
+  });
+
 
       if ((eventSnapshot.snapshot.value as Map)["firstName"] != null) {
         firstName = (eventSnapshot.snapshot.value as Map)["firstName"];
@@ -632,11 +736,11 @@ tripStreamSubscription =
         print('First Name not found in trip data.');
       }
 
-      if ((eventSnapshot.snapshot.value as Map)["lastName"] != null) {
-        lastName = (eventSnapshot.snapshot.value as Map)["lastName"];
-        print('Last Name: $lastName');
+      if ((eventSnapshot.snapshot.value as Map)["phoneNumber"] != null) {
+        phoneNumber = (eventSnapshot.snapshot.value as Map)["phoneNumber"];
+        print('phoneNumber: $phoneNumber');
       } else {
-        print('Last Name not found in trip data.');
+        print('Phonenumber not found in trip data.');
       }
       if ((eventSnapshot.snapshot.value as Map)["idNumber"] != null) {
         idNumber = (eventSnapshot.snapshot.value as Map)["idNumber"];
@@ -696,116 +800,156 @@ tripStreamSubscription =
         });
       }
 
-if (status == "ended") {
-  // Get the current time for tripEndedTime
-  DateTime tripEndedDateTime = DateTime.now();
+      if (status == "ended") {
+        // Get the current time for tripEndedTime
+        DateTime tripEndedDateTime = DateTime.now();
 
-  // Format the tripEndedTime
-  String formattedTripEndedTime = formatTripEndedTime(tripEndedDateTime);
+        // Format the tripEndedTime
+        String formattedTripEndedTime = formatTripEndedTime(tripEndedDateTime);
 
-  // Update tripEndedTime in Firebase immediately
-  tripRequestRef!.update({"tripEndedTime": formattedTripEndedTime}).then((_) {
-    print("Trip ended time updated: $formattedTripEndedTime");
-  }).catchError((error) {
-    print('Error updating trip ended time: $error');
-  });
+        // Update tripEndedTime in Firebase immediately
+        tripRequestRef!
+            .update({"tripEndedTime": formattedTripEndedTime}).then((_) {
+          print("Trip ended time updated: $formattedTripEndedTime");
+        }).catchError((error) {
+          print('Error updating trip ended time: $error');
+        });
 
-  // Fetch the fare amount from Firestore using getFareAmount method
-  double fareAmount = await getFareAmount();
+        // Fetch the fare amount from Firestore using getFareAmount method
+        double fareAmount = await getFareAmount();
 
-  if (fareAmount != 0.0) { // Ensure fareAmount is valid
-    // Convert fareAmount to string with 2 decimal places
-    String formattedFareAmount = fareAmount.toStringAsFixed(2);
+        if (fareAmount != 0.0) {
+          // Ensure fareAmount is valid
+          // Convert fareAmount to string with 2 decimal places
+          String formattedFareAmount = fareAmount.toStringAsFixed(2);
 
-    // Show the dialog and await the response
-    var responseFromPaymentDialog = await showDialog(
-      context: context,
-      builder: (BuildContext context) => PaymentDialog(fareAmount: formattedFareAmount),
-    );
+          // Show the dialog and await the response
+          var responseFromPaymentDialog = await showDialog(
+            context: context,
+            builder: (BuildContext context) =>
+                PaymentDialog(fareAmount: formattedFareAmount),
+          );
 
-    if (responseFromPaymentDialog == "paid") {
-      // Other actions after payment confirmation
-      tripRequestRef!.onDisconnect();
-      tripRequestRef = null;
+          if (responseFromPaymentDialog == "paid") {
+            // Other actions after payment confirmation
+            tripRequestRef!.onDisconnect();
+            tripRequestRef = null;
 
-      tripStreamSubscription!.cancel();
-      tripStreamSubscription = null;
+            tripStreamSubscription!.cancel();
+            tripStreamSubscription = null;
 
-      // Call resetAppNow function or restart the app if needed
-      resetAppNow(context);
+            // Call resetAppNow function or restart the app if needed
+            resetAppNow(context);
 
-      // Alternative for restarting the app
-      // Restart.restartApp();
-    }
-  }
-}
-
+            // Alternative for restarting the app
+            // Restart.restartApp();
+          }
+        }
+      }
     });
   }
+  
+/*
+  void fetchDriverDetails(String driverId) async {
+    print("Fetching details for driver ID: $driverId");
 
+    if (driverId.isNotEmpty) {
+      final DatabaseReference driverRef = FirebaseDatabase.instance
+          .ref()
+          .child('driversAccount')
+          .child(driverId);
 
-void fetchDriverPhoto(String driverId) async {
-  if (driverId.isNotEmpty) {
-    final DatabaseReference driverRef = FirebaseDatabase.instance.ref().child('driversAccount').child(driverId);
+      // Fetch driver data once
+      driverRef.once().then((driverSnapshot) {
+        print("Driver snapshot retrieved: ${driverSnapshot.snapshot.value}");
 
-    driverRef.onValue.listen((driverSnapshot) {
-      if (driverSnapshot.snapshot.value != null) {
-        Map<String, dynamic> driverData = Map<String, dynamic>.from(driverSnapshot.snapshot.value as Map);
-        print('Driver data snapshot: ${driverData}');
-        
-        if (driverData["driverPhoto"] != null) {
-          photoDriver = driverData["driverPhoto"];
-          print('Driver photo URL retrieved: $photoDriver');
+        if (driverSnapshot.snapshot.value != null) {
+          Map<String, dynamic> driverData =
+              Map<String, dynamic>.from(driverSnapshot.snapshot.value as Map);
+          print('Driver data snapshot: $driverData');
+
+          // Retrieve and update driver photo
+          if (driverData.containsKey("driverPhoto")) {
+            photoDriver = driverData["driverPhoto"];
+            print('Driver photo URL retrieved: $photoDriver');
+          } else {
+            print('Driver photo URL not found in driver data.');
+          }
+
+          // Retrieve and update driver's phone number
+          if (driverData.containsKey("phoneNumber")) {
+            String? driverPhoneNumber = driverData["phoneNumber"];
+            if (driverPhoneNumber != null && driverPhoneNumber.isNotEmpty) {
+              print('Driver Phone Number retrieved: $driverPhoneNumber');
+              // Update the dataMap with the driver's phone number
+              tripRequestRef!
+                  .update({"phoneNumber": driverPhoneNumber}).then((_) {
+                print("Driver phone number updated in trip request.");
+              }).catchError((error) {
+                print(
+                    'Error updating driver phone number in trip request: $error');
+              });
+            } else {
+              print('Driver phone number is empty or not found.');
+            }
+          } else {
+            print('Phone number field not found in driver data.');
+          }
 
           // Update the dataMap with the driver photo and push to Firebase
-          tripRequestRef!.update({"driverPhoto": photoDriver}).then((_) {
-            print("Driver photo updated in trip request.");
+          if (photoDriver.isNotEmpty) {
+            tripRequestRef!.update({"driverPhoto": photoDriver}).then((_) {
+              print("Driver photo updated in trip request.");
+            }).catchError((error) {
+              print('Error updating driver photo in trip request: $error');
+            });
+          } else {
+            print('No valid driver photo URL to update in trip request.');
+          }
+        } else {
+          print('No data found for driver.');
+        }
+      }).catchError((error) {
+        print('Error retrieving driver data: $error');
+      });
+    } else {
+      print('Driver ID is not available.');
+    }
+  }
+*/
+
+  Future<void> fetchAndPushPassengerPhoto(String userId) async {
+    try {
+      // Fetch user data from Firebase Realtime Database
+      DatabaseReference userRef =
+          FirebaseDatabase.instance.ref().child("users").child(userId);
+      DatabaseEvent event = await userRef.once();
+
+      if (event.snapshot.value != null) {
+        Map<dynamic, dynamic> userData =
+            event.snapshot.value as Map<dynamic, dynamic>;
+
+        // Extract profileImageUrl
+        String? profileImageUrl = userData['profileImageUrl'];
+
+        // Check if profileImageUrl is available and not empty
+        if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+          // Push profileImageUrl to tripRequestRef
+          tripRequestRef!.update({"passengerPhoto": profileImageUrl}).then((_) {
+            print('Passenger photo URL updated successfully.');
           }).catchError((error) {
-            print('Error updating driver photo in trip request: $error');
+            print('Failed to update passenger photo URL: $error');
           });
         } else {
-          print('Driver photo URL not found.');
+          print('No profile image URL found for user.');
         }
       } else {
-        print('No data found for driver.');
+        print('User data does not exist.');
       }
-    });
-  } else {
-    print('Driver ID is not available.');
-  }
-}
-
-Future<void> fetchAndPushPassengerPhoto(String userId) async {
-  try {
-    // Fetch user data from Firebase Realtime Database
-    DatabaseReference userRef = FirebaseDatabase.instance.ref().child("users").child(userId);
-    DatabaseEvent event = await userRef.once();
-
-    if (event.snapshot.value != null) {
-      Map<dynamic, dynamic> userData = event.snapshot.value as Map<dynamic, dynamic>;
-
-      // Extract profileImageUrl
-      String? profileImageUrl = userData['profileImageUrl'];
-
-      // Check if profileImageUrl is available and not empty
-      if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
-        // Push profileImageUrl to tripRequestRef
-        tripRequestRef!.update({"passengerPhoto": profileImageUrl}).then((_) {
-          print('Passenger photo URL updated successfully.');
-        }).catchError((error) {
-          print('Failed to update passenger photo URL: $error');
-        });
-      } else {
-        print('No profile image URL found for user.');
-      }
-    } else {
-      print('User data does not exist.');
+    } catch (e) {
+      print('Error fetching user data: $e');
     }
-  } catch (e) {
-    print('Error fetching user data: $e');
   }
-}
-
 
   displayTripDetailsContainer() {
     setState(() {
@@ -917,423 +1061,440 @@ Future<void> fetchAndPushPassengerPhoto(String userId) async {
     print("No driver available dialog result: $result");
   }
 
-bool isCancellationHandled = false; // Flag to track if cancellation is handled
+  bool isCancellationHandled =
+      false; // Flag to track if cancellation is handled
 
-Future<void> searchDriver() async {
-  print('searchDriver() called.');
+  Future<void> searchDriver() async {
+    print('searchDriver() called.');
 
-  if (globalTripID == null) {
-    print('Error: tripID is not set.');
-    return;
-  }
+    if (globalTripID == null) {
+      print('Error: tripID is not set.');
+      return;
+    }
 
-  print('Trip ID: $globalTripID');
+    print('Trip ID: $globalTripID');
 
-  // Retrieve the status of the trip from Firebase
-  DatabaseReference tripStatusRef = FirebaseDatabase.instance
-      .ref()
-      .child("tripRequests")
-      .child(globalTripID!)
-      .child("status");
+    // Retrieve the status of the trip from Firebase
+    DatabaseReference tripStatusRef = FirebaseDatabase.instance
+        .ref()
+        .child("tripRequests")
+        .child(globalTripID!)
+        .child("status");
 
-  try {
-    // Listen for real-time changes in trip status
-    tripStatusRef.onValue.listen((dataSnapshot) async {
-      final status = dataSnapshot.snapshot.value as String?;
-      print('Status: $status');
+    try {
+      // Listen for real-time changes in trip status
+      tripStatusRef.onValue.listen((dataSnapshot) async {
+        final status = dataSnapshot.snapshot.value as String?;
+        print('Status: $status');
 
-      if (status == 'cancelled') {
-        print('Trip cancelled notification received.');
+        if (status == 'cancelled') {
+          print('Trip cancelled notification received.');
 
-        if (!isCancellationHandled) {
-          isCancellationHandled = true; // Mark cancellation as handled
+          if (!isCancellationHandled) {
+            isCancellationHandled = true; // Mark cancellation as handled
 
-          if (context != null && mounted) {
-            await _showDeclineDialog();
-            print('Decline dialog dismissed.');
-          } else {
-            print('Context is null or widget is not mounted.');
+            if (context != null && mounted) {
+              await _showDeclineDialog();
+              print('Decline dialog dismissed.');
+            } else {
+              print('Context is null or widget is not mounted.');
+            }
+            cancelRideRequest();
+            resetAppNow(context);
+            print('Cancellation AND RESET handled.');
+
+            // Exit as no further actions are needed
+            return;
           }
-          cancelRideRequest();
-          resetAppNow(context);
-          print('Cancellation AND RESET handled.');
-
-          // Exit as no further actions are needed
-          return;
         }
-      }
 
-      print('Status is not cancelled. Proceeding with driver search.');   
-    });
-  } catch (error) {
-    print('Error retrieving trip status: $error');
+        print('Status is not cancelled. Proceeding with driver search.');
+      });
+    } catch (error) {
+      print('Error retrieving trip status: $error');
+    }
+
+    if (availableNearbyOnlineDriversList!.isEmpty) {
+      print('No available drivers found.');
+      noDriverAvailable();
+      cancelRideRequest();
+      return;
+    }
+
+    var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
+    print('Driver selected: $currentDriver');
+    await sendNotificationToDriver(currentDriver);
   }
 
-  if (availableNearbyOnlineDriversList!.isEmpty) {
-        print('No available drivers found.');
-        noDriverAvailable();
-        cancelRideRequest();
-        return;
-      }
+  Future<void> _showDeclineDialog() async {
+    print('Preparing to show decline dialog.');
 
-      var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
-      print('Driver selected: $currentDriver');
-      await sendNotificationToDriver(currentDriver);
-}
-
-Future<void> _showDeclineDialog() async {
-  print('Preparing to show decline dialog.');
-
-  if (context == null) {
-    print('Error: Context is null when attempting to show dialog.');
-    return Future.value();
-  }
-
-  try {
-    print('Context is valid. Proceeding with showDialog.');
-
-    if (!mounted) {
-      print('Error: The widget is no longer mounted. Cannot show dialog.');
+    if (context == null) {
+      print('Error: Context is null when attempting to show dialog.');
       return Future.value();
     }
 
-    await showDialog(
-      context: context!,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        print('Building AlertDialog for driver decline.');
+    try {
+      print('Context is valid. Proceeding with showDialog.');
 
-        return AlertDialog(
-          title: Text('Trip Declined'),
-          content: Text('Sorry, the driver has declined the trip. Please try again later.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                print('OK button pressed in decline dialog.');
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    ).then((_) {
-      print('Dialog completion callback executed.');
+      if (!mounted) {
+        print('Error: The widget is no longer mounted. Cannot show dialog.');
+        return Future.value();
+      }
+
+      await showDialog(
+        context: context!,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          print('Building AlertDialog for driver decline.');
+
+          return AlertDialog(
+            title: Text('Trip Declined'),
+            content: Text(
+                'Sorry, the driver has declined the trip. Please try again later.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  print('OK button pressed in decline dialog.');
+                  Navigator.of(context).pop(); // Close the dialog
+                },
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      ).then((_) {
+        print('Dialog completion callback executed.');
+      });
+
+      print('showDialog() function call completed.');
+    } catch (e, stackTrace) {
+      print('Exception in _showDeclineDialog: $e');
+      print('Stack trace: $stackTrace');
+    }
+  }
+
+  Future<void> sendNotificationToDriver(
+      OnlineNearbyDrivers currentDriver) async {
+    print(
+        'sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
+
+    if (tripRequestRef == null) {
+      print('Trip request reference is null');
+      return;
+    }
+
+    // Reference to the driver's data in Firebase
+    DatabaseReference driverRef = FirebaseDatabase.instance
+        .ref()
+        .child("driversAccount")
+        .child(currentDriver.uidDriver.toString());
+
+    // Check if the driver exists before proceeding
+    try {
+      final driverSnapshot = await driverRef.get();
+      if (!driverSnapshot.exists) {
+        print('Driver UID: ${currentDriver.uidDriver} does not exist.');
+        return;
+      }
+    } catch (error) {
+      print('Error fetching driver data: $error');
+      return;
+    }
+
+    // Update newTripStatus and currentTripID
+    driverRef.child("newTripStatus").set(tripRequestRef!.key).then((_) {
+      print(
+          'newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
+    }).catchError((error) {
+      print(
+          'Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
     });
 
-    print('showDialog() function call completed.');
-  } catch (e, stackTrace) {
-    print('Exception in _showDeclineDialog: $e');
-    print('Stack trace: $stackTrace');
+    driverRef.child("currentTripID").set(tripRequestRef!.key).then((_) {
+      print(
+          'currentTripID updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
+    }).catchError((error) {
+      print(
+          'Error updating currentTripID for driver UID: ${currentDriver.uidDriver}: $error');
+    });
+
+    // Get the current driver's device token
+    DatabaseReference tokenOfCurrentDriverRef = driverRef.child("deviceToken");
+
+    try {
+      final dataSnapshot = await tokenOfCurrentDriverRef.get();
+
+      if (dataSnapshot.exists && dataSnapshot.value != null) {
+        String deviceToken = dataSnapshot.value.toString();
+        print(
+            'Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
+
+        // Send notification to the driver
+        await PushNotificationService.sendNotificationToSelectedDriver(
+          deviceToken,
+          context,
+          tripRequestRef!.key.toString(),
+        );
+      } else {
+        print(
+            'Device token not found for driver UID: ${currentDriver.uidDriver}');
+      }
+    } catch (error) {
+      print(
+          'Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
+    }
+
+    // Timer logic
+    const oneTickPerSec = Duration(seconds: 1);
+
+    var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
+      requestTimeoutDriver = requestTimeoutDriver - 1;
+
+      // Stop timer if trip request is cancelled
+      if (stateOfApp != "requesting") {
+        timer.cancel();
+        driverRef.child("newTripStatus").set("cancelled");
+        driverRef.onDisconnect();
+        requestTimeoutDriver = 20;
+        return;
+      }
+
+      // If 20 seconds passed - send notification to the next nearest online available driver
+      if (requestTimeoutDriver == 0) {
+        timer.cancel();
+        driverRef.child("newTripStatus").set("timeout");
+        driverRef.onDisconnect();
+        requestTimeoutDriver = 20;
+
+        // Log and notify the next nearest driver
+        print(
+            'Request timed out for driver UID: ${currentDriver.uidDriver}, searching for next available driver.');
+        searchDriver();
+        return;
+      }
+    });
+
+    // Listen for changes in newTripStatus
+    driverRef.child("newTripStatus").onValue.listen((dataSnapshot) {
+      var value = dataSnapshot.snapshot.value;
+      if (value != null && value.toString() == "accepted") {
+        timerCountDown.cancel(); // Cancel the timer when trip is accepted
+        driverRef.onDisconnect(); // Disconnect the reference
+        requestTimeoutDriver = 20; // Reset request timeout
+      }
+    });
   }
-}
 
-Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
-  print('sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
-  
-  if (tripRequestRef == null) {
-    print('Trip request reference is null');
-    return;
-  }
-
-  // Reference to the driver's data in Firebase
-  DatabaseReference driverRef = FirebaseDatabase.instance
-      .ref()
-      .child("driversAccount")
-      .child(currentDriver.uidDriver.toString());
-
-  // Check if the driver exists before proceeding
-  try {
-    final driverSnapshot = await driverRef.get();
-    if (!driverSnapshot.exists) {
-      print('Driver UID: ${currentDriver.uidDriver} does not exist.');
-      return;
-    }
-  } catch (error) {
-    print('Error fetching driver data: $error');
-    return;
-  }
-
-  // Update newTripStatus and currentTripID
-  driverRef.child("newTripStatus").set(tripRequestRef!.key).then((_) {
-    print('newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
-  }).catchError((error) {
-    print('Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
-  });
-
-  driverRef.child("currentTripID").set(tripRequestRef!.key).then((_) {
-    print('currentTripID updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
-  }).catchError((error) {
-    print('Error updating currentTripID for driver UID: ${currentDriver.uidDriver}: $error');
-  });
-
-  // Get the current driver's device token
-  DatabaseReference tokenOfCurrentDriverRef = driverRef.child("deviceToken");
-
-  try {
-    final dataSnapshot = await tokenOfCurrentDriverRef.get();
-    
-    if (dataSnapshot.exists && dataSnapshot.value != null) {
-      String deviceToken = dataSnapshot.value.toString();
-      print('Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
-
-      // Send notification to the driver
-      await PushNotificationService.sendNotificationToSelectedDriver(
-        deviceToken,
-        context,
-        tripRequestRef!.key.toString(),
-      );
-    } else {
-      print('Device token not found for driver UID: ${currentDriver.uidDriver}');
-    }
-  } catch (error) {
-    print('Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
-  }
-
-  // Timer logic
-  const oneTickPerSec = Duration(seconds: 1);
-
-  var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
-    requestTimeoutDriver = requestTimeoutDriver - 1;
-
-    // Stop timer if trip request is cancelled
-    if (stateOfApp != "requesting") {
-      timer.cancel();
-      driverRef.child("newTripStatus").set("cancelled");
-      driverRef.onDisconnect();
-      requestTimeoutDriver = 20;
-      return;
-    }
-
-    // If 20 seconds passed - send notification to the next nearest online available driver
-    if (requestTimeoutDriver == 0) {
-      timer.cancel();
-      driverRef.child("newTripStatus").set("timeout");
-      driverRef.onDisconnect();
-      requestTimeoutDriver = 20;
-
-      // Log and notify the next nearest driver
-      print('Request timed out for driver UID: ${currentDriver.uidDriver}, searching for next available driver.');
-      searchDriver();
-      return;
-    }
-  });
-
-  // Listen for changes in newTripStatus
-  driverRef.child("newTripStatus").onValue.listen((dataSnapshot) {
-    var value = dataSnapshot.snapshot.value;
-    if (value != null && value.toString() == "accepted") {
-      timerCountDown.cancel(); // Cancel the timer when trip is accepted
-      driverRef.onDisconnect(); // Disconnect the reference
-      requestTimeoutDriver = 20; // Reset request timeout
-    }
-  });
-}
-
-
-
-
-@override
+  @override
   void initState() {
     super.initState();
     // Initialize the Future to calculate fare amount
     if (tripDirectionDetailsInfo != null) {
-      fareAmountFuture = CommonMethods().calculateFareAmount(tripDirectionDetailsInfo!);
+      fareAmountFuture =
+          CommonMethods().calculateFareAmount(tripDirectionDetailsInfo!);
     }
   }
+
 // Build the UI of the home page
   @override
   Widget build(BuildContext context) {
     makeDriverNearbyCarIcon();
-      // Get the pick-up and drop-off locations
-  var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-  var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+    // Get the pick-up and drop-off locations
+    var pickUpLocation =
+        Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+    var dropOffDestinationLocation =
+        Provider.of<AppInfo>(context, listen: false).dropOffLocation;
 
-  // Extract addresses from the location objects
-  String pickUpAddress = pickUpLocation?.placeName ?? 'Unknown pick-up location';
-  String dropOffAddress = dropOffDestinationLocation?.placeName ?? 'Unknown drop-off location';
+    // Extract addresses from the location objects
+    String pickUpAddress =
+        pickUpLocation?.placeName ?? 'Unknown pick-up location';
+    String dropOffAddress =
+        dropOffDestinationLocation?.placeName ?? 'Unknown drop-off location';
 
-  // Print the addresses to the console
-  print("Pick-up Location: $pickUpAddress");
-  print("Drop-off Location: $dropOffAddress");
-
+    // Print the addresses to the console
+    print("Pick-up Location: $pickUpAddress");
+    print("Drop-off Location: $dropOffAddress");
 
     return Scaffold(
       key: sKey,
-       drawer: ClipRRect(
-    borderRadius: BorderRadius.horizontal(right: Radius.circular(80)),
-      child: Container(
-        width: 255,
-        color:Color.fromARGB(135, 233, 229, 229),
-        child: Drawer(
-          //backgroundColor:const Color.fromARGB(137, 237, 234, 234),
-          child: ListView(
-            children: [
-              const Divider(
-                height: 1,
-             //   color: Color.fromARGB(255, 110, 108, 108),
-                thickness: 1,
-              ),
-const SizedBox(
-                height: 20,
-              ),
+      drawer: ClipRRect(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(80)),
+        child: Container(
+          width: 255,
+          color: Color.fromARGB(135, 233, 229, 229),
+          child: Drawer(
+            //backgroundColor:const Color.fromARGB(137, 237, 234, 234),
+            child: ListView(
+              children: [
+                const Divider(
+                  height: 1,
+                  //   color: Color.fromARGB(255, 110, 108, 108),
+                  thickness: 1,
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
 
 //header
-              Container(
-                color: const Color.fromARGB(137, 237, 234, 234),
-                height: 160,
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfileScreen(),
+                Container(
+                  color: const Color.fromARGB(137, 237, 234, 234),
+                  height: 160,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfileScreen(),
+                        ),
+                      );
+                    },
+                    child: DrawerHeader(
+                      decoration: const BoxDecoration(
+                          //        color: const Color.fromARGB(137, 237, 234, 234),
+                          ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width:
+                                60, // Slightly larger to accommodate the border
+                            height:
+                                60, // Slightly larger to accommodate the border
+                            decoration: BoxDecoration(
+                              shape: BoxShape
+                                  .circle, // Ensures the border is circular
+                              border: Border.all(
+                                color: Color.fromARGB(
+                                    255, 32, 2, 87), // Border color
+                                width: 4, // Border width
+                              ),
+                            ),
+                            child: ClipOval(
+                              child: _profileImageUrl == null ||
+                                      _profileImageUrl!.isEmpty
+                                  ? Image.asset(
+                                      "assets/images/avatarman.png",
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Image.network(
+                                      _profileImageUrl!,
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 16,
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                userName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color.fromARGB(255, 12, 12, 12),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 4,
+                              ),
+                              const Text(
+                                "Profile",
+                                style: TextStyle(
+                                  color: Color.fromARGB(95, 15, 15, 15),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                  
-                  child: DrawerHeader(
-                    decoration: const BoxDecoration(
-              //        color: const Color.fromARGB(137, 237, 234, 234),
-                    ),
-                    child: Row(
-                      children: [
-Container(
-  width: 60,  // Slightly larger to accommodate the border
-  height: 60, // Slightly larger to accommodate the border
-  decoration: BoxDecoration(
-    
-    shape: BoxShape.circle, // Ensures the border is circular
-    border: Border.all(
-      color: Color.fromARGB(255, 32, 2, 87), // Border color
-      width: 4, // Border width
-    ),
-  ),
-  child: ClipOval(
-    child: _profileImageUrl == null || _profileImageUrl!.isEmpty
-        ? Image.asset(
-            "assets/images/avatarman.png",
-            width: 50,
-            height: 50,
-            fit: BoxFit.cover,
-          )
-        : Image.network(
-            _profileImageUrl!,
-            width: 50,
-            height: 50,
-            fit: BoxFit.cover,
-          ),
-  ),
-)
-,             const SizedBox(
-                          width: 16,
-                        ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              userName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color.fromARGB(255, 12, 12, 12),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(
-                              height: 4,
-                            ),
-                            const Text(
-                              "Profile",
-                              style: TextStyle(
-                                color: Color.fromARGB(95, 15, 15, 15),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ),
                   ),
                 ),
-              ),
 
-              const Divider(
-                height: 1,
-                color: Color.fromARGB(255, 205, 198, 198),
-                thickness: 1,
-              ),
+                const Divider(
+                  height: 1,
+                  color: Color.fromARGB(255, 205, 198, 198),
+                  thickness: 1,
+                ),
 
-              const SizedBox(
-                height: 10,
-              ),
+                const SizedBox(
+                  height: 10,
+                ),
 
 //body of drawer
 
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (c) => AdvanceBooking()));
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.calendar_month,
-                      color: Color.fromARGB(255, 14, 14, 14),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (c) => AdvanceBooking()));
+                  },
+                  child: ListTile(
+                    leading: IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.calendar_month,
+                        color: Color.fromARGB(255, 14, 14, 14),
+                      ),
+                    ),
+                    title: const Text(
+                      "Service Ride",
+                      style: TextStyle(color: Color.fromARGB(255, 12, 12, 12)),
                     ),
                   ),
-                  title: const Text(
-                    "Service Ride",
-                    style: TextStyle(color: Color.fromARGB(255, 12, 12, 12)),
-                  ),
                 ),
-              ),
 
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (c) => TripsHistoryPage()));
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.history,
-                      color: Color.fromARGB(255, 12, 12, 12),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (c) => TripsHistoryPage()));
+                  },
+                  child: ListTile(
+                    leading: IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.history,
+                        color: Color.fromARGB(255, 12, 12, 12),
+                      ),
+                    ),
+                    title: const Text(
+                      "History",
+                      style: TextStyle(color: Color.fromARGB(255, 12, 12, 12)),
                     ),
                   ),
-                  title: const Text(
-                    "History",
-                    style: TextStyle(color: Color.fromARGB(255, 12, 12, 12)),
-                  ),
                 ),
-              ),
 
-              GestureDetector(
-                onTap: () {
-                  FirebaseAuth.instance.signOut();
+                GestureDetector(
+                  onTap: () {
+                    FirebaseAuth.instance.signOut();
 
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (c) => LoginScreen()));
-                },
-                child: ListTile(
-                  leading: IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.logout,
-                      color: Color.fromARGB(255, 15, 15, 15),
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (c) => LoginScreen()));
+                  },
+                  child: ListTile(
+                    leading: IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Color.fromARGB(255, 15, 15, 15),
+                      ),
+                    ),
+                    title: const Text(
+                      "Logout",
+                      style: TextStyle(color: Color.fromARGB(255, 13, 13, 13)),
                     ),
                   ),
-                  title: const Text(
-                    "Logout",
-                    style: TextStyle(color: Color.fromARGB(255, 13, 13, 13)),
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-       ),
 //GOOGLE MAP THEMES
       body: Stack(
         children: [
@@ -1360,94 +1521,95 @@ Container(
           ),
 
           // Add GestureDetector and image for opening the drawer
-        Positioned(
-          top: 40,
-          left: 20,
-          child: GestureDetector(
-            onTap: () {
-              sKey.currentState?.openDrawer(); // Open the drawer
-            },
-            child: Image.asset(
-              'assets/images/MENU.png',
-              width: 40,
-              height: 40,
-            ),
-          ),
-        ),
-
-//drawer button HAMBURGER
-Positioned(
-  left: 0,
-  right: 0,
-  bottom: -150,
-  child: GestureDetector(
-    onTap: () async {
-      var responseFromSearchPage = await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (c) => const SearchDestinationPage()),
-      );
-
-      if (responseFromSearchPage == "placeSelected") {
-        // Once a place is selected, display user ride details container
-        displayUserRideDetailsContainer();
-      }
-    },
-    child: Container(
-      height: searchContainerHeight,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 90,  // Set desired height here
-            margin: EdgeInsets.symmetric(horizontal: 15),
-            decoration: BoxDecoration(
-              color: Color.fromARGB(255, 1, 42, 123),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: Offset(0, 7),
-                ),
-              ],
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  // Icon(
-                  //   Icons.search,
-                  //   color: Colors.white,
-                  //   size: 30,
-                  // ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Where do you want to go?',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Icon(
-                    Icons.arrow_forward,
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                ],
+          Positioned(
+            top: 40,
+            left: 20,
+            child: GestureDetector(
+              onTap: () {
+                sKey.currentState?.openDrawer(); // Open the drawer
+              },
+              child: Image.asset(
+                'assets/images/MENU.png',
+                width: 40,
+                height: 40,
               ),
             ),
           ),
-          SizedBox(height: 20), // Space for aesthetics, if needed
-        ],
-      ),
-    ),
-  ),
-),
+
+//drawer button HAMBURGER
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: -150,
+            child: GestureDetector(
+              onTap: () async {
+                var responseFromSearchPage = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (c) => const SearchDestinationPage()),
+                );
+
+                if (responseFromSearchPage == "placeSelected") {
+                  // Once a place is selected, display user ride details container
+                  displayUserRideDetailsContainer();
+                }
+              },
+              child: Container(
+                height: searchContainerHeight,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      height: 90, // Set desired height here
+                      margin: EdgeInsets.symmetric(horizontal: 15),
+                      decoration: BoxDecoration(
+                        color: Color.fromARGB(255, 1, 42, 123),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: Offset(0, 7),
+                          ),
+                        ],
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Row(
+                          children: [
+                            // Icon(
+                            //   Icons.search,
+                            //   color: Colors.white,
+                            //   size: 30,
+                            // ),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Where do you want to go?',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Icon(
+                              Icons.arrow_forward,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 20), // Space for aesthetics, if needed
+                  ],
+                ),
+              ),
+            ),
+          ),
 
 //WHOLE BOX CONFIRMATION BOOKING IN MAP
 //RIDE DETAILS CONTAINER W/ CONFIRM BOOKING
@@ -1466,15 +1628,17 @@ Positioned(
                   borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(50),
                       topRight: Radius.circular(50)),
-boxShadow: [
-  BoxShadow(
-    color: Color.fromARGB(120, 130, 91, 91), // Increased alpha for darker shadow
-    blurRadius: 15.0,
-    spreadRadius: 2.0, // Increased spreadRadius for a more noticeable shadow
-    offset: Offset(1.0, 1.0), // Slightly adjusted offset for better shadow effect
-  ),
-],
-
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color.fromARGB(120, 130, 91,
+                          91), // Increased alpha for darker shadow
+                      blurRadius: 15.0,
+                      spreadRadius:
+                          2.0, // Increased spreadRadius for a more noticeable shadow
+                      offset: Offset(1.0,
+                          1.0), // Slightly adjusted offset for better shadow effect
+                    ),
+                  ],
                 ),
                 child: SingleChildScrollView(
                   child: Padding(
@@ -1503,414 +1667,497 @@ boxShadow: [
                                 .arrow_forward), // Icon indicating that clicking will lead to another page
                           ],
                         ),
-SizedBox(height: 15), // Adjusted for spacing above the card
- // Adjusted for spacing above the container
+                        SizedBox(
+                            height: 15), // Adjusted for spacing above the card
+                        // Adjusted for spacing above the container
 
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 16),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Image.asset(
-            'assets/images/initial.png',
-            width: 24,
-            height: 24, // Adjust the size as needed
-            //fit: BoxFit.cover,
-          ),
-          SizedBox(width: 8), // Space between image and text
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "PICK-UP:",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  pickUpAddress,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.normal,
-                  ),
-                  softWrap: true, // Enables wrapping of the text
-                  overflow: TextOverflow.visible, // Allows text to flow to the next line
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      SizedBox(height: 14), // Added for spacing between pick-up and drop-off
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Image.asset(
-            'assets/images/final.png',
-            width: 24,
-            height: 24, // Adjust the size as needed
-            fit: BoxFit.cover,
-          ),
-          SizedBox(width: 7), // Space between image and text
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "DROP-OFF:",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  dropOffAddress,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.normal,
-                  ),
-                  softWrap: true, // Enables wrapping of the text
-                  overflow: TextOverflow.visible, // Allows text to flow to the next line
-                ),
-              ],
-            ),
-          ),
-          // Distance and travel time on the right side
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                tripDirectionDetailsInfo?.distanceTextString ?? "Not available",
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-              Text(
-                tripDirectionDetailsInfo?.durationTextString ?? "Not available",
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ],
-  ),
-),
-
-
-const SizedBox(height: 12),
-
-Container(
-  color: Color(0xFFD9D9D9), // Background color of the container
-  padding: const EdgeInsets.all(14), // Padding inside the container
-  height: 55, // Fixed height for the container
-  child: FutureBuilder<double>(
-    future: tripDirectionDetailsInfo != null
-        ? cMethods.calculateFareAmount(tripDirectionDetailsInfo!)
-        : null,
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center( // Centering the text while calculating
-          child: Text(
-            "Calculating fare...",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black,
-            ),
-          ),
-        );
-      } else if (snapshot.hasError) {
-        return const Center( // Centering the error message
-          child: Text(
-            "Error calculating fare",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.red,
-            ),
-          ),
-        );
-      } else if (snapshot.hasData) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0), // Adds padding on left and right
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "TOTAL FARE:",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                "₱ ${snapshot.data!.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  fontSize: 19,
-                  color: Colors.black87,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        );
-      } else {
-        return const Center( // Centering the text for no fare data
-          child: Text(
-            "No fare data",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black,
-            ),
-          ),
-        );
-      }
-    },
-  ),
-)
-,
-
-
-const SizedBox(height: 10),
-// Container for the buttons
-Container(
-  margin: const EdgeInsets.symmetric(horizontal: 35, vertical: 10), // Adjusted margin for better spacing
-  child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween, // Space between the buttons
-    children: [
-// CANCEL BUTTON
-Container(
-  width: 120, // Width for the Cancel button
-  height: 50, // Height for the Cancel button
-  decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(5), // Rounded borders
-  ),
-  child: OutlinedButton(
-    onPressed: () {
-                  Navigator.push(
-                context, MaterialPageRoute(builder: (c) => HomePage()));// Close the dialog or screen
-    },
-    style: OutlinedButton.styleFrom(
-      backgroundColor: Colors.white, // Background color
-      side: const BorderSide(color: Color(0xFF2E3192), width: 2), // Blue border
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3), // Rounded borders
-      ),
-      padding: const EdgeInsets.all(0), // Remove default padding
-    ),
-    child: const Center(
-      child: Text(
-        'Cancel',
-        style: TextStyle(
-          color: Color(0xFF2E3192),
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-        ),
-      ),
-    ),
-  ),
-),
-
-const SizedBox(height: 50),
-      // CONFIRM BOOKING BUTTON
-      Container(
-        width: 130, // Width for the Confirm Booking button
-        height: 50, // Height for the Confirm Booking button
-      //  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Adjusted margin for better spacing
-  decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(3), // Rounded borders
-  ),
-        child: ElevatedButton(
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (context) {
-                return Dialog(
-                  
-                  child: SizedBox(
-                    width: 250,
-                    height: 250,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Select Service',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18,
-                            color: Color(0xFF2E3192),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/initial.png',
+                                    width: 24,
+                                    height: 24, // Adjust the size as needed
+                                    //fit: BoxFit.cover,
+                                  ),
+                                  SizedBox(
+                                      width: 8), // Space between image and text
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "PICK-UP:",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.black54,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          pickUpAddress,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                          softWrap:
+                                              true, // Enables wrapping of the text
+                                          overflow: TextOverflow
+                                              .visible, // Allows text to flow to the next line
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                  height:
+                                      14), // Added for spacing between pick-up and drop-off
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/final.png',
+                                    width: 24,
+                                    height: 24, // Adjust the size as needed
+                                    fit: BoxFit.cover,
+                                  ),
+                                  SizedBox(
+                                      width: 7), // Space between image and text
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "DROP-OFF:",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.black54,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          dropOffAddress,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                          softWrap:
+                                              true, // Enables wrapping of the text
+                                          overflow: TextOverflow
+                                              .visible, // Allows text to flow to the next line
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Distance and travel time on the right side
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        tripDirectionDetailsInfo
+                                                ?.distanceTextString ??
+                                            "Not available",
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.normal,
+                                        ),
+                                      ),
+                                      Text(
+                                        tripDirectionDetailsInfo
+                                                ?.durationTextString ??
+                                            "Not available",
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 10),
+
+                        const SizedBox(height: 12),
+
                         Container(
-                          width: 250,
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              setState(() {
-                                stateOfApp = "requesting";
-                              });
-
-                              displayRequestContainer();
-                              // get nearest available online drivers
-                              availableNearbyOnlineDriversList = ManageDriversMethods.nearbyOnlineDriversList;
-
-                              // search driver
-                              searchDriver();
-                              // ADD SETSTATE HERE for Confirm Booking Button
+                          color: Color(
+                              0xFFD9D9D9), // Background color of the container
+                          padding: const EdgeInsets.all(
+                              14), // Padding inside the container
+                          height: 55, // Fixed height for the container
+                          child: FutureBuilder<double>(
+                            future: tripDirectionDetailsInfo != null
+                                ? cMethods.calculateFareAmount(
+                                    tripDirectionDetailsInfo!)
+                                : null,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                  // Centering the text while calculating
+                                  child: Text(
+                                    "Calculating fare...",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                );
+                              } else if (snapshot.hasError) {
+                                return const Center(
+                                  // Centering the error message
+                                  child: Text(
+                                    "Error calculating fare",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                );
+                              } else if (snapshot.hasData) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal:
+                                          16.0), // Adds padding on left and right
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        "TOTAL FARE:",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.black54,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        "₱ ${snapshot.data!.toStringAsFixed(2)}",
+                                        style: const TextStyle(
+                                          fontSize: 19,
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } else {
+                                return const Center(
+                                  // Centering the text for no fare data
+                                  child: Text(
+                                    "No fare data",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                );
+                              }
                             },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              backgroundColor: const Color(0xFF2E3192), // Background color of the button
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  'assets/images/ridenow.png',
-                                ),
-                                const SizedBox(width: 10),
-                                const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Ride now!', // Custom text for the booking action
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Available only at 8pm onwards', // Custom text for the booking action
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w200,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
                           ),
                         ),
-                        SizedBox(height: 5),
+
+                        const SizedBox(height: 10),
+// Container for the buttons
                         Container(
-                          width: 250,
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (c) => ServiceRidePage(
-                                    name: userName,
-                                    phone: userPhone,
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 35,
+                              vertical:
+                                  10), // Adjusted margin for better spacing
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment
+                                .spaceBetween, // Space between the buttons
+                            children: [
+// CANCEL BUTTON
+                              Container(
+                                width: 120, // Width for the Cancel button
+                                height: 50, // Height for the Cancel button
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                      5), // Rounded borders
+                                ),
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (c) =>
+                                                HomePage())); // Close the dialog or screen
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor:
+                                        Colors.white, // Background color
+                                    side: const BorderSide(
+                                        color: Color(0xFF2E3192),
+                                        width: 2), // Blue border
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          3), // Rounded borders
+                                    ),
+                                    padding: const EdgeInsets.all(
+                                        0), // Remove default padding
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: Color(0xFF2E3192),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              );
+                              ),
 
-                              // _selectDateRange(context);
+                              const SizedBox(height: 50),
+                              // CONFIRM BOOKING BUTTON
+                              Container(
+                                width:
+                                    130, // Width for the Confirm Booking button
+                                height:
+                                    50, // Height for the Confirm Booking button
+                                //  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Adjusted margin for better spacing
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                      3), // Rounded borders
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return Dialog(
+                                          child: SizedBox(
+                                            width: 250,
+                                            height: 250,
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Text(
+                                                  'Select Service',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 18,
+                                                    color: Color(0xFF2E3192),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Container(
+                                                  width: 250,
+                                                  margin: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 10),
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            30),
+                                                  ),
+                                                  child: ElevatedButton(
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                      setState(() {
+                                                        stateOfApp =
+                                                            "requesting";
+                                                      });
 
-                              // ADD SETSTATE HERE for Confirm Booking Button
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              backgroundColor: const Color(0xFF2E3192), // Background color of the button
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  'assets/images/Rectangle 1.png',
-                                  height: 25,
-                                ),
-                                SizedBox(width: 10),
-                                const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Service Ride', // Custom text for the booking action
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
+                                                      displayRequestContainer();
+                                                      // get nearest available online drivers
+                                                      availableNearbyOnlineDriversList =
+                                                          ManageDriversMethods
+                                                              .nearbyOnlineDriversList;
+
+                                                      // search driver
+                                                      searchDriver();
+                                                      // ADD SETSTATE HERE for Confirm Booking Button
+                                                    },
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 10),
+                                                      backgroundColor: const Color(
+                                                          0xFF2E3192), // Background color of the button
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Image.asset(
+                                                          'assets/images/ridenow.png',
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 10),
+                                                        const Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              'Ride now!', // Custom text for the booking action
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 14,
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              'Available only at 8pm onwards', // Custom text for the booking action
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w200,
+                                                                fontSize: 11,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                                SizedBox(height: 5),
+                                                Container(
+                                                  width: 250,
+                                                  margin: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 10),
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            3),
+                                                  ),
+                                                  child: ElevatedButton(
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (c) =>
+                                                              ServiceRidePage(
+                                                            name: userName,
+                                                            phone: userPhone,
+                                                          ),
+                                                        ),
+                                                      );
+
+                                                      // _selectDateRange(context);
+
+                                                      // ADD SETSTATE HERE for Confirm Booking Button
+                                                    },
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 10),
+                                                      backgroundColor: const Color(
+                                                          0xFF2E3192), // Background color of the button
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Image.asset(
+                                                          'assets/images/Rectangle 1.png',
+                                                          height: 25,
+                                                        ),
+                                                        SizedBox(width: 10),
+                                                        const Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              'Service Ride', // Custom text for the booking action
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 14,
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              'One time ride or Scheduled Ride', // Custom text for the booking action
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w200,
+                                                                fontSize: 11,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    backgroundColor: const Color(
+                                        0xFF2E3192), // Background color of the button
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          5), // Border radius here
                                     ),
-                                    Text(
-                                      'One time ride or Scheduled Ride', // Custom text for the booking action
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w200,
-                                        fontSize: 11,
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Confirm', // Custom text for the booking action
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            backgroundColor: const Color(0xFF2E3192), // Background color of the button
-            shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(5), // Border radius here
-      ),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Confirm', // Custom text for the booking action
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  ),
-)
-
-                        
+                        )
 
 //SizedBox(height: 100), // Add extra space for scrolling
                       ],
@@ -1945,64 +2192,67 @@ const SizedBox(height: 50),
                   ),
                 ],
               ),
-                 child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 100,
-            height: 100,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Color.fromARGB(255, 1, 42, 123),
-                      width: 2,
-                    ),
-                  ),
-                ),
-                TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0, end: 1),
-                  duration: Duration(seconds: 1),
-                  builder: (context, value, child) {
-                    return Container(
-                      width: 80 * value,
-                      height: 80 * value,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Color.fromARGB(255, 1, 42, 123).withOpacity(0.4),
-                          width: 3,
-                        ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Color.fromARGB(255, 1, 42, 123),
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween<double>(begin: 0, end: 1),
+                            duration: Duration(seconds: 1),
+                            builder: (context, value, child) {
+                              return Container(
+                                width: 80 * value,
+                                height: 80 * value,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Color.fromARGB(255, 1, 42, 123)
+                                        .withOpacity(0.4),
+                                    width: 3,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color.fromARGB(0, 255, 255, 255),
+                                width: 8,
+                              ),
+                            ),
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color.fromARGB(255, 18, 0, 88)),
+                              strokeWidth: 3,
+                              value: null,
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color.fromARGB(0, 255, 255, 255),
-                      width: 8,
                     ),
-                  ),
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 18, 0, 88)),
-                    strokeWidth: 3,
-                    value: null,
-                  ),
-                ),
-              ],
-            ),
-          ),
                     const SizedBox(
                       height: 20,
                     ),
@@ -2032,194 +2282,202 @@ const SizedBox(height: 50),
             ),
           ),
 
-///trip details container
-Positioned(
-  left: 0,
-  right: 0,
-  bottom: 0,
-  child: Container(
-    height: tripContainerHeight,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(50),
-        topRight: Radius.circular(50),
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.grey.withOpacity(0.5), // This line is fine now
-          spreadRadius: 2,
-          blurRadius: 7,
-          offset: Offset(0, 3),
-        ),
-      ],
-    ),
-    child: SingleChildScrollView(
-      padding: EdgeInsets.only(bottom: 30),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(
-              height: 20,
-            ),
-
-            Center(
-  child: Container(
-    width: 200, // Adjust the width here
-    child: Divider(
-      height: 8,
-      thickness: 4,
-      color: Colors.grey[400],
-    ),
-  ),
-)
-,
-            const SizedBox(
-              height: 20,
-            ),
-
-            // Trip status display text
-Padding(
-  padding: const EdgeInsets.only(left: 10.0), // Adjust the left padding here
-  child: Text(
-    tripStatusDisplay,
-    style: const TextStyle(
-      fontSize: 18,
-      color: Colors.black87,
-      fontWeight: FontWeight.bold,
-      fontFamily: 'Poppins',
-    ),
-  ),
-)
-,
-            const SizedBox(
-              height: 10,
-            ),
-
-            const SizedBox(
-              height: 20,
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 75,  // Slightly larger to accommodate the border
-                    height: 75, // Slightly larger to accommodate the border
-                    decoration: BoxDecoration(
-                      color: Colors.white, // Background color for the container
-                      shape: BoxShape.circle, // Ensures the border is circular
-                      border: Border.all(
-                        color: Color.fromARGB(255, 32, 2, 87), // Border color
-                        width: 4, // Border width
-                      ),
-                    ),
-                   child: ClipOval(
-  child: Image.network(
-    photoDriver == ''
-        ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=11c39289-3c10-4355-9537-9003913dbeef"
-        : photoDriver,
-    width: 65,
-    height: 65,
-    fit: BoxFit.cover,
-    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-      if (loadingProgress == null) {
-        return child; // The image is loaded, return it.
-      }
-      return const CircularProgressIndicator(); // Show a loading indicator while the image is loading.
-    },
-    errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
-      // Fallback to local asset if image fails to load
-      return Image.asset(
-        'assets/images/avatarman.png',
-        width: 65,
-        height: 65,
-        fit: BoxFit.cover,
-      );
-    },
-  ),
-),
-
-                  ),
-                  SizedBox(width: 15),
-                  // Additional widgets for driver name and car details
-                
-
-Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Text(
-      '$firstName $lastName',
-      style: const TextStyle(
-        fontSize: 18,
-        color: Colors.black87,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-    SizedBox(height: 1),
-    RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'ID #: ',
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.black87,
-              fontWeight: FontWeight.bold, // Make the label bold
-              fontFamily: 'Poppins',
-            ),
-          ),
-          TextSpan(
-            text: idNumber,
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.black54,
-              fontWeight: FontWeight.normal, // Keep the value normal weight
-              fontFamily: 'Poppins',
-            ),
-          ),
-        ],
-      ),
-    ),
-    RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'BODY #: ',
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.black87,
-              fontWeight: FontWeight.bold, // Make the label bold
-              fontFamily: 'Poppins',
-            ),
-          ),
-          TextSpan(
-            text: bodyNumber,
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.black54,
-              fontWeight: FontWeight.normal, // Keep the value normal weight
-              fontFamily: 'Poppins',
-            ),
-          ),
-        ],
-      ),
-    ),
-  ],
-)
-
-
-
-                        ],
-                      ),
+          ///trip details container
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: tripContainerHeight,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(50),
+                  topRight: Radius.circular(50),
                 ),
-                                 const SizedBox(
-              height: 20,
-            ),
+                boxShadow: [
+                  BoxShadow(
+                    color:
+                        Colors.grey.withOpacity(0.5), // This line is fine now
+                    spreadRadius: 2,
+                    blurRadius: 7,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(bottom: 30),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        height: 20,
+                      ),
+
+                      Center(
+                        child: Container(
+                          width: 200, // Adjust the width here
+                          child: Divider(
+                            height: 8,
+                            thickness: 4,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+
+                      // Trip status display text
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            left: 10.0), // Adjust the left padding here
+                        child: Text(
+                          tripStatusDisplay,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width:
+                                  75, // Slightly larger to accommodate the border
+                              height:
+                                  75, // Slightly larger to accommodate the border
+                              decoration: BoxDecoration(
+                                color: Colors
+                                    .white, // Background color for the container
+                                shape: BoxShape
+                                    .circle, // Ensures the border is circular
+                                border: Border.all(
+                                  color: Color.fromARGB(
+                                      255, 32, 2, 87), // Border color
+                                  width: 4, // Border width
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: Image.network(
+                                  photoDriver == ''
+                                      ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=11c39289-3c10-4355-9537-9003913dbeef"
+                                      : photoDriver,
+                                  width: 65,
+                                  height: 65,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (BuildContext context,
+                                      Widget child,
+                                      ImageChunkEvent? loadingProgress) {
+                                    if (loadingProgress == null) {
+                                      return child; // The image is loaded, return it.
+                                    }
+                                    return const CircularProgressIndicator(); // Show a loading indicator while the image is loading.
+                                  },
+                                  errorBuilder: (BuildContext context,
+                                      Object error, StackTrace? stackTrace) {
+                                    // Fallback to local asset if image fails to load
+                                    return Image.asset(
+                                      'assets/images/avatarman.png',
+                                      width: 65,
+                                      height: 65,
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 15),
+                            // Additional widgets for driver name and car details
+
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$firstName $lastName',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 1),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'ID #: ',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight
+                                              .bold, // Make the label bold
+                                          fontFamily: 'Poppins',
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: idNumber,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.black54,
+                                          fontWeight: FontWeight
+                                              .normal, // Keep the value normal weight
+                                          fontFamily: 'Poppins',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'BODY #: ',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight
+                                              .bold, // Make the label bold
+                                          fontFamily: 'Poppins',
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: bodyNumber,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.black54,
+                                          fontWeight: FontWeight
+                                              .normal, // Keep the value normal weight
+                                          fontFamily: 'Poppins',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 20,
+                      ),
                       const Divider(
                         height: 1,
                         color: Colors.grey,
@@ -2234,7 +2492,7 @@ Column(
                         children: [
                           GestureDetector(
                             onTap: () {
-                              launchUrl(Uri.parse("tel://$phoneNumberDriver"));
+                              launchUrl(Uri.parse("tel://$phoneNumber"));
                             },
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -2247,7 +2505,7 @@ Column(
                                         Radius.circular(25)),
                                     border: Border.all(
                                       width: 2,
-                                      color:  const Color(0xFF2E3192),
+                                      color: const Color(0xFF2E3192),
                                     ),
                                   ),
                                   child: const Icon(
@@ -2260,10 +2518,10 @@ Column(
                                 ),
                                 const Text(
                                   "Call",
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
@@ -2311,15 +2569,23 @@ Column(
 
         addAdvanceBooking(
             userName,
-  pickUpLocation?.placeName ?? 'Unknown Pickup Location', // Fallback if null
-  dropOffDestinationLocation?.placeName ?? 'Unknown Dropoff Location', // Fallback if null
-  pickUpLocation?.latitudePosition ?? 0.0, // Fallback if null
-  pickUpLocation?.longitudePosition ?? 0.0, // Fallback if null
-  dropOffDestinationLocation?.latitudePosition ?? 0.0, // Fallback if null
-  dropOffDestinationLocation?.longitudePosition ?? 0.0, // Fallback if null
-  _selectedDateRange != null ? _selectedDateRange!.start : _selectedDate1!, 
-  _selectedTime1 != null ? _selectedTime1!.format(context) : '',
-  _selectedDateRange != null ? _selectedDateRange!.end : _selectedDate1!,
+            pickUpLocation?.placeName ??
+                'Unknown Pickup Location', // Fallback if null
+            dropOffDestinationLocation?.placeName ??
+                'Unknown Dropoff Location', // Fallback if null
+            pickUpLocation?.latitudePosition ?? 0.0, // Fallback if null
+            pickUpLocation?.longitudePosition ?? 0.0, // Fallback if null
+            dropOffDestinationLocation?.latitudePosition ??
+                0.0, // Fallback if null
+            dropOffDestinationLocation?.longitudePosition ??
+                0.0, // Fallback if null
+            _selectedDateRange != null
+                ? _selectedDateRange!.start
+                : _selectedDate1!,
+            _selectedTime1 != null ? _selectedTime1!.format(context) : '',
+            _selectedDateRange != null
+                ? _selectedDateRange!.end
+                : _selectedDate1!,
             userPhone);
 
         Navigator.pushReplacement(
@@ -2342,6 +2608,4 @@ Column(
       });
     }
   }
-
-  
 }

@@ -164,6 +164,11 @@ Future<double> calculateFareAmount(DirectionDetails directionDetails) async {
       distanceInKm = 0.0;
     }
 
+print('Distance Value Digits: ${directionDetails.distanceValueDigits}');
+
+
+    // Log distance for debugging
+    print('Distance in Km: $distanceInKm');
     // Determine if distance exceeds the base fare threshold
     double distanceThreshold = 1.87; // Distance threshold for base fare
 
@@ -191,27 +196,30 @@ Future<double> calculateFareAmount(DirectionDetails directionDetails) async {
 
     print('Calculated fare amount: PHP $overAllTotalFareAmount');
 
+
     // --- Add this block to store the fare in Realtime Database ---
-    try {
-      // Assuming globalTripID is already set and valid
-      if (globalTripID != null) {
-        // Reference to the specific trip request
-        DatabaseReference tripRequestRef = FirebaseDatabase.instance
-            .reference()
-            .child('tripRequests')
-            .child(globalTripID!);
+try {
+  // Assuming globalTripID is already set and valid
+  if (globalTripID != null) {
+    // Reference to the specific trip request
+    DatabaseReference tripRequestRef = FirebaseDatabase.instance
+        .reference()
+        .child('tripRequests')
+        .child(globalTripID!);
 
-        // Store fare amount under 'fareAmount' node
-        await tripRequestRef.child('fareAmount').set(overAllTotalFareAmount);
+    // Update fare amount under 'fareAmount' node
+    await tripRequestRef.child('fareAmount').set(overAllTotalFareAmount);
 
-        // Log success for Realtime Database write
-        print('Fare amount stored in Realtime Database successfully.');
-      } else {
-        print('globalTripID is null, cannot store fare amount in Realtime Database.');
-      }
-    } catch (e) {
-      print("Error storing fare amount in Realtime Database: $e");
-    }
+    // Log success for Realtime Database update
+    print('Fare amount updated in Realtime Database successfully: PHP $overAllTotalFareAmount');
+  } else {
+    print('globalTripID is null, cannot update fare amount in Realtime Database.');
+  }
+} catch (e) {
+  print("Error updating fare amount in Realtime Database: $e");
+}
+
+    
     // ------------------------------------------------------------
 
     return overAllTotalFareAmount;

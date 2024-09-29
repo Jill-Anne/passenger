@@ -67,48 +67,64 @@ Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete, int i
             if ((dateEntry['date'] as Timestamp).toDate().isSameDay(dateToComplete)) {
                 // Update the status of the specific date entry to 'Completed'
                 dateEntry['status'] = 'Completed';
-                dateEntry['completed time'] = completedTimeFormatted;
+                
+                // Add the completed time to the specific date entry
+                dateEntry['completed time'] = completedTimeFormatted; // Include completed time
+                
                 found = true;
-                break;
+                break; // Exit the loop once the date is found
             }
         }
 
         if (found) {
-            // Update the booking document
-            await bookingRef.update({'dates': dates});
+            // Create a new list to hold all entries, keeping active ones
+            List<dynamic> updatedDates = dates.map((dateEntry) {
+                // If the status is 'Completed', ensure it's updated in the new list
+                if (dateEntry['status'] == 'Completed') {
+                    return dateEntry; // Keep completed entries
+                } else {
+                    return dateEntry; // Keep active entries unchanged
+                }
+            }).toList();
+
+            // Update the booking document with the modified dates array
+            await bookingRef.update({'dates': updatedDates});
             print("Date completed successfully in Advance Bookings.");
+
+            // Move the updated data to "Advance Booking History"
+            await firestore.collection('Advance Booking History').doc(trip.id).set(updatedData);
+            print("Status updated and data moved to Advance Booking History.");
+            
+            // Handle UI updates and state management
+            setState(() {
+                // Remove from pending list
+                if (index >= 0 && index < pendingDates.length) {
+                    pendingDates.removeAt(index); // Remove from pending
+                }
+
+                // Add to completedDates if necessary
+                completedDates.add(dates.firstWhere(
+                    (entry) => (entry['date'] as Timestamp).toDate().isSameDay(dateToComplete),
+                ));
+            });
 
             // Trigger animation (optional)
             if (index >= 0 && index < pendingDates.length) {
-                setState(() {
-                    _isAnimating[index] = true; // Start the animation for the specific card
-                });
-
-                // Delay to allow the animation to complete
+                _isAnimating[index] = true; // Start the animation for the specific card
                 await Future.delayed(Duration(milliseconds: 300));
-
-                // Remove the completed ride from the pending list
-                setState(() {
-                    if (index < pendingDates.length) {
-                        pendingDates.removeAt(index); // Remove from pending
-                    }
-
-                    // Add to completedDates if necessary
-                    completedDates.add(dates.firstWhere((entry) => (entry['date'] as Timestamp).toDate().isSameDay(dateToComplete)));
-                    _isAnimating.removeAt(index); // Remove the animation state for the removed card
-                });
-
-                // Pop the screen or navigate back to the previous screen
-                Navigator.pop(context); // Use Navigator.pop() to go back
+                _isAnimating.removeAt(index); // Remove the animation state for the removed card
             }
+
+            // Pop the screen or navigate back to the previous screen
+            Navigator.pop(context); // Use Navigator.pop() to go back
         } else {
             print("No matching date found to complete.");
         }
+
     } catch (e) {
         print("Error completing ride: $e");
     }
 }
-
 
   @override
   void dispose() {
@@ -698,31 +714,48 @@ Future _rejectRide(DocumentSnapshot trip, DateTime dateToReject) async {
     // Get the existing dates array
     List<dynamic> dates = bookingData.data()!['dates'];
 
-    // Find the date to reject in the dates array
+    // Get the current date and time for cancellation
+    DateTime now = DateTime.now();
+    String cancelledTimeFormatted = DateFormat('MMMM d, yyyy').format(now) +
+        " at " +
+        DateFormat('h:mm a').format(now);
+
+    // Find the date to cancel in the dates array
+    bool found = false;
     for (var dateEntry in dates) {
       if ((dateEntry['date'] as Timestamp).toDate().isSameDay(dateToReject)) {
         // Update the status of the specific date entry to 'Cancelled'
         dateEntry['status'] = 'Cancelled';
+
+        // Add the cancelled time to the specific date entry
+        dateEntry['cancelled time'] = cancelledTimeFormatted; // Include cancelled time
+
+        found = true;
         break; // Exit the loop once the date is found
       }
     }
 
-    // Update the booking document with the modified dates array
-    await bookingRef.update({'dates': dates});
-    print("Date rejected successfully.");
+    if (found) {
+      // Update the booking document with the modified dates array
+      await bookingRef.update({'dates': dates});
+      print("Date rejected successfully.");
 
-    // Optionally, create a record in the Cancelled Service collection
-    final cancelledRef = firestore.collection('Cancelled Service').doc(trip.id);
-    await cancelledRef.set({
-      ...bookingData.data()!,
-      'status': 'Rejected and Cancelled', // Update overall status
-      'cancelledDate': dateToReject, // Record the specific cancelled date
-    });
-    print("Data moved to Cancelled Service with updated status.");
+      // Optionally, create a record in the Cancelled Service collection
+      final cancelledRef = firestore.collection('Cancelled Service').doc(trip.id);
+      await cancelledRef.set({
+        ...bookingData.data()!,
+        'status': 'Rejected and Cancelled', // Update overall status
+        'cancelledDate': dateToReject, // Record the specific cancelled date
+      });
+      print("Data moved to Cancelled Service with updated status.");
+    } else {
+      print("No matching date found to reject.");
+    }
   } catch (e) {
     print("Error rejecting ride: $e");
   }
 }
+
 
 // Extension method to check if two DateTimes are on the same day
 extension DateTimeComparison on DateTime {

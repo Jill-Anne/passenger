@@ -100,6 +100,7 @@ Widget build(BuildContext context) {
     providers: [
       ChangeNotifierProvider(create: (context) => AppInfo()),
       ChangeNotifierProvider(create: (context) => TripData()),  // Add this line for trip data management
+      
     ],
     child: MaterialApp(
       title: 'Passenger App',

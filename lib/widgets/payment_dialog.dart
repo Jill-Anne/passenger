@@ -67,78 +67,98 @@ class _PaymentDialogState extends State<PaymentDialog> {
     }
   }
 
-  /// FARE AMOUNT FROM FIRESTORE
-  Future<double> getFareAmount() async {
-    try {
-      return await FirebaseFirestore.instance
-          .runTransaction<double>((transaction) async {
-        DocumentSnapshot fareDoc = await transaction.get(FirebaseFirestore
-            .instance
-            .collection('currentFare')
-            .doc('latestFare'));
-
-        if (fareDoc.exists) {
-          double fareAmount = (fareDoc['amount'] as num).toDouble();
-          return fareAmount;
-        } else {
-          print("No data found at 'currentFare/latestFare'");
-          return 0.0;
-        }
-      });
-    } catch (e) {
-      print("Error fetching fare amount: $e");
-      return 0.0;
-    }
+/// FARE AMOUNT FROM FIRESTORE
+Future<double> getFareAmount() async {
+  if (globalTripID == null || globalTripID!.isEmpty) {
+    print('Global Trip ID is not set');
+    return 0.0; // Return 0.0 if ID is not set
   }
 
-  /// PRINT FARE AMOUNT FROM TRIPREQUESTS
-  Future<void> printFareAmount() async {
-    if (globalTripID == null || globalTripID!.isEmpty) {
-      print('Global Trip ID is not set');
-      return;
-    }
-    DatabaseReference tripRequestRef = FirebaseDatabase.instance
-        .ref()
-        .child('tripRequests')
-        .child(globalTripID!);
-    try {
-      final snapshot = await tripRequestRef.get();
+  DatabaseReference tripRequestRef = FirebaseDatabase.instance
+      .ref()
+      .child('tripRequests')
+      .child(globalTripID!);
 
-      if (snapshot.exists) {
-        final data = snapshot.value;
+  try {
+    final snapshot = await tripRequestRef.get();
 
-        // Ensure the data is a map
-        if (data is Map) {
-          // Retrieve the fareAmount directly
-          final fareAmount = data['fareAmount'];
+    if (snapshot.exists) {
+      final data = snapshot.value;
 
-          // Safely convert fareAmount to string whether it's int or string
-          String formattedFareAmount;
-          if (fareAmount is int || fareAmount is double) {
-            formattedFareAmount = "₱ ${fareAmount.toStringAsFixed(2)}";
-          } else if (fareAmount is String) {
-            formattedFareAmount = "₱ $fareAmount";
-          } else {
-            formattedFareAmount = "₱ 0.00"; // Default if no valid fareAmount
-          }
+      // Ensure the data is a map
+      if (data is Map) {
+        // Retrieve the fareAmount directly
+        final fareAmount = data['fareAmount'];
 
-          // Print the formatted fareAmount
-          print("Fare Amount FROM TRIPREQUESTS: $formattedFareAmount");
+        // Safely convert fareAmount to double if possible
+        if (fareAmount is num) {
+          return fareAmount.toDouble();
         } else {
-          print("Data is not a valid map: $data");
+          print("Fare amount is not a valid number: $fareAmount");
+          return 0.0; // Return default if invalid
         }
       } else {
-        print("No data available for tripID: $globalTripID");
+        print("Data is not a valid map: $data");
+        return 0.0; // Return default if data structure is invalid
       }
-    } catch (error) {
-      print("Error fetching fare amount: $error");
+    } else {
+      print("No data available for tripID: $globalTripID");
+      return 0.0; // Return default if no data found
     }
+  } catch (error) {
+    print("Error fetching fare amount: $error");
+    return 0.0; // Return default on error
   }
+}
+
+  /// PRINT FARE AMOUNT FROM TRIPREQUESTS
+  // Future<void> printFareAmount() async {
+  //   if (globalTripID == null || globalTripID!.isEmpty) {
+  //     print('Global Trip ID is not set');
+  //     return;
+  //   }
+  //   DatabaseReference tripRequestRef = FirebaseDatabase.instance
+  //       .ref()
+  //       .child('tripRequests')
+  //       .child(globalTripID!);
+  //   try {
+  //     final snapshot = await tripRequestRef.get();
+
+  //     if (snapshot.exists) {
+  //       final data = snapshot.value;
+
+  //       // Ensure the data is a map
+  //       if (data is Map) {
+  //         // Retrieve the fareAmount directly
+  //         final fareAmount = data['fareAmount'];
+
+  //         // Safely convert fareAmount to string whether it's int or string
+  //         String formattedFareAmount;
+  //         if (fareAmount is int || fareAmount is double) {
+  //           formattedFareAmount = "₱ ${fareAmount.toStringAsFixed(2)}";
+  //         } else if (fareAmount is String) {
+  //           formattedFareAmount = "₱ $fareAmount";
+  //         } else {
+  //           formattedFareAmount = "₱ 0.00"; // Default if no valid fareAmount
+  //         }
+
+  //         // Print the formatted fareAmount
+  //         print("Fare Amount FROM TRIPREQUESTS: $formattedFareAmount");
+  //       } else {
+  //         print("Data is not a valid map: $data");
+  //       }
+  //     } else {
+  //       print("No data available for tripID: $globalTripID");
+  //     }
+  //   } catch (error) {
+  //     print("Error fetching fare amount: $error");
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      printFareAmount(); // Call printFareAmount without parameters
+     // printFareAmount(); // Call printFareAmount without parameters
       print(
           "Trip Details: $tripDetails"); // Debug print to verify the contents of tripDetails
       print(
@@ -160,18 +180,12 @@ class _PaymentDialogState extends State<PaymentDialog> {
               child: FutureBuilder<double>(
                 future: getFareAmount(),
                 builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (snapshot.hasError) {
                     return Center(
-                    child: LoadingAnimationWidget.discreteCircle(
-                      color: Colors.black,
-                      size: 50,
-                      secondRingColor: Colors.black,
-                      thirdRingColor: Colors.purple,
-                    ),
-                  );
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Text("Error: ${snapshot.error}", textAlign: TextAlign.center),
+                      child: Text(
+                        "Error: ${snapshot.error}",
+                        textAlign: TextAlign.center,
+                      ),
                     );
                   } else {
                     double fare = snapshot.data ?? 0.0;
@@ -690,10 +704,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
         // Update driver ratings
         await fetchDriverIDAndUpdateRatings(globalTripID!);
 
-        await FirebaseFirestore.instance
-            .collection('currentFare')
-            .doc('latestFare')
-            .set({'amount': ''});
+
 
 
         // Close the dialog after completion
