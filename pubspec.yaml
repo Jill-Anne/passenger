@@ -96,6 +96,7 @@ flutter:
     - assets/images/toda.png
     - themes/
     - assets/images/loading.json
+    - assets/images/Valenzuelaboundary
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

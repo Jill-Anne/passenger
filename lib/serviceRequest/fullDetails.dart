@@ -12,8 +12,9 @@ class FullDetails extends StatefulWidget {
   _FullDetailsState createState() => _FullDetailsState();
 }
 
-class _FullDetailsState extends State<FullDetails> with SingleTickerProviderStateMixin {
-   late TabController _tabController;
+class _FullDetailsState extends State<FullDetails>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   List<Map<String, dynamic>> pendingDates = [];
   List<Map<String, dynamic>> completedDates = [];
   List<bool> _isAnimating = [];
@@ -23,7 +24,8 @@ class _FullDetailsState extends State<FullDetails> with SingleTickerProviderStat
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadDates();
-    _isAnimating = List.generate(pendingDates.length, (_) => false); // Initialize animation states
+    _isAnimating = List.generate(
+        pendingDates.length, (_) => false); // Initialize animation states
   }
 
   void _loadDates() {
@@ -38,93 +40,103 @@ class _FullDetailsState extends State<FullDetails> with SingleTickerProviderStat
       }
     }
   }
-Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete, int index) async {
+
+  Future<void> _completeRide(
+      DocumentSnapshot trip, DateTime dateToComplete, int index) async {
     try {
-        final firestore = FirebaseFirestore.instance;
+      final firestore = FirebaseFirestore.instance;
 
-        // Reference to the specific Advance Booking document
-        final bookingRef = firestore.collection('Advance Bookings').doc(trip.id);
-        final bookingData = await bookingRef.get();
+      // Reference to the specific Advance Booking document
+      final bookingRef = firestore.collection('Advance Bookings').doc(trip.id);
+      final bookingData = await bookingRef.get();
 
-        if (!bookingData.exists) {
-            print("No such document in Advance Bookings!");
-            return; // Exiting gracefully
+      if (!bookingData.exists) {
+        print("No such document in Advance Bookings!");
+        return; // Exiting gracefully
+      }
+
+      // Get the current date and time for completion
+      DateTime now = DateTime.now();
+      String completedTimeFormatted = DateFormat('MMMM d, yyyy').format(now) +
+          " at " +
+          DateFormat('h:mm a').format(now);
+
+      // Update the booking data
+      Map<String, dynamic> updatedData = bookingData.data()!;
+      List<dynamic> dates = updatedData['dates'];
+
+      // Find the date to complete in the dates array
+      bool found = false;
+      for (var dateEntry in dates) {
+        if ((dateEntry['date'] as Timestamp)
+            .toDate()
+            .isSameDay(dateToComplete)) {
+          // Update the status of the specific date entry to 'Completed'
+          dateEntry['status'] = 'Completed';
+
+          // Add the completed time to the specific date entry
+          dateEntry['completed time'] =
+              completedTimeFormatted; // Include completed time
+
+          found = true;
+          break; // Exit the loop once the date is found
+        }
+      }
+
+      if (found) {
+        // Create a new list to hold all entries, keeping active ones
+        List<dynamic> updatedDates = dates.map((dateEntry) {
+          // If the status is 'Completed', ensure it's updated in the new list
+          if (dateEntry['status'] == 'Completed') {
+            return dateEntry; // Keep completed entries
+          } else {
+            return dateEntry; // Keep active entries unchanged
+          }
+        }).toList();
+
+        // Update the booking document with the modified dates array
+        await bookingRef.update({'dates': updatedDates});
+        print("Date completed successfully in Advance Bookings.");
+
+        // Move the updated data to "Advance Booking History"
+        await firestore
+            .collection('Advance Booking History')
+            .doc(trip.id)
+            .set(updatedData);
+        print("Status updated and data moved to Advance Booking History.");
+
+        // Handle UI updates and state management
+        setState(() {
+          // Remove from pending list
+          if (index >= 0 && index < pendingDates.length) {
+            pendingDates.removeAt(index); // Remove from pending
+          }
+
+          // Add to completedDates if necessary
+          completedDates.add(dates.firstWhere(
+            (entry) =>
+                (entry['date'] as Timestamp).toDate().isSameDay(dateToComplete),
+          ));
+        });
+
+        // Trigger animation (optional)
+        if (index >= 0 && index < pendingDates.length) {
+          _isAnimating[index] =
+              true; // Start the animation for the specific card
+          await Future.delayed(Duration(milliseconds: 300));
+          _isAnimating.removeAt(
+              index); // Remove the animation state for the removed card
         }
 
-        // Get the current date and time for completion
-        DateTime now = DateTime.now();
-        String completedTimeFormatted = DateFormat('MMMM d, yyyy').format(now) +
-            " at " +
-            DateFormat('h:mm a').format(now);
-
-        // Update the booking data
-        Map<String, dynamic> updatedData = bookingData.data()!;
-        List<dynamic> dates = updatedData['dates'];
-
-        // Find the date to complete in the dates array
-        bool found = false;
-        for (var dateEntry in dates) {
-            if ((dateEntry['date'] as Timestamp).toDate().isSameDay(dateToComplete)) {
-                // Update the status of the specific date entry to 'Completed'
-                dateEntry['status'] = 'Completed';
-                
-                // Add the completed time to the specific date entry
-                dateEntry['completed time'] = completedTimeFormatted; // Include completed time
-                
-                found = true;
-                break; // Exit the loop once the date is found
-            }
-        }
-
-        if (found) {
-            // Create a new list to hold all entries, keeping active ones
-            List<dynamic> updatedDates = dates.map((dateEntry) {
-                // If the status is 'Completed', ensure it's updated in the new list
-                if (dateEntry['status'] == 'Completed') {
-                    return dateEntry; // Keep completed entries
-                } else {
-                    return dateEntry; // Keep active entries unchanged
-                }
-            }).toList();
-
-            // Update the booking document with the modified dates array
-            await bookingRef.update({'dates': updatedDates});
-            print("Date completed successfully in Advance Bookings.");
-
-            // Move the updated data to "Advance Booking History"
-            await firestore.collection('Advance Booking History').doc(trip.id).set(updatedData);
-            print("Status updated and data moved to Advance Booking History.");
-            
-            // Handle UI updates and state management
-            setState(() {
-                // Remove from pending list
-                if (index >= 0 && index < pendingDates.length) {
-                    pendingDates.removeAt(index); // Remove from pending
-                }
-
-                // Add to completedDates if necessary
-                completedDates.add(dates.firstWhere(
-                    (entry) => (entry['date'] as Timestamp).toDate().isSameDay(dateToComplete),
-                ));
-            });
-
-            // Trigger animation (optional)
-            if (index >= 0 && index < pendingDates.length) {
-                _isAnimating[index] = true; // Start the animation for the specific card
-                await Future.delayed(Duration(milliseconds: 300));
-                _isAnimating.removeAt(index); // Remove the animation state for the removed card
-            }
-
-            // Pop the screen or navigate back to the previous screen
-            Navigator.pop(context); // Use Navigator.pop() to go back
-        } else {
-            print("No matching date found to complete.");
-        }
-
+        // Pop the screen or navigate back to the previous screen
+        Navigator.pop(context); // Use Navigator.pop() to go back
+      } else {
+        print("No matching date found to complete.");
+      }
     } catch (e) {
-        print("Error completing ride: $e");
+      print("Error completing ride: $e");
     }
-}
+  }
 
   @override
   void dispose() {
@@ -184,13 +196,16 @@ Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete, int i
                     itemCount: pendingDates.length,
                     itemBuilder: (context, index) {
                       var dateEntry = pendingDates[index];
-                      DateTime currentDate = (dateEntry['date'] as Timestamp).toDate();
+                      DateTime currentDate =
+                          (dateEntry['date'] as Timestamp).toDate();
 
                       return AnimatedSize(
                         duration: const Duration(milliseconds: 300),
-                        child: _isAnimating.length > index && _isAnimating[index]
-                            ? SizedBox.shrink() // Collapsing the card
-                            : _buildTripCard(currentDate, dateEntry, context, index), // Pass index for removal
+                        child:
+                            _isAnimating.length > index && _isAnimating[index]
+                                ? SizedBox.shrink() // Collapsing the card
+                                : _buildTripCard(currentDate, dateEntry,
+                                    context, index), // Pass index for removal
                       );
                     },
                   ),
@@ -204,7 +219,8 @@ Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete, int i
                     itemCount: completedDates.length,
                     itemBuilder: (context, index) {
                       var dateEntry = completedDates[index];
-                      DateTime currentDate = (dateEntry['date'] as Timestamp).toDate();
+                      DateTime currentDate =
+                          (dateEntry['date'] as Timestamp).toDate();
                       return _buildTripCard(currentDate, dateEntry, context);
                     },
                   ),
@@ -214,12 +230,13 @@ Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete, int i
     );
   }
 
-  Widget _buildTripCard(DateTime date, Map<String, dynamic> dateEntry, BuildContext context, [int? index]) {
-        final startDate = widget.trip['date'].toDate();
+  Widget _buildTripCard(
+      DateTime date, Map<String, dynamic> dateEntry, BuildContext context,
+      [int? index]) {
+    final startDate = widget.trip['date'].toDate();
     final endDate = widget.trip['dateto'].toDate();
     final startTime = widget.trip['time'];
     String status = widget.trip['status'];
-    
 
     double leftPadding = 30.0;
     double topPadding = 0;
@@ -582,7 +599,8 @@ Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete, int i
                                                     // Navigator.pop(context);
                                                     // ADD SETSTATE HERE for Confirm Booking Button
 
-                                                    await _rejectRide(widget.trip,
+                                                    await _rejectRide(
+                                                        widget.trip,
                                                         date); // Pass the date directly
 
                                                     Navigator.pop(context);
@@ -664,28 +682,28 @@ Future<void> _completeRide(DocumentSnapshot trip, DateTime dateToComplete, int i
 //               ),
 //           ],
 //         ),
-                
- if (dateEntry['status'] == 'active' && index != null) // Show button only for active entries
-ElevatedButton(
-                onPressed: () async {
-                   _completeRide(widget.trip, date, index); // Call the completion function
 
-                  // Update Firestore directly here if needed
-                  await FirebaseFirestore.instance
-                      .collection('Advance Bookings')
-                      .doc(widget.trip.id)
-                      .update({'status': 'Completed'});
-                },
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
+                if (dateEntry['status'] == 'active' &&
+                    index != null) // Show button only for active entries
+                  ElevatedButton(
+                    onPressed: () async {
+                      _completeRide(widget.trip, date,
+                          index); // Call the completion function
+
+                      // Update Firestore directly here if needed
+                      await FirebaseFirestore.instance
+                          .collection('Advance Bookings')
+                          .doc(widget.trip.id)
+                          .update({'status': 'Completed'});
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                    child: const Text('Complete Ride'),
                   ),
-                ),
-                child: const Text('Complete Ride'),
-              ),
-
-
-                
               ],
             ),
           ],
@@ -694,7 +712,6 @@ ElevatedButton(
     );
   }
 }
-
 
 Future _rejectRide(DocumentSnapshot trip, DateTime dateToReject) async {
   try {
@@ -728,7 +745,8 @@ Future _rejectRide(DocumentSnapshot trip, DateTime dateToReject) async {
         dateEntry['status'] = 'Cancelled';
 
         // Add the cancelled time to the specific date entry
-        dateEntry['cancelled time'] = cancelledTimeFormatted; // Include cancelled time
+        dateEntry['cancelled time'] =
+            cancelledTimeFormatted; // Include cancelled time
 
         found = true;
         break; // Exit the loop once the date is found
@@ -741,7 +759,8 @@ Future _rejectRide(DocumentSnapshot trip, DateTime dateToReject) async {
       print("Date rejected successfully.");
 
       // Optionally, create a record in the Cancelled Service collection
-      final cancelledRef = firestore.collection('Cancelled Service').doc(trip.id);
+      final cancelledRef =
+          firestore.collection('Cancelled Service').doc(trip.id);
       await cancelledRef.set({
         ...bookingData.data()!,
         'status': 'Rejected and Cancelled', // Update overall status
@@ -755,7 +774,6 @@ Future _rejectRide(DocumentSnapshot trip, DateTime dateToReject) async {
     print("Error rejecting ride: $e");
   }
 }
-
 
 // Extension method to check if two DateTimes are on the same day
 extension DateTimeComparison on DateTime {

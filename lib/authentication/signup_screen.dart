@@ -80,22 +80,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
         Navigator.pop(context); // Close loading dialog
 
         // Show success dialog
-        showDialog(
-          context: context,
-          builder: (BuildContext context) => AlertDialog(
-            title: Text("Successfully Sign Up"),
-            content: Text("You have successfully signed up."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
-                },
-                child: Text("OK"),
+showDialog(
+  context: context,
+  builder: (BuildContext context) => AlertDialog(
+    title: const Center(
+      child: Text(
+        "Successfully Sign Up",
+        style: TextStyle(color: Color.fromARGB(255, 1, 42, 123)), // Title text color
+      ),
+    ),
+    content: Container(
+      height: 100, // Set the height for the dialog content
+      child: const Center(
+        child: Text(
+          "You have successfully signed up.",
+          textAlign: TextAlign.center, // Center the content text
+        ),
+      ),
+    ),
+    actions: [
+      Center( // Center the button
+        child: SizedBox(
+          width: 200, // Set the width for the button
+          height: 40, // Set the height for the button
+          child: TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white, 
+              backgroundColor: const Color.fromARGB(255, 1, 42, 123), // Background color
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(3),
               ),
-            ],
+            ),
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+            },
+            child: const Text("OK"),
           ),
-        );
+        ),
+      ),
+    ],
+  ),
+);
+
       } else {
         Navigator.pop(context); // Close loading dialog
         cMethods.displaySnackBar("User registration failed. Please try again.", context);

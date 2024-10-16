@@ -67,8 +67,8 @@ class _PaymentDialogState extends State<PaymentDialog> {
     }
   }
 
-/// FARE AMOUNT FROM FIRESTORE
 Future<double> getFareAmount() async {
+  // Check if globalTripID is null or empty
   if (globalTripID == null || globalTripID!.isEmpty) {
     print('Global Trip ID is not set');
     return 0.0; // Return 0.0 if ID is not set
@@ -85,12 +85,12 @@ Future<double> getFareAmount() async {
     if (snapshot.exists) {
       final data = snapshot.value;
 
-      // Ensure the data is a map
+      // Ensure the data is a Map and check for fareAmount
       if (data is Map) {
-        // Retrieve the fareAmount directly
+        // Retrieve the fareAmount safely
         final fareAmount = data['fareAmount'];
-
-        // Safely convert fareAmount to double if possible
+        
+        // Check if fareAmount is a valid number
         if (fareAmount is num) {
           return fareAmount.toDouble();
         } else {
@@ -110,6 +110,7 @@ Future<double> getFareAmount() async {
     return 0.0; // Return default on error
   }
 }
+
 
   /// PRINT FARE AMOUNT FROM TRIPREQUESTS
   // Future<void> printFareAmount() async {
@@ -177,16 +178,23 @@ Future<double> getFareAmount() async {
             color: Colors.white,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: FutureBuilder<double>(
-                future: getFareAmount(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        "Error: ${snapshot.error}",
-                        textAlign: TextAlign.center,
-                      ),
-                    );
+ child: FutureBuilder<double>(
+                  future: getFareAmount(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          "Error: ${snapshot.error}",
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    
+                    
                   } else {
                     double fare = snapshot.data ?? 0.0;
                     return Column(

@@ -1126,53 +1126,95 @@ tripStreamSubscription =
     await sendNotificationToDriver(currentDriver);
   }
 
-  Future<void> _showDeclineDialog() async {
-    print('Preparing to show decline dialog.');
+ Future<void> _showDeclineDialog() async {
+  print('Preparing to show decline dialog.');
 
-    if (context == null) {
-      print('Error: Context is null when attempting to show dialog.');
+  if (context == null) {
+    print('Error: Context is null when attempting to show dialog.');
+    return Future.value();
+  }
+
+  try {
+    print('Context is valid. Proceeding with showDialog.');
+
+    if (!mounted) {
+      print('Error: The widget is no longer mounted. Cannot show dialog.');
       return Future.value();
     }
 
-    try {
-      print('Context is valid. Proceeding with showDialog.');
+    await showDialog(
+      context: context!,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        print('Building AlertDialog for driver decline.');
 
-      if (!mounted) {
-        print('Error: The widget is no longer mounted. Cannot show dialog.');
-        return Future.value();
-      }
-
-      await showDialog(
-        context: context!,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          print('Building AlertDialog for driver decline.');
-
-          return AlertDialog(
-            title: Text('Trip Declined'),
-            content: Text(
-                'Sorry, the driver has declined the trip. Please try again later.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  print('OK button pressed in decline dialog.');
-                  Navigator.of(context).pop(); // Close the dialog
-                },
-                child: Text('OK'),
+        return AlertDialog(
+            backgroundColor: Color.fromARGB(255, 1, 42, 123), // Deep Blue Background
+          title: Container(
+           
+            
+            child: const Center(
+              child: Text(
+                'Trip Canceled',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ],
-          );
-        },
-      ).then((_) {
-        print('Dialog completion callback executed.');
-      });
+            ),
+          ),
+          content: Container(
+            width: 300, // Set a fixed width for the content
+            height: 100, 
+            child: const Center(
+              child: Text(
+                'Your trip request was canceled because it’s outside our service area.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          actions: [
+            Center( // Center the button
+              child: SizedBox(
+                width: 150, // Set the width of the button
+                height: 40, // Set the height of the button
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(3), // Border radius here
+      ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop(1); // Return 1 to indicate 'OK' pressed
+                  },
+                  child: Text(
+                    'OK',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    ).then((_) {
+      print('Dialog completion callback executed.');
+    });
 
-      print('showDialog() function call completed.');
-    } catch (e, stackTrace) {
-      print('Exception in _showDeclineDialog: $e');
-      print('Stack trace: $stackTrace');
-    }
+    print('showDialog() function call completed.');
+  } catch (e, stackTrace) {
+    print('Exception in _showDeclineDialog: $e');
+    print('Stack trace: $stackTrace');
   }
+}
+
 
   Future<void> sendNotificationToDriver(
       OnlineNearbyDrivers currentDriver) async {
