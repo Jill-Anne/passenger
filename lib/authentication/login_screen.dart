@@ -20,8 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController emailTextEditingController = TextEditingController();
   TextEditingController passwordTextEditingController = TextEditingController();
   CommonMethods cMethods = CommonMethods();
-  bool _isPasswordVisible =
-      false; // Flag to track whether the password is visible or not
+  bool _isPasswordVisible = false;
 
   void checkIfNetworkIsAvailable() {
     cMethods.checkConnectivity(context);
@@ -31,113 +30,112 @@ class _LoginScreenState extends State<LoginScreen> {
   void signInFormValidation() {
     if (!emailTextEditingController.text.contains("@")) {
       cMethods.displaySnackBar("Please write a valid email.", context);
-    } else if (passwordTextEditingController.text.trim().length < 5) {
-      cMethods.displaySnackBar(
-          "Your password must be at least 6 or more characters.", context);
+    } else if (passwordTextEditingController.text.trim().length < 6) {
+      cMethods.displaySnackBar("Your password must be at least 6 characters.", context);
     } else {
       signInUser();
     }
   }
 
-Future<void> signInUser() async {
-  // Show a full-screen dialog with a Lottie animation while logging in
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        insetPadding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: Colors.white,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Lottie animation for "Logging in"
-              Lottie.asset(
-                'assets/images/loading.json',
-                width: MediaQuery.of(context).size.width * 0.9,
-                height: MediaQuery.of(context).size.width * 0.9,
-                fit: BoxFit.cover,
-                repeat: true,
-              ),
-              const SizedBox(height: 50),
-              const Text(
-                "Authenticating",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 1, 42, 123),
-                ),
-              ),
-            ],
+  Future<void> signInUser() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        ),
-      );
-    },
-  );
-
-  try {
-    final UserCredential userCredential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(
-      email: emailTextEditingController.text.trim(),
-      password: passwordTextEditingController.text.trim(),
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.white,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Lottie.asset(
+                  'assets/images/loading.json',
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  height: MediaQuery.of(context).size.width * 0.9,
+                  fit: BoxFit.cover,
+                  repeat: true,
+                ),
+                const SizedBox(height: 50),
+                const Text(
+                  "Authenticating",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(255, 1, 42, 123),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
 
-    final User? userFirebase = userCredential.user;
+    try {
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+        email: emailTextEditingController.text.trim(),
+        password: passwordTextEditingController.text.trim(),
+      );
 
-    if (!context.mounted) return;
-    Navigator.pop(context); // Close the dialog
+      final User? userFirebase = userCredential.user;
 
-    if (userFirebase != null) {
-      DatabaseReference usersRef = FirebaseDatabase.instance
-          .ref()
-          .child("users")
-          .child(userFirebase.uid);
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close the dialog
 
-      final snapshot = await usersRef.once();
-      if (snapshot.snapshot.value != null) {
-        final userData = snapshot.snapshot.value as Map;
-        if (userData["blockStatus"] == "no") {
-          userName = userData["name"];
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (c) => HomePage()),
-          );
+      if (userFirebase != null) {
+        if (!userFirebase.emailVerified) {
+          FirebaseAuth.instance.signOut();
+          cMethods.displaySnackBar("Please verify your email before logging in.", context);
+          return;
+        }
+
+        DatabaseReference usersRef = FirebaseDatabase.instance
+            .ref()
+            .child("users")
+            .child(userFirebase.uid);
+
+        final snapshot = await usersRef.once();
+        if (snapshot.snapshot.value != null) {
+          final userData = snapshot.snapshot.value as Map;
+          if (userData["blockStatus"] == "no") {
+            userName = userData["name"];
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (c) => HomePage()),
+            );
+          } else {
+            FirebaseAuth.instance.signOut();
+            cMethods.displaySnackBar(
+              "Your account has been blocked. Please contact support.",
+              context,
+            );
+          }
         } else {
           FirebaseAuth.instance.signOut();
           cMethods.displaySnackBar(
-            "Your account has been blocked. Please contact support.",
+            "User record not found. Please check your credentials.",
             context,
           );
         }
-      } else {
-        FirebaseAuth.instance.signOut();
+      }
+    } catch (error) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close the dialog in case of an error
+        print('Error during sign-in: $error');
         cMethods.displaySnackBar(
-          "User record not found. Please check your credentials.",
+          "An error occurred. Please check your credentials and try again.",
           context,
         );
       }
     }
-  } catch (error) {
-    if (context.mounted) {
-      Navigator.pop(context); // Close the dialog in case of an error
-
-      // Print detailed error for debugging
-      print('Error during sign-in: $error');
-
-      // Display user-friendly error message
-      cMethods.displaySnackBar(
-        "An error occurred. Please check your credentials and try again.",
-        context,
-      );
-    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +143,7 @@ Future<void> signInUser() async {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          CustomColumnWithLogo(), // Logo on the left side
+          CustomColumnWithLogo(),
           Positioned(
             left: 0,
             bottom: 0,
@@ -159,7 +157,7 @@ Future<void> signInUser() async {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Sign in with email or phone number.",
+                  "Sign in with email and Password.",
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 26,
@@ -172,7 +170,7 @@ Future<void> signInUser() async {
                   "User Email",
                   Icons.email,
                   false,
-                  emailTextEditingController,
+                  emailTextEditingController, maxLength: 30,
                 ),
                 const SizedBox(height: 20),
                 TextField(
@@ -181,22 +179,17 @@ Future<void> signInUser() async {
                   enableSuggestions: false,
                   autocorrect: false,
                   cursorColor: const Color.fromARGB(255, 19, 19, 19),
-                  style:
-                      const TextStyle(color: Color.fromARGB(255, 14, 13, 13)),
+                  style: const TextStyle(color: Color.fromARGB(255, 14, 13, 13)),
                   decoration: InputDecoration(
                     labelText: "User Password",
-                    prefixIcon: Icon(Icons.lock,
-                        color: const Color.fromARGB(179, 40, 39, 39)),
+                    prefixIcon: Icon(Icons.lock, color: const Color.fromARGB(179, 40, 39, 39)),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                       ),
                       onPressed: () {
                         setState(() {
-                          _isPasswordVisible =
-                              !_isPasswordVisible; // Toggle password visibility state
+                          _isPasswordVisible = !_isPasswordVisible;
                         });
                       },
                     ),
@@ -208,7 +201,9 @@ Future<void> signInUser() async {
                 signInSignUpButton(context, true, () {
                   checkIfNetworkIsAvailable();
                 }),
-                signUpOption()
+                signUpOption(),
+                const SizedBox(height: 10), // Spacer for readability
+                forgotPasswordOption(), // Added forgot password option
               ],
             ),
           ),
@@ -232,6 +227,26 @@ Future<void> signInUser() async {
           },
           child: const Text(
             " Sign Up",
+            style: TextStyle(
+              color: Color(0xFF2E3192),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Row forgotPasswordOption() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: () {
+            // Implement your forgot password logic here
+          },
+          child: const Text(
+            "Forgot Password?",
             style: TextStyle(
               color: Color(0xFF2E3192),
               fontWeight: FontWeight.bold,

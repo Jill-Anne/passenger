@@ -10,7 +10,7 @@ Image logowidget(String imageName) {
 
 TextField customTextField(String labelText, IconData prefixIcon,
     bool isPasswordType, TextEditingController controller,
-    {bool obscureText = false}) {
+    {bool obscureText = false, required int maxLength}) {
   bool _isPasswordVisible = obscureText; // Track password visibility
 
   return TextField(
