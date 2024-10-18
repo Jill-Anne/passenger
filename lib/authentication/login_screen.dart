@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:lottie/lottie.dart';
+import 'package:passenger/authentication/forgot_password.dart';
 import 'package:passenger/authentication/signup_screen.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
@@ -137,6 +138,56 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void forgotPassword() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      TextEditingController resetEmailController = TextEditingController();
+      return AlertDialog(
+        title: Text("Reset Password"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: resetEmailController,
+              decoration: InputDecoration(
+                labelText: "Enter your email",
+                prefixIcon: Icon(Icons.email),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              String email = resetEmailController.text.trim();
+              if (email.isNotEmpty) {
+                try {
+                  await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                  Navigator.pop(context); // Close the dialog
+                  cMethods.displaySnackBar("Password reset email sent!", context);
+                } catch (e) {
+                  cMethods.displaySnackBar("Error: ${e.toString()}", context);
+                }
+              } else {
+                cMethods.displaySnackBar("Please enter your email.", context);
+              }
+            },
+            child: Text("Send Reset Link"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+            },
+            child: Text("Cancel"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -243,7 +294,10 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         GestureDetector(
           onTap: () {
-            // Implement your forgot password logic here
+            Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ForgotPasswordPage()),
+          );
           },
           child: const Text(
             "Forgot Password?",

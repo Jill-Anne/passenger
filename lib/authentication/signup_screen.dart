@@ -299,7 +299,7 @@ Widget build(BuildContext context) {
             padding: const EdgeInsets.all(10),
             child: Column(
               children: [
-                SizedBox(height: 50),
+                SizedBox(height: 60),
                 // Remove Positioned here
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,7 +307,7 @@ Widget build(BuildContext context) {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 0, left: 20),
                       child: Text(
-                        "Sign up with email or phone number.",
+                        "Sign up with email and password.",
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
