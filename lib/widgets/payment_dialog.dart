@@ -67,49 +67,49 @@ class _PaymentDialogState extends State<PaymentDialog> {
     }
   }
 
-Future<double> getFareAmount() async {
-  // Check if globalTripID is null or empty
-  if (globalTripID == null || globalTripID!.isEmpty) {
-    print('Global Trip ID is not set');
-    return 0.0; // Return 0.0 if ID is not set
-  }
+  Future<double> getFareAmount() async {
+    // Check if globalTripID is null or empty
+    if (globalTripID == null || globalTripID!.isEmpty) {
+      print('Global Trip ID is not set');
+      return 0.0; // Return 0.0 if ID is not set
+    }
 
-  DatabaseReference tripRequestRef = FirebaseDatabase.instance
-      .ref()
-      .child('tripRequests')
-      .child(globalTripID!);
+    DatabaseReference tripRequestRef = FirebaseDatabase.instance
+        .ref()
+        .child('tripRequests')
+        .child(globalTripID!);
 
-  try {
-    final snapshot = await tripRequestRef.get();
+    try {
+      final snapshot = await tripRequestRef.get();
 
-    if (snapshot.exists) {
-      final data = snapshot.value;
+      if (snapshot.exists) {
+        final data = snapshot.value;
 
-      // Ensure the data is a Map and check for fareAmount
-      if (data is Map) {
-        // Retrieve the fareAmount safely
-        final fareAmount = data['fareAmount'];
-        
-        // Check if fareAmount is a valid number
-        if (fareAmount is num) {
-          return fareAmount.toDouble();
+        // Ensure the data is a Map and check for fareAmount
+        if (data is Map) {
+          // Retrieve the fareAmount safely
+          final fareAmount = data['fareAmount'];
+
+          // Check if fareAmount is a valid number
+          if (fareAmount is num) {
+            return fareAmount.toDouble();
+          } else {
+            print("Fare amount is not a valid number: $fareAmount");
+            return 0.0; // Return default if invalid
+          }
         } else {
-          print("Fare amount is not a valid number: $fareAmount");
-          return 0.0; // Return default if invalid
+          print("Data is not a valid map: $data");
+          return 0.0; // Return default if data structure is invalid
         }
       } else {
-        print("Data is not a valid map: $data");
-        return 0.0; // Return default if data structure is invalid
+        print("No data available for tripID: $globalTripID");
+        return 0.0; // Return default if no data found
       }
-    } else {
-      print("No data available for tripID: $globalTripID");
-      return 0.0; // Return default if no data found
+    } catch (error) {
+      print("Error fetching fare amount: $error");
+      return 0.0; // Return default on error
     }
-  } catch (error) {
-    print("Error fetching fare amount: $error");
-    return 0.0; // Return default on error
   }
-}
 
 
   /// PRINT FARE AMOUNT FROM TRIPREQUESTS
@@ -159,7 +159,7 @@ Future<double> getFareAmount() async {
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-     // printFareAmount(); // Call printFareAmount without parameters
+      // printFareAmount(); // Call printFareAmount without parameters
       print(
           "Trip Details: $tripDetails"); // Debug print to verify the contents of tripDetails
       print(
@@ -178,23 +178,21 @@ Future<double> getFareAmount() async {
             color: Colors.white,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
- child: FutureBuilder<double>(
-                  future: getFareAmount(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text(
-                          "Error: ${snapshot.error}",
-                          textAlign: TextAlign.center,
-                        ),
-                      );
-                    
-                    
+              child: FutureBuilder<double>(
+                future: getFareAmount(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        "Error: ${snapshot.error}",
+                        textAlign: TextAlign.center,
+                      ),
+                    );
                   } else {
                     double fare = snapshot.data ?? 0.0;
                     return Column(
@@ -512,65 +510,75 @@ Future<double> getFareAmount() async {
                         const SizedBox(height: 30),
 
                         // Rating Section CENTER
-                        const Text(
-                          "How was your trip?",
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
-                            return IconButton(
-                              icon: Icon(
-                                Icons.star,
-                                size: 45.0,
-                                color: index < selectedStarCount
-                                    ? Color(0xFFFBC02D)
-                                    : Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  selectedStarCount = index + 1;
-                                });
-                              },
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 70),
-                        SizedBox(
-                          width: 300,
-                          height: 60,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              if (selectedStarCount > 0) {
-                                // Only perform async actions on button press
-                                await handleRideComplete();
-                              } else {
-                                // Optionally, show a message if no star is selected
-                                print('Please select a star rating.');
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2E3192),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
-                            child: const Text(
-                              "RIDE COMPLETE",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 41),
+                      // Assuming selectedStarCount is a state variable in your StatefulWidget
+
+// Rating Section CENTER
+const Text(
+  "How was your trip?",
+  style: TextStyle(
+    color: Colors.black87,
+    fontSize: 20,
+    fontWeight: FontWeight.bold,
+  ),
+),
+const SizedBox(height: 8),
+
+//RATING SECTION
+// Wrap the star rating row with StatefulBuilder
+StatefulBuilder(
+  builder: (context, StateSetter setState) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(5, (index) {
+        bool isSelected = index < selectedStarCount;
+        return IconButton(
+          icon: Icon(
+            Icons.star,
+            size: 45.0,
+            color: isSelected ? Color(0xFFFBC02D) : Colors.grey,
+          ),
+          onPressed: () {
+            setState(() {
+              // Update selectedStarCount when a star is pressed
+              selectedStarCount = index + 1;
+            });
+          },
+        );
+      }),
+    );
+  },
+),
+
+const SizedBox(height: 70),
+SizedBox(
+  width: 300,
+  height: 60,
+  child: ElevatedButton(
+    onPressed: () async {
+      if (selectedStarCount > 0) {
+        await handleRideComplete();
+      } else {
+        print('Please select a star rating.');
+      }
+    },
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF2E3192),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(5),
+      ),
+    ),
+    child: const Text(
+      "RIDE COMPLETE",
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+        fontSize: 18,
+      ),
+    ),
+  ),
+),
+const SizedBox(height: 41),
+
                       ],
                     );
                   }
@@ -578,18 +586,18 @@ Future<double> getFareAmount() async {
               ),
             ),
           ),
-          // Positioned(
-          //   top: 0,
-          //   left: 0,
-          //   child: IconButton(
-          //     onPressed: () => Navigator.pop(context),
-          //     icon: const Icon(
-          //       Icons.close,
-          //       color: Colors.black,
-          //       size: 30,
-          //     ),
-          //   ),
-          // ),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(
+                Icons.close,
+                color: Colors.black,
+                size: 30,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -712,14 +720,9 @@ Future<double> getFareAmount() async {
         // Update driver ratings
         await fetchDriverIDAndUpdateRatings(globalTripID!);
 
-
-
-
         // Close the dialog after completion
         Navigator.of(context).pop("paid");
         //Navigator.pop(context);
-
-
       } catch (error) {
         print('Error during ride completion: $error');
       }
