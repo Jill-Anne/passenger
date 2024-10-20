@@ -23,12 +23,47 @@ class _LoginScreenState extends State<LoginScreen> {
   CommonMethods cMethods = CommonMethods();
   bool _isPasswordVisible = false;
 
+  @override
+  void initState() {
+    super.initState();
+    checkUserAuthentication();
+  }
+
+  void checkUserAuthentication() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null && user.emailVerified) {
+      // Check the user's status in the database
+      DatabaseReference usersRef = FirebaseDatabase.instance
+          .ref()
+          .child("users")
+          .child(user.uid);
+
+      final snapshot = await usersRef.once();
+      if (snapshot.snapshot.value != null) {
+        final userData = snapshot.snapshot.value as Map;
+        if (userData["blockStatus"] == "no") {
+          // Navigate to home page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
+        } else {
+          FirebaseAuth.instance.signOut();
+          cMethods.displaySnackBar(
+            "Your account has been blocked. Please contact support.",
+            context,
+          );
+        }
+      }
+    }
+  }
+
   void checkIfNetworkIsAvailable() {
     cMethods.checkConnectivity(context);
     signInFormValidation();
   }
 
-  void signInFormValidation() {
+void signInFormValidation() {
     if (!emailTextEditingController.text.contains("@")) {
       cMethods.displaySnackBar("Please write a valid email.", context);
     } else if (passwordTextEditingController.text.trim().length < 6) {
@@ -38,105 +73,113 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> signInUser() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: Colors.white,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Lottie.asset(
-                  'assets/images/loading.json',
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  height: MediaQuery.of(context).size.width * 0.9,
-                  fit: BoxFit.cover,
-                  repeat: true,
-                ),
-                const SizedBox(height: 50),
-                const Text(
-                  "Authenticating",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color.fromARGB(255, 1, 42, 123),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+ Future<void> signInUser() async {
+  // Show full-screen loading indicator
+  showLoadingOverlay();
+
+  try {
+    final UserCredential userCredential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(
+      email: emailTextEditingController.text.trim(),
+      password: passwordTextEditingController.text.trim(),
     );
 
-    try {
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-        email: emailTextEditingController.text.trim(),
-        password: passwordTextEditingController.text.trim(),
-      );
+    final User? userFirebase = userCredential.user;
 
-      final User? userFirebase = userCredential.user;
+    if (userFirebase != null) {
+      if (!userFirebase.emailVerified) {
+        FirebaseAuth.instance.signOut();
+        Navigator.of(context).pop(); // Close loading overlay
+        cMethods.displaySnackBar("Please verify your email before logging in.", context);
+        return;
+      }
 
-      if (!context.mounted) return;
-      Navigator.pop(context); // Close the dialog
+      // Retrieve user data from the database
+      DatabaseReference usersRef = FirebaseDatabase.instance
+          .ref()
+          .child("users")
+          .child(userFirebase.uid);
 
-      if (userFirebase != null) {
-        if (!userFirebase.emailVerified) {
-          FirebaseAuth.instance.signOut();
-          cMethods.displaySnackBar("Please verify your email before logging in.", context);
-          return;
-        }
+      final snapshot = await usersRef.once();
+      if (snapshot.snapshot.value != null) {
+        final userData = snapshot.snapshot.value as Map;
+        if (userData["blockStatus"] == "no") {
+          userName = userData["name"];
+          
+          // Wait for the animation to finish before navigating
+          await Future.delayed(Duration(seconds: 1));
+          Navigator.of(context).pop(); // Close loading overlay
 
-        DatabaseReference usersRef = FirebaseDatabase.instance
-            .ref()
-            .child("users")
-            .child(userFirebase.uid);
-
-        final snapshot = await usersRef.once();
-        if (snapshot.snapshot.value != null) {
-          final userData = snapshot.snapshot.value as Map;
-          if (userData["blockStatus"] == "no") {
-            userName = userData["name"];
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (c) => HomePage()),
-            );
-          } else {
-            FirebaseAuth.instance.signOut();
-            cMethods.displaySnackBar(
-              "Your account has been blocked. Please contact support.",
-              context,
-            );
-          }
+          // Navigate to home page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
         } else {
           FirebaseAuth.instance.signOut();
+          Navigator.of(context).pop(); // Close loading overlay
           cMethods.displaySnackBar(
-            "User record not found. Please check your credentials.",
+            "Your account has been blocked. Please contact support.",
             context,
           );
         }
-      }
-    } catch (error) {
-      if (context.mounted) {
-        Navigator.pop(context); // Close the dialog in case of an error
-        print('Error during sign-in: $error');
+      } else {
+        FirebaseAuth.instance.signOut();
+        Navigator.of(context).pop(); // Close loading overlay
         cMethods.displaySnackBar(
-          "An error occurred. Please check your credentials and try again.",
+          "User record not found. Please check your credentials.",
           context,
         );
       }
     }
+  } catch (error) {
+    if (context.mounted) {
+      Navigator.of(context).pop(); // Close loading overlay in case of an error
+      print('Error during sign-in: $error');
+      cMethods.displaySnackBar(
+        "An error occurred. Please check your credentials and try again.",
+        context,
+      );
+    }
   }
+}
+
+void showLoadingOverlay() {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return Center(
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.white,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Lottie.asset(
+                'assets/images/loading.json',
+                width: MediaQuery.of(context).size.width * 0.9,
+                height: MediaQuery.of(context).size.width * 0.9,
+                fit: BoxFit.cover,
+                repeat: true,
+              ),
+              const SizedBox(height: 50),
+              const Text(
+                "Authenticating",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 1, 42, 123),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
   void forgotPassword() {
   showDialog(
@@ -187,8 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
   );
 }
 
-
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -221,7 +263,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   "User Email",
                   Icons.email,
                   false,
-                  emailTextEditingController, maxLength: 30,
+                  emailTextEditingController,
+                  maxLength: 30,
                 ),
                 const SizedBox(height: 20),
                 TextField(
