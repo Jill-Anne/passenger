@@ -201,149 +201,158 @@ String updatedPhoneNumber = ''; // Declare it at the start of your widget state
     });
   }
 
-//Get details of place after selecting in list of prediction place????????
-  retrieveDirectionDetails() async {
-    var pickUpLocation =
-        Provider.of<AppInfo>(context, listen: false).pickUpLocation;
-    var dropOffDestinationLocation =
-        Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+retrieveDirectionDetails() async {
+  var appInfo = Provider.of<AppInfo>(context, listen: false);
+  var pickUpLocation = appInfo.pickUpLocation;
+  var dropOffDestinationLocation = appInfo.dropOffLocation;
 
-    var pickupGeoGraphicCoOrdinates = LatLng(
-        pickUpLocation!.latitudePosition!, pickUpLocation.longitudePosition!);
-    var dropOffDestinationGeoGraphicCoOrdinates = LatLng(
-        dropOffDestinationLocation!.latitudePosition!,
-        dropOffDestinationLocation.longitudePosition!);
+  // Use updated pickup coordinates or defaults if null
+  var pickupGeoGraphicCoOrdinates = LatLng(
+      pickUpLocation?.latitudePosition ?? 0.0, 
+      pickUpLocation?.longitudePosition ?? 0.0);
+  
+  var dropOffDestinationGeoGraphicCoOrdinates = LatLng(
+      dropOffDestinationLocation!.latitudePosition!,
+      dropOffDestinationLocation.longitudePosition!);
 
-    showDialog(
-      barrierDismissible: false,
-      context: context,
-      builder: (BuildContext context) =>
-          LoadingDialog(messageText: "Getting direction..."),
-    );
+  showDialog(
+    barrierDismissible: false,
+    context: context,
+    builder: (BuildContext context) =>
+        LoadingDialog(messageText: "Getting direction..."),
+  );
 
-    ///Directions API
-    var detailsFromDirectionAPI =
-        await CommonMethods.getDirectionDetailsFromAPI(
-            pickupGeoGraphicCoOrdinates,
-            dropOffDestinationGeoGraphicCoOrdinates);
+  try {
+    // Directions API
+    var detailsFromDirectionAPI = await CommonMethods.getDirectionDetailsFromAPI(
+        pickupGeoGraphicCoOrdinates,
+        dropOffDestinationGeoGraphicCoOrdinates);
+    
     setState(() {
       tripDirectionDetailsInfo = detailsFromDirectionAPI;
     });
 
-    Navigator.pop(context);
+  } catch (e) {
+    // Handle any errors that occur during the API call
+    print("Error retrieving direction details: $e");
+    // Optionally show a dialog or message to the user
+    Navigator.pop(context); // Close the loading dialog
+    return; // Exit the function if there was an error
+  }
 
-    //draw route from pickup to dropOffDestination
-    PolylinePoints pointsPolyline = PolylinePoints();
-    List<PointLatLng> latLngPointsFromPickUpToDestination =
-        pointsPolyline.decodePolyline(tripDirectionDetailsInfo!.encodedPoints!);
+  Navigator.pop(context); // Close the loading dialog after successful API call
 
-    polylineCoOrdinates.clear();
-    if (latLngPointsFromPickUpToDestination.isNotEmpty) {
-      latLngPointsFromPickUpToDestination.forEach((PointLatLng latLngPoint) {
-        polylineCoOrdinates
-            .add(LatLng(latLngPoint.latitude, latLngPoint.longitude));
-      });
-    }
+  // Draw route from pickup to dropOffDestination
+  PolylinePoints pointsPolyline = PolylinePoints();
+  List<PointLatLng> latLngPointsFromPickUpToDestination =
+      pointsPolyline.decodePolyline(tripDirectionDetailsInfo!.encodedPoints!);
 
-    polylineSet.clear();
-    setState(() {
-      Polyline polyline = Polyline(
-        polylineId: const PolylineId("polylineID"),
-        color: Colors.pink,
-        points: polylineCoOrdinates,
-        jointType: JointType.round,
-        width: 4,
-        startCap: Cap.roundCap,
-        endCap: Cap.roundCap,
-        geodesic: true,
-      );
-
-      polylineSet.add(polyline);
-    });
-
-    //fit the polyline into the map
-    LatLngBounds boundsLatLng;
-    if (pickupGeoGraphicCoOrdinates.latitude >
-            dropOffDestinationGeoGraphicCoOrdinates.latitude &&
-        pickupGeoGraphicCoOrdinates.longitude >
-            dropOffDestinationGeoGraphicCoOrdinates.longitude) {
-      boundsLatLng = LatLngBounds(
-        southwest: dropOffDestinationGeoGraphicCoOrdinates,
-        northeast: pickupGeoGraphicCoOrdinates,
-      );
-    } else if (pickupGeoGraphicCoOrdinates.longitude >
-        dropOffDestinationGeoGraphicCoOrdinates.longitude) {
-      boundsLatLng = LatLngBounds(
-        southwest: LatLng(pickupGeoGraphicCoOrdinates.latitude,
-            dropOffDestinationGeoGraphicCoOrdinates.longitude),
-        northeast: LatLng(dropOffDestinationGeoGraphicCoOrdinates.latitude,
-            pickupGeoGraphicCoOrdinates.longitude),
-      );
-    } else if (pickupGeoGraphicCoOrdinates.latitude >
-        dropOffDestinationGeoGraphicCoOrdinates.latitude) {
-      boundsLatLng = LatLngBounds(
-        southwest: LatLng(dropOffDestinationGeoGraphicCoOrdinates.latitude,
-            pickupGeoGraphicCoOrdinates.longitude),
-        northeast: LatLng(pickupGeoGraphicCoOrdinates.latitude,
-            dropOffDestinationGeoGraphicCoOrdinates.longitude),
-      );
-    } else {
-      boundsLatLng = LatLngBounds(
-        southwest: pickupGeoGraphicCoOrdinates,
-        northeast: dropOffDestinationGeoGraphicCoOrdinates,
-      );
-    }
-
-    controllerGoogleMap!
-        .animateCamera(CameraUpdate.newLatLngBounds(boundsLatLng, 72));
-
-    //add markers to pickup and dropOffDestination points
-    Marker pickUpPointMarker = Marker(
-      markerId: const MarkerId("pickUpPointMarkerID"),
-      position: pickupGeoGraphicCoOrdinates,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      infoWindow: InfoWindow(
-          title: pickUpLocation.placeName, snippet: "Pickup Location"),
-    );
-
-    Marker dropOffDestinationPointMarker = Marker(
-      markerId: const MarkerId("dropOffDestinationPointMarkerID"),
-      position: dropOffDestinationGeoGraphicCoOrdinates,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-      infoWindow: InfoWindow(
-          title: dropOffDestinationLocation.placeName,
-          snippet: "Destination Location"),
-    );
-
-    setState(() {
-      markerSet.add(pickUpPointMarker);
-      markerSet.add(dropOffDestinationPointMarker);
-    });
-
-    //add circles to pickup and dropOffDestination points
-    Circle pickUpPointCircle = Circle(
-      circleId: const CircleId('pickupCircleID'),
-      strokeColor: Colors.blue,
-      strokeWidth: 4,
-      radius: 14,
-      center: pickupGeoGraphicCoOrdinates,
-      fillColor: Colors.pink,
-    );
-
-    Circle dropOffDestinationPointCircle = Circle(
-      circleId: const CircleId('dropOffDestinationCircleID'),
-      strokeColor: Colors.blue,
-      strokeWidth: 4,
-      radius: 14,
-      center: dropOffDestinationGeoGraphicCoOrdinates,
-      fillColor: Colors.pink,
-    );
-
-    setState(() {
-      circleSet.add(pickUpPointCircle);
-      circleSet.add(dropOffDestinationPointCircle);
+  polylineCoOrdinates.clear();
+  if (latLngPointsFromPickUpToDestination.isNotEmpty) {
+    latLngPointsFromPickUpToDestination.forEach((PointLatLng latLngPoint) {
+      polylineCoOrdinates.add(LatLng(latLngPoint.latitude, latLngPoint.longitude));
     });
   }
+
+  polylineSet.clear();
+  setState(() {
+    Polyline polyline = Polyline(
+      polylineId: const PolylineId("polylineID"),
+      color: Colors.pink,
+      points: polylineCoOrdinates,
+      jointType: JointType.round,
+      width: 4,
+      startCap: Cap.roundCap,
+      endCap: Cap.roundCap,
+      geodesic: true,
+    );
+
+    polylineSet.add(polyline);
+  });
+
+  // Fit the polyline into the map
+  LatLngBounds boundsLatLng;
+  if (pickupGeoGraphicCoOrdinates.latitude >
+          dropOffDestinationGeoGraphicCoOrdinates.latitude &&
+      pickupGeoGraphicCoOrdinates.longitude >
+          dropOffDestinationGeoGraphicCoOrdinates.longitude) {
+    boundsLatLng = LatLngBounds(
+      southwest: dropOffDestinationGeoGraphicCoOrdinates,
+      northeast: pickupGeoGraphicCoOrdinates,
+    );
+  } else if (pickupGeoGraphicCoOrdinates.longitude >
+      dropOffDestinationGeoGraphicCoOrdinates.longitude) {
+    boundsLatLng = LatLngBounds(
+      southwest: LatLng(pickupGeoGraphicCoOrdinates.latitude,
+          dropOffDestinationGeoGraphicCoOrdinates.longitude),
+      northeast: LatLng(dropOffDestinationGeoGraphicCoOrdinates.latitude,
+          pickupGeoGraphicCoOrdinates.longitude),
+    );
+  } else if (pickupGeoGraphicCoOrdinates.latitude >
+      dropOffDestinationGeoGraphicCoOrdinates.latitude) {
+    boundsLatLng = LatLngBounds(
+      southwest: LatLng(dropOffDestinationGeoGraphicCoOrdinates.latitude,
+          pickupGeoGraphicCoOrdinates.longitude),
+      northeast: LatLng(pickupGeoGraphicCoOrdinates.latitude,
+          dropOffDestinationGeoGraphicCoOrdinates.longitude),
+    );
+  } else {
+    boundsLatLng = LatLngBounds(
+      southwest: pickupGeoGraphicCoOrdinates,
+      northeast: dropOffDestinationGeoGraphicCoOrdinates,
+    );
+  }
+
+  controllerGoogleMap!
+      .animateCamera(CameraUpdate.newLatLngBounds(boundsLatLng, 72));
+
+  // Add markers to pickup and dropOffDestination points
+  Marker pickUpPointMarker = Marker(
+    markerId: const MarkerId("pickUpPointMarkerID"),
+    position: pickupGeoGraphicCoOrdinates,
+    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+    infoWindow: InfoWindow(
+        title: pickUpLocation!.placeName, snippet: "Pickup Location"),
+  );
+
+  Marker dropOffDestinationPointMarker = Marker(
+    markerId: const MarkerId("dropOffDestinationPointMarkerID"),
+    position: dropOffDestinationGeoGraphicCoOrdinates,
+    icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+    infoWindow: InfoWindow(
+        title: dropOffDestinationLocation.placeName,
+        snippet: "Destination Location"),
+  );
+
+  setState(() {
+    markerSet.add(pickUpPointMarker);
+    markerSet.add(dropOffDestinationPointMarker);
+  });
+
+  // Add circles to pickup and dropOffDestination points
+  Circle pickUpPointCircle = Circle(
+    circleId: const CircleId('pickupCircleID'),
+    strokeColor: Colors.blue,
+    strokeWidth: 4,
+    radius: 14,
+    center: pickupGeoGraphicCoOrdinates,
+    fillColor: Colors.pink,
+  );
+
+  Circle dropOffDestinationPointCircle = Circle(
+    circleId: const CircleId('dropOffDestinationCircleID'),
+    strokeColor: Colors.blue,
+    strokeWidth: 4,
+    radius: 14,
+    center: dropOffDestinationGeoGraphicCoOrdinates,
+    fillColor: Colors.pink,
+  );
+
+  setState(() {
+    circleSet.add(pickUpPointCircle);
+    circleSet.add(dropOffDestinationPointCircle);
+  });
+}
 
 //EXIT FROM MAP CONFIRM BOOKING
   void resetAppNow(BuildContext context) {

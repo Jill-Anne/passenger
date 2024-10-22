@@ -18,4 +18,6 @@ class AppInfo extends ChangeNotifier
     dropOffLocation = dropOffModel;
     notifyListeners();
   }
+
+  
 }

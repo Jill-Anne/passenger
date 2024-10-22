@@ -3,6 +3,7 @@ import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
+import 'package:passenger/models/address_model.dart';
 import 'package:passenger/models/prediction_model.dart';
 import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/widgets/dialog_utils.dart';
@@ -95,6 +96,7 @@ class SearchDestinationPageState extends State<SearchDestinationPage> {
         .pickUpLocation?.humanReadableAddress ?? "";
 
     pickUpTextEditingController.text = userAddress;
+ String pickupAddress = ""; // Variable to store the pickup address
 
 return Scaffold(
   body: Column(
@@ -145,7 +147,27 @@ return Scaffold(
                 TextFormField(
                   controller: pickUpTextEditingController,
                   style: TextStyle(color: Colors.white), // Set input text color to white
-                  decoration: InputDecoration(
+onChanged: (inputText) {
+  pickupAddress = inputText; // Update global variable
+  print("Updated Pickup Address: $pickupAddress"); // Example action
+
+  // Optionally, use the current position to create the AddressModel
+  // For now, we'll use default values for latitude and longitude.
+  double defaultLatitude = 0.0; // Replace with actual latitude if available
+  double defaultLongitude = 0.0; // Replace with actual longitude if available
+  
+  // Create an AddressModel from the updated address
+  AddressModel updatedPickUpModel = AddressModel(
+    humanReadableAddress: pickupAddress,
+    placeName: pickupAddress,
+    latitudePosition: defaultLatitude,
+    longitudePosition: defaultLongitude,
+  );
+
+  // Update the AppInfo with the new pickup location
+  Provider.of<AppInfo>(context, listen: false).updatePickUpLocation(updatedPickUpModel);
+},
+ decoration: InputDecoration(
                     labelText: "Pickup Address",
                     labelStyle: TextStyle(color: Colors.white), // Label text color is white
                     prefixIcon: Padding(
