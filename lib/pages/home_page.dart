@@ -745,6 +745,15 @@ tripStreamSubscription =
         print('First Name not found in trip data.');
       }
 
+      if ((eventSnapshot.snapshot.value as Map)["lastName"] != null) {
+        lastName = (eventSnapshot.snapshot.value as Map)["lastName"];
+        print('First Name: $lastName');
+      } else {
+        print('First Name not found in trip data.');
+      }
+
+
+
       if ((eventSnapshot.snapshot.value as Map)["phoneNumber"] != null) {
         phoneNumber = (eventSnapshot.snapshot.value as Map)["phoneNumber"];
         print('phoneNumber: $phoneNumber');
@@ -1040,7 +1049,7 @@ tripStreamSubscription =
     }
   }
 
-  void noDriverAvailable() async {
+ noDriverAvailable() async {
     var result = await showDialog(
       context: context,
       barrierDismissible: false,
@@ -1073,67 +1082,69 @@ tripStreamSubscription =
   bool isCancellationHandled =
       false; // Flag to track if cancellation is handled
 
-  Future<void> searchDriver() async {
-    print('searchDriver() called.');
+Future<void> searchDriver() async {
+  print('searchDriver() called.');
 
-    if (globalTripID == null) {
-      print('Error: tripID is not set.');
-      return;
-    }
-
-    print('Trip ID: $globalTripID');
-
-    // Retrieve the status of the trip from Firebase
-    DatabaseReference tripStatusRef = FirebaseDatabase.instance
-        .ref()
-        .child("tripRequests")
-        .child(globalTripID!)
-        .child("status");
-
-    try {
-      // Listen for real-time changes in trip status
-      tripStatusRef.onValue.listen((dataSnapshot) async {
-        final status = dataSnapshot.snapshot.value as String?;
-        print('Status: $status');
-
-        if (status == 'cancelled') {
-          print('Trip cancelled notification received.');
-
-          if (!isCancellationHandled) {
-            isCancellationHandled = true; // Mark cancellation as handled
-
-            if (context != null && mounted) {
-              await _showDeclineDialog();
-              print('Decline dialog dismissed.');
-            } else {
-              print('Context is null or widget is not mounted.');
-            }
-            cancelRideRequest();
-            resetAppNow(context);
-            print('Cancellation AND RESET handled.');
-
-            // Exit as no further actions are needed
-            return;
-          }
-        }
-
-        print('Status is not cancelled. Proceeding with driver search.');
-      });
-    } catch (error) {
-      print('Error retrieving trip status: $error');
-    }
-
-    if (availableNearbyOnlineDriversList!.isEmpty) {
-      print('No available drivers found.');
-      noDriverAvailable();
-      cancelRideRequest();
-      return;
-    }
-
-    var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
-    print('Driver selected: $currentDriver');
-    await sendNotificationToDriver(currentDriver);
+  if (globalTripID == null) {
+    print('Error: tripID is not set.');
+    return;
   }
+
+  print('Trip ID: $globalTripID');
+
+  // Retrieve the status of the trip from Firebase
+  DatabaseReference tripStatusRef = FirebaseDatabase.instance
+      .ref()
+      .child("tripRequests")
+      .child(globalTripID!)
+      .child("status");
+
+  try {
+    // Listen for real-time changes in trip status
+    tripStatusRef.onValue.listen((dataSnapshot) async {
+      final status = dataSnapshot.snapshot.value as String?;
+      print('Status: $status');
+
+      if (status == 'cancelled') {
+        print('Trip cancelled notification received.');
+
+        if (!isCancellationHandled) {
+          isCancellationHandled = true; // Mark cancellation as handled
+
+          if (context != null && mounted) {
+            await _showDeclineDialog();
+            print('Decline dialog dismissed.');
+          } else {
+            print('Context is null or widget is not mounted.');
+          }
+          cancelRideRequest();
+          resetAppNow(context);
+          print('Cancellation AND RESET handled.');
+
+          // Exit as no further actions are needed
+          return;
+        }
+      }
+
+      print('Status is not cancelled. Proceeding with driver search.');
+    });
+  } catch (error) {
+    print('Error retrieving trip status: $error');
+  }
+
+  if (availableNearbyOnlineDriversList!.isEmpty) {
+    print('No available drivers found.');
+    bool shouldCancel = noDriverAvailable(); // Await the dialog result
+    if (!shouldCancel) {
+      cancelRideRequest(); // Cancel only if the user didn't want to reset
+    }
+    return; // Exit the function after handling no drivers
+  }
+
+  var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
+  print('Driver selected: $currentDriver');
+  await sendNotificationToDriver(currentDriver);
+}
 
  Future<void> _showDeclineDialog() async {
   print('Preparing to show decline dialog.');
@@ -1224,7 +1235,7 @@ tripStreamSubscription =
   }
 }
 
-
+///ReseT is NOT working Finding another driver is working if didntaccept on first request 
   Future<void> sendNotificationToDriver(
       OnlineNearbyDrivers currentDriver) async {
     print(
@@ -1316,13 +1327,19 @@ tripStreamSubscription =
         timer.cancel();
         driverRef.child("newTripStatus").set("timeout");
         driverRef.onDisconnect();
-        requestTimeoutDriver = 20;
+        requestTimeoutDriver = 15;
 
         // Log and notify the next nearest driver
         print(
             'Request timed out for driver UID: ${currentDriver.uidDriver}, searching for next available driver.');
         searchDriver();
-        return;
+              // Start a new timer for waiting state
+      Timer(Duration(seconds: 10), () {
+        driverRef.child("newTripStatus").set("waiting");
+        print('Driver UID: ${currentDriver.uidDriver} is now waiting for a new request.');
+      });
+      
+      return;
       }
     });
 
