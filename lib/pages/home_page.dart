@@ -1334,7 +1334,7 @@ Future<void> searchDriver() async {
             'Request timed out for driver UID: ${currentDriver.uidDriver}, searching for next available driver.');
         searchDriver();
               // Start a new timer for waiting state
-      Timer(Duration(seconds: 10), () {
+      Timer(Duration(seconds: 15), () {
         driverRef.child("newTripStatus").set("waiting");
         print('Driver UID: ${currentDriver.uidDriver} is now waiting for a new request.');
       });

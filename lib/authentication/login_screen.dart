@@ -26,7 +26,17 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    checkUserAuthentication();
+  //  checkUserAuthentication();
+
+  // automatically login as long verified
+  // User? user = FirebaseAuth.instance.currentUser;
+  // if (user != null && user.emailVerified) {
+  //   // If the user is logged in and email is verified, navigate to HomePage
+  //   Navigator.pushReplacement(
+  //     context,
+  //     MaterialPageRoute(builder: (context) => HomePage()),
+  //   );
+  // }
   }
 
   void checkUserAuthentication() async {
@@ -73,7 +83,7 @@ void signInFormValidation() {
     }
   }
 
- Future<void> signInUser() async {
+Future<void> signInUser() async {
   // Show full-screen loading indicator
   showLoadingOverlay();
 
@@ -87,6 +97,7 @@ void signInFormValidation() {
     final User? userFirebase = userCredential.user;
 
     if (userFirebase != null) {
+      // Check if the email is verified
       if (!userFirebase.emailVerified) {
         FirebaseAuth.instance.signOut();
         Navigator.of(context).pop(); // Close loading overlay
@@ -143,6 +154,7 @@ void signInFormValidation() {
     }
   }
 }
+
 
 void showLoadingOverlay() {
   showDialog(

@@ -130,7 +130,7 @@ sendVerificationEmail(User user) async {
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Center(child: Text("Check your email for verification.",
-         style: TextStyle(color: Color.fromARGB(255, 1, 42, 123)),
+         style: TextStyle(color: Color.fromARGB(255, 1, 42, 123), fontSize: 20, fontWeight: FontWeight.bold,),
          textAlign: TextAlign.center,
         )),
         content: const Text("A verification link has been sent to your email. Please verify to continue.",
@@ -194,7 +194,7 @@ showSuccessDialog() {
       title: const Center(
         child: Text(
           "Successfully Signed Up",
-          style: TextStyle(color: Color.fromARGB(255, 1, 42, 123)), // Title text color
+          style: TextStyle(color: Color.fromARGB(255, 1, 42, 123), fontSize: 20, fontWeight: FontWeight.bold,), // Title text color
         ),
       ),
              content: const Text("You have successfully signed up.", 
@@ -242,7 +242,7 @@ showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) => LoadingDialog(messageText: "Registering your account..."),
+      builder: (BuildContext context) => LoadingDialog(messageText: "Signing up..."),
     );
 
   try {
