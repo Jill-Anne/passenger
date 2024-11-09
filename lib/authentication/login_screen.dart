@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:lottie/lottie.dart';
 import 'package:passenger/authentication/forgot_password.dart';
 import 'package:passenger/authentication/signup_screen.dart';
+import 'package:passenger/authentication/terms_policy.dart';
 import 'package:passenger/global/global_var.dart';
 import 'package:passenger/methods/common_methods.dart';
 import 'package:passenger/methods/reusable_widgets.dart';
@@ -327,9 +328,14 @@ void showLoadingOverlay() {
           style: TextStyle(color: Color.fromARGB(179, 11, 11, 11)),
         ),
         GestureDetector(
-          onTap: () {
+         /* onTap: () {
             Navigator.push(context,
                 MaterialPageRoute(builder: (context) => SignUpScreen()));
+          },
+*/
+           onTap: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => TermsPolicy()));
           },
           child: const Text(
             " Sign Up",
