@@ -236,16 +236,34 @@ showSuccessDialog() {
       cMethods.displaySnackBar("Error checking email: $error", context);
     }
   }
-
- registerNewUser() async {
+registerNewUser() async {
   // Show the loading dialog immediately
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) => LoadingDialog(messageText: "Signing up..."),
-    );
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) => LoadingDialog(messageText: "Signing up..."),
+  );
 
   try {
+    // Step 1: Check if email already exists in Firebase Authentication
+    final emailExistsInAuth = await emailAlreadyExistsInAuth(emailTextEditingController.text.trim());
+    
+    if (emailExistsInAuth) {
+      Navigator.pop(context); // Close loading dialog
+      cMethods.displaySnackBar("Email is already registered in Firebase Authentication.", context);
+      return;
+    }
+
+    // Step 2: Check if email already exists in Firebase Realtime Database
+    final emailExistsInDatabase = await emailAlreadyExistsInDatabase(emailTextEditingController.text.trim());
+    
+    if (emailExistsInDatabase) {
+      Navigator.pop(context); // Close loading dialog
+      cMethods.displaySnackBar("Email is already registered in the database.", context);
+      return;
+    }
+
+    // Proceed with user creation since email does not exist in Auth or DB
     UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
       email: emailTextEditingController.text.trim(),
       password: passwordTextEditingController.text.trim(),
@@ -264,6 +282,7 @@ showSuccessDialog() {
         "blockStatus": "no",
       };
 
+      // Save user data in Realtime Database
       await usersRef.set(userDataMap);
 
       // Save user details to global variable
@@ -271,15 +290,40 @@ showSuccessDialog() {
       UserData.phone = userPhoneTextEditingController.text.trim();
       UserData.email = emailTextEditingController.text.trim();
       
- await sendVerificationEmail(userFirebase);
-      } else {
-        cMethods.displaySnackBar("User registration failed. Please try again.", context);
-      }
-    } catch (error) {
+      // Send email verification
+      await sendVerificationEmail(userFirebase);
+    } else {
       Navigator.pop(context); // Close loading dialog
-      cMethods.displaySnackBar(error.toString(), context);
+      cMethods.displaySnackBar("User registration failed. Please try again.", context);
     }
+  } catch (error) {
+    Navigator.pop(context); // Close loading dialog
+    cMethods.displaySnackBar(error.toString(), context);
   }
+}
+
+// Helper function to check if the email already exists in Firebase Authentication
+Future<bool> emailAlreadyExistsInAuth(String email) async {
+  try {
+    final List<UserInfo> userInfo = (await FirebaseAuth.instance.fetchSignInMethodsForEmail(email)).cast<UserInfo>();
+    return userInfo.isNotEmpty; // If not empty, email exists
+  } catch (error) {
+    return false; // In case of error (like no internet), assume the email is not registered
+  }
+}
+
+// Helper function to check if the email already exists in Firebase Realtime Database
+Future<bool> emailAlreadyExistsInDatabase(String email) async {
+  try {
+    final usersRef = FirebaseDatabase.instance.ref().child("users");
+    final snapshot = await usersRef.orderByChild("email").equalTo(email).get();
+
+    return snapshot.exists; // If the snapshot exists, email is already in the DB
+  } catch (error) {
+    return false; // In case of error (like no internet), assume the email is not registered
+  }
+}
+
 
    @override
 Widget build(BuildContext context) {
