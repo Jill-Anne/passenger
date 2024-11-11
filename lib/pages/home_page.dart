@@ -1163,70 +1163,109 @@ Future<void> searchDriver() async {
     }
 
     await showDialog(
-      context: context!,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        print('Building AlertDialog for driver decline.');
+  context: context!,
+  barrierDismissible: false,
+  builder: (BuildContext context) {
+    print('Building AlertDialog for driver decline.');
 
-        return AlertDialog(
-            backgroundColor: Color.fromARGB(255, 1, 42, 123), // Deep Blue Background
-          title: Container(
-           
-            
-            child: const Center(
-              child: Text(
-                'Trip Canceled',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+    return Dialog(
+      backgroundColor: Colors.transparent, // Make the dialog background transparent
+      child: Stack(
+        clipBehavior: Clip.none, // Allow the icon to overflow outside the dialog
+        children: [
+          // Main Dialog Container
+          Container(
+            decoration: BoxDecoration(
+              color: Color.fromARGB(255, 1, 42, 123), // Deep Blue Background
+              borderRadius: BorderRadius.circular(12.0), // Rounded corners for dialog
             ),
-          ),
-          content: Container(
-            width: 300, // Set a fixed width for the content
-            height: 100, 
-            child: const Center(
-              child: Text(
-                'Your trip request was canceled because it’s outside our service area.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-          actions: [
-            Center( // Center the button
-              child: SizedBox(
-                width: 150, // Set the width of the button
-                height: 40, // Set the height of the button
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.red,
-                          shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(3), // Border radius here
-      ),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop(1); // Return 1 to indicate 'OK' pressed
-                  },
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Title
+                const Center(
                   child: Text(
-                    'OK',
-                    style: TextStyle(fontSize: 16),
+                    'Trip Canceled',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ),
+                const SizedBox(height: 20),
+                // Content
+                const Center(
+                  child: Text(
+                    'Your trip request was canceled because it’s outside our service area.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Action Button
+                Center(
+                  child: SizedBox(
+                    width: 150,
+                    height: 40,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop(1); // Return 1 to indicate 'OK' pressed
+                      },
+                      child: const Text(
+                        'OK',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Floating Close Icon outside the dialog
+          Positioned(
+            top: -10, // Adjust to move the icon above the dialog
+            right: -10, // Position it outside the right corner
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).pop(); // Close the dialog
+                cancelRideRequest(); // Call the cancelRideRequest function
+              },
+              child: Container(
+                padding: EdgeInsets.all(6), // Padding inside the circle
+                decoration: BoxDecoration(
+                  color: Colors.white, // White background for the icon
+                  shape: BoxShape.circle, // Make it circular
+                ),
+                child: Icon(
+                  Icons.close,
+                  color: Color.fromARGB(255, 1, 42, 123), // Deep blue icon color
+                  size: 24, // Icon size
                 ),
               ),
             ),
-          ],
-        );
-      },
-    ).then((_) {
-      print('Dialog completion callback executed.');
-    });
+          ),
+        ],
+      ),
+    );
+  },
+).then((_) {
+  print('Dialog completion callback executed.');
+});
+
+print('showDialog() function call completed.');
+
 
     print('showDialog() function call completed.');
   } catch (e, stackTrace) {
