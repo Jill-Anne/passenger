@@ -18,7 +18,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -32,31 +31,109 @@ void main() async {
     androidProvider: AndroidProvider.playIntegrity,
   );
 
-  // Request location and notification permissions
-  await _requestPermissions();
+  await dotenv.load(fileName: ".env");
+  print(dotenv.env);  // Just for debugging purposes, remove it in production.
 
   // Set up Firebase Messaging
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Fetch and log Firebase token
   await _fetchAndLogFirebaseToken();
-await dotenv.load(fileName: ".env");
-print(dotenv.env);  
+
   runApp(MyApp());
 }
 
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Request permissions only after the app is open
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _requestPermissions();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Set the status bar color to transparent
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Color.fromARGB(255, 1, 42, 123), // Set a color or transparent
+      statusBarIconBrightness: Brightness.light,
+    ));
+
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AppInfo()),
+        ChangeNotifierProvider(create: (context) => TripData()),  // Add this line for trip data management
+      ],
+      child: MaterialApp(
+        title: 'Passenger App',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          scaffoldBackgroundColor: Colors.white, // Set Scaffold background color
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color.fromARGB(255, 1, 42, 123), // AppBar background color
+            foregroundColor: Colors.white, // AppBar text color
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarColor: Color.fromARGB(255, 1, 42, 123), // Status bar color
+              statusBarIconBrightness: Brightness.light, // Status bar icon brightness
+            ),
+          ),
+          useMaterial3: true,
+          fontFamily: 'Poppins',  // Set the default font to Poppins
+          textTheme: const TextTheme(
+            displayLarge: TextStyle(fontFamily: 'Poppins'),
+            displayMedium: TextStyle(fontFamily: 'Poppins'),
+            displaySmall: TextStyle(fontFamily: 'Poppins'),
+            headlineMedium: TextStyle(fontFamily: 'Poppins'),  // Replaces headline4
+            headlineSmall: TextStyle(fontFamily: 'Poppins'),
+            titleLarge: TextStyle(fontFamily: 'Poppins'),
+            titleMedium: TextStyle(fontFamily: 'Poppins'),
+            titleSmall: TextStyle(fontFamily: 'Poppins'),
+            bodyLarge: TextStyle(fontFamily: 'Poppins'),  // Replaces bodyText1
+            bodyMedium: TextStyle(fontFamily: 'Poppins'), // Replaces bodyText2
+            labelLarge: TextStyle(fontFamily: 'Poppins'), // For buttons and labels
+            bodySmall: TextStyle(fontFamily: 'Poppins'),
+            labelSmall: TextStyle(fontFamily: 'Poppins'),
+          ),
+        ),
+        home: FirebaseAuth.instance.currentUser == null
+            ? LoginScreen()
+            : HomePage(),  // Load HomePage if user is authenticated
+      ),
+    );
+  }
+}
 
 Future<void> _requestPermissions() async {
-  // Request location permission
+  // Request location permission (When in use)
   final locationStatus = await Permission.locationWhenInUse.status;
   if (locationStatus.isDenied) {
-    await Permission.locationWhenInUse.request();
+    // Request permission if it's denied
+    final result = await Permission.locationWhenInUse.request();
+    if (result.isDenied) {
+      // Handle permission denied, perhaps show a dialog
+      debugPrint('Location permission denied.');
+    }
   }
 
   // Request notification permission
   final notificationStatus = await Permission.notification.status;
   if (notificationStatus.isDenied) {
-    await Permission.notification.request();
+    // Request permission if it's denied
+    final result = await Permission.notification.request();
+    if (result.isDenied) {
+      // Handle permission denied, perhaps show a dialog
+      debugPrint('Notification permission denied.');
+    }
   }
 }
 
@@ -65,8 +142,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Initialize Firebase if not already initialized
   await Firebase.initializeApp();
   print('Handling a background message: ${message.messageId}');
-  // You can handle background messages here
-  // For example, show a local notification or update the app's state
+  // Handle background message
+  // You can show a local notification or update app state here
 }
 
 // Fetch and log Firebase token
@@ -85,62 +162,3 @@ Future<void> _fetchAndLogFirebaseToken() async {
     log('Error fetching Firebase token: $e');
   }
 }
-
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-@override
-Widget build(BuildContext context) {
-    // Set the status bar color to transparent
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Color.fromARGB(255, 1, 42, 123),//Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-  ));
-  
-  return MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (context) => AppInfo()),
-      ChangeNotifierProvider(create: (context) => TripData()),  // Add this line for trip data management
-      
-    ],
-    child: MaterialApp(
-      title: 'Passenger App',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-          scaffoldBackgroundColor: Colors.white, // Set Scaffold background color
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Color.fromARGB(255, 1, 42, 123), // AppBar background color
-    foregroundColor: Colors.white, // AppBar text color
-    systemOverlayStyle: SystemUiOverlayStyle(
-      statusBarColor: Color.fromARGB(255, 1, 42, 123), // Status bar color
-      statusBarIconBrightness: Brightness.light, // Status bar icon brightness
-    ),
-  ),
-        useMaterial3: true,
-        fontFamily: 'Poppins',  // Set the default font to Poppins
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(fontFamily: 'Poppins'),
-          displayMedium: TextStyle(fontFamily: 'Poppins'),
-          displaySmall: TextStyle(fontFamily: 'Poppins'),
-          headlineMedium: TextStyle(fontFamily: 'Poppins'),  // Replaces headline4
-          headlineSmall: TextStyle(fontFamily: 'Poppins'),
-          titleLarge: TextStyle(fontFamily: 'Poppins'),
-          titleMedium: TextStyle(fontFamily: 'Poppins'),
-          titleSmall: TextStyle(fontFamily: 'Poppins'),
-          bodyLarge: TextStyle(fontFamily: 'Poppins'),  // Replaces bodyText1
-          bodyMedium: TextStyle(fontFamily: 'Poppins'), // Replaces bodyText2
-          labelLarge: TextStyle(fontFamily: 'Poppins'), // For buttons and labels
-          bodySmall: TextStyle(fontFamily: 'Poppins'),
-          labelSmall: TextStyle(fontFamily: 'Poppins'),
-        ),
-      ),
-      home: FirebaseAuth.instance.currentUser == null
-          ? LoginScreen()
-          : HomePage(),  // Load HomePage if user is authenticated
-    ),
-  );
-}
-
-}
-
