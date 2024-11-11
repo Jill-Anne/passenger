@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/global/trip_var.dart';
@@ -26,7 +27,16 @@ class _TermsConditionsPageState extends State<TermsConditionsPage> {
   CommonMethods cMethods = CommonMethods();
  @override
  
+ 
 Widget build(BuildContext context) {
+
+
+      // Set the status bar color to transparent
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Color.fromARGB(255, 1, 42, 123), // Set a color or transparent
+      statusBarIconBrightness: Brightness.light,
+    ));
+
   return Scaffold(
     appBar: AppBar(
       automaticallyImplyLeading: false, // Prevents the default back button
@@ -41,15 +51,15 @@ Widget build(BuildContext context) {
           const SizedBox(width: 7), // Adjust this for the desired spacing
           Expanded(
  child: Padding(
-  padding: const EdgeInsets.only(top: 15),
+  padding: const EdgeInsets.only(top: 0),
   child: Container(
     alignment: Alignment.center, // Center the text within the container
     child: const Text(
-      'Terms and Conditions for Tri.CO Service Ride',
+      'Terms and Conditions of Service Ride',
       textAlign: TextAlign.center, // Center the text within itself
       style: TextStyle(
-        color: Color.fromARGB(255, 18, 2, 56),
-        fontSize: 16, // Adjust the font size as needed
+      //  color: Color.fromARGB(255, 18, 2, 56),
+        fontSize: 18, // Adjust the font size as needed
         fontWeight: FontWeight.bold,
       ),
       maxLines: 3, // Allow for text wrapping

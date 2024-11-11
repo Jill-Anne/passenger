@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:passenger/pages/termsconditions_page.dart';
 import 'package:passenger/widgets/servicerideText.dart';
 
@@ -14,36 +15,46 @@ class ServiceRidePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+        // Set the status bar color to transparent
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Color.fromARGB(255, 1, 42, 123), // Set a color or transparent
+      statusBarIconBrightness: Brightness.light,
+    ));
+
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          // Wrap with SingleChildScrollView
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0, vertical: 10.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(Icons.arrow_back),
+  body: SafeArea(
+    child: SingleChildScrollView(
+      child: Column(
+        children: [
+          // Wrap the Row in a Container to set the background color
+          Container(
+            color: Color.fromARGB(255, 1, 42, 123), // Set background color to blue
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0, vertical: 10.0),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.arrow_back, color: Colors.white), // Change icon color to white for visibility
+                  ),
+                  const SizedBox(
+                      width: 10), // Adjust this value for desired space
+                  const Text(
+                    'Service Ride Information',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,  // Change text color to white for visibility
                     ),
-                    const SizedBox(
-                        width: 10), // Adjust this value for desired space
-                    const Text(
-                      'Service Ride Information',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color.fromARGB(255, 18, 2, 56),
-                      ),
                     ),
                   ],
                 ),
               ),
+          ),
               ServiceRideInfo(),
               Container(
                 width: 275,

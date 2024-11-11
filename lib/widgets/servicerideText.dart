@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class ServiceRideInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+
+        // Set the status bar color to transparent
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Color.fromARGB(255, 1, 42, 123), // Set a color or transparent
+      statusBarIconBrightness: Brightness.light,
+    ));
+
     return const Padding(
       padding: EdgeInsets.all(25.0),
       child: Column(
