@@ -49,23 +49,25 @@ class DefaultFirebaseOptions {
     }
   }
 
+
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDtvRVetb6lZzxpIQQ8gqIGK1J2WOlBnok',
-    appId: '1:755339267599:web:a641b5b447491be4e01d7a',
-    messagingSenderId: '755339267599',
-    projectId: 'passenger-signuplogin',
-    authDomain: 'passenger-signuplogin.firebaseapp.com',
-    databaseURL: 'https://passenger-signuplogin-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'passenger-signuplogin.appspot.com',
-    measurementId: 'G-SRDZDG7GW1',
+  apiKey: "AIzaSyDgJoaa0IeP_UgGyiy5y-hRYgDD7RfS154",
+  authDomain: "capstone-ca5d5.firebaseapp.com",
+  databaseURL: "https://capstone-ca5d5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "capstone-ca5d5",
+  storageBucket: "capstone-ca5d5.firebasestorage.app",
+  messagingSenderId: "499691183216",
+  appId: "1:499691183216:web:93392b331aab6a776828b5",
+  measurementId: "G-MF3YD1PZY9"
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCkLt8ILMXSFRP12xS8P7830kGNBeGn47s',
-    appId: '1:755339267599:android:13c3d99ae54b15d2e01d7a',
-    messagingSenderId: '755339267599',
-    projectId: 'passenger-signuplogin',
-    databaseURL: 'https://passenger-signuplogin-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'passenger-signuplogin.appspot.com',
+    apiKey: 'AIzaSyAfhE73f9Kz6X14llzsEa9lERYpJgxvVhw',
+    appId: '1:499691183216:android:e8d91617e5d6e90d6828b5',
+    messagingSenderId: '499691183216',
+    projectId: 'capstone-ca5d5',
+    databaseURL: 'https://capstone-ca5d5-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'capstone-ca5d5.firebasestorage.app',
   );
 }
+

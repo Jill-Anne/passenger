@@ -43,3 +43,17 @@ app.*.map.json
 /android/app/release
 
 lib/methods/firebaseToken.dart
+
+lib/firebase_options.dart
+
+
+
+# Ignore gradle.properties to avoid pushing sensitive information like API keys
+gradle.properties
+local.properties
+.env
+
+# Ignore google-services.json to prevent pushing sensitive Firebase configuration
+android/app/google-services.json
+
+

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:passenger/appInfo/app_info.dart';
 import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/firebase_options.dart';
@@ -39,7 +40,8 @@ void main() async {
 
   // Fetch and log Firebase token
   await _fetchAndLogFirebaseToken();
-
+await dotenv.load(fileName: ".env");
+print(dotenv.env);  
   runApp(MyApp());
 }
 

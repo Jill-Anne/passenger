@@ -429,7 +429,7 @@ Future<String?> _promptForPassword() async {
                                         )
                                       : Image.network(
                                           _profileImageUrl == null || _profileImageUrl!.isEmpty
-                                              ? "https://firebasestorage.googleapis.com/v0/b/passenger-signuplogin.appspot.com/o/avatarman.png?alt=media&token=11c39289-3c10-4355-9537-9003913dbeef"
+                                              ? "https://firebasestorage.googleapis.com/v0/b/capstone-ca5d5.firebasestorage.app/o/avatarman.png?alt=media&token=3a9dc208-1fe8-4571-af24-dbea29f4392e"
                                               : _profileImageUrl!,
                                           width: 120,
                                           height: 120,

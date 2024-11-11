@@ -79,7 +79,7 @@ class PushNotificationService {
 
       // Sending FCM notification
       var response = await http.post(
-        Uri.parse("https://fcm.googleapis.com/v1/projects/passenger-signuplogin/messages:send"),
+        Uri.parse("https://fcm.googleapis.com/v1/projects/capstone-ca5d5/messages:send"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $accessToken",
@@ -88,7 +88,7 @@ class PushNotificationService {
       );
 
       print('FCM request sent.');
-      print('Request URL: https://fcm.googleapis.com/v1/projects/passenger-signuplogin/messages:send');
+      print('Request URL: https://fcm.googleapis.com/v1/projects/capstone-ca5d5/messages:send');
       print('Request Headers: ${jsonEncode({
         "Content-Type": "application/json",
         "Authorization": "Bearer $accessToken",

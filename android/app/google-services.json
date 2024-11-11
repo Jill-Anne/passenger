@@ -1,27 +1,37 @@
 {
   "project_info": {
-    "project_number": "755339267599",
-    "firebase_url": "https://passenger-signuplogin-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "passenger-signuplogin",
-    "storage_bucket": "passenger-signuplogin.appspot.com"
+    "project_number": "499691183216",
+    "firebase_url": "https://capstone-ca5d5-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "capstone-ca5d5",
+    "storage_bucket": "capstone-ca5d5.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:755339267599:android:13c3d99ae54b15d2e01d7a",
+        "mobilesdk_app_id": "1:499691183216:android:e8d91617e5d6e90d6828b5",
         "android_client_info": {
-          "package_name": "com.signupLogin.passenger"
+          "package_name": "com.capstone.trico"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "499691183216-vsklo4us78gg9j697g8ectaqhntj4812.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyCkLt8ILMXSFRP12xS8P7830kGNBeGn47s"
+          "current_key": "AIzaSyAfhE73f9Kz6X14llzsEa9lERYpJgxvVhw"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "499691183216-vsklo4us78gg9j697g8ectaqhntj4812.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
