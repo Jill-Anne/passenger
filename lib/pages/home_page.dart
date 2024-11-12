@@ -1049,6 +1049,7 @@ tripStreamSubscription =
     }
   }
 
+/*
  noDriverAvailable() async {
     var result = await showDialog(
       context: context,
@@ -1056,7 +1057,7 @@ tripStreamSubscription =
       builder: (BuildContext context) => AlertDialog(
         title: Text("No Driver Available"),
         content: Text(
-            "No driver found in the nearby location. Do you want to try again?"),
+            "No driver found in the nearby location. Try again later."),
         actions: <Widget>[
           TextButton(
             onPressed: () {
@@ -1078,6 +1079,54 @@ tripStreamSubscription =
 
     print("No driver available dialog result: $result");
   }
+
+  */
+
+  noDriverAvailable() async {
+  var result = await showDialog(
+    context: context,
+    barrierDismissible: false, // Prevent tapping outside to close the dialog
+    builder: (BuildContext context) => AlertDialog(
+      title: const Text("No Driver Available", style:  TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,  ),
+      content: const Text(
+        "No driver found in the nearby location. Try again later.",
+        style: TextStyle(fontSize: 16),
+        textAlign: TextAlign.center, // Optional: Center the content text
+      ),
+      actions: <Widget>[
+ // Action Button
+                Center(
+                  child: SizedBox(
+                    width: 150,
+                    height: 40,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor:  Color.fromARGB(255, 1, 42, 123),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      onPressed: () {
+                         cancelRideRequest(); // Call the cancelRideRequest 
+              Navigator.pop(context,
+                  false); // Close the dialog 
+                      },
+                      child: const Text(
+                        'OK',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ),
+      ],
+    ),
+  );
+
+  print("No driver available dialog result: $result");
+}
+
 
   bool isCancellationHandled =
       false; // Flag to track if cancellation is handled
@@ -1118,7 +1167,7 @@ Future<void> searchDriver() async {
             print('Context is null or widget is not mounted.');
           }
           cancelRideRequest();
-          resetAppNow(context);
+         // resetAppNow(context);
           print('Cancellation AND RESET handled.');
 
           // Exit as no further actions are needed
@@ -1239,8 +1288,8 @@ Future<void> searchDriver() async {
             right: -10, // Position it outside the right corner
             child: GestureDetector(
               onTap: () {
-                Navigator.of(context).pop(); // Close the dialog
-                cancelRideRequest(); // Call the cancelRideRequest function
+                Navigator.pop(context); // Close the dialog
+                //cancelRideRequest(); // Call the cancelRideRequest function
               },
               child: Container(
                 padding: EdgeInsets.all(6), // Padding inside the circle
@@ -1726,7 +1775,7 @@ print('showDialog() function call completed.');
             bottom: 0,
             child: GestureDetector(
               onTap: () {
-                DialogUtils.showRideOptionsDialog(context);
+             //   DialogUtils.showRideOptionsDialog(context);
               },
               child: Container(
                 height: rideDetailsContainerHeight,

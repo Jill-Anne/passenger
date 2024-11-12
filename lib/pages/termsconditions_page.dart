@@ -59,7 +59,7 @@ Widget build(BuildContext context) {
       textAlign: TextAlign.center, // Center the text within itself
       style: TextStyle(
       //  color: Color.fromARGB(255, 18, 2, 56),
-        fontSize: 18, // Adjust the font size as needed
+        fontSize: 15, // Adjust the font size as needed
         fontWeight: FontWeight.bold,
       ),
       maxLines: 3, // Allow for text wrapping
