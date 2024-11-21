@@ -74,6 +74,7 @@ class _HomePageState extends State<HomePage> {
 String updatedPhoneNumber = ''; // Declare it at the start of your widget state
   Marker? driverMarker;
   LatLng? driverCurrentLocationLatLng;
+  static Timer? _timer;
 
   late DateTime _startDate;
   late DateTime _endDate;
@@ -400,11 +401,12 @@ retrieveDirectionDetails() async {
 
   updateAvailableNearbyOnlineDriversOnMap() {
     setState(() {
-      markerSet.clear();
+      markerSet.clear(); // Clear previous markers
     });
 
     Set<Marker> markersTempSet = Set<Marker>();
 
+    // Add markers for each online driver
     for (OnlineNearbyDrivers eachOnlineNearbyDriver
         in ManageDriversMethods.nearbyOnlineDriversList) {
       LatLng driverCurrentPosition = LatLng(
@@ -420,67 +422,74 @@ retrieveDirectionDetails() async {
       markersTempSet.add(driverMarker);
     }
 
+    // Update the map with the new set of markers
     setState(() {
       markerSet = markersTempSet;
     });
   }
 
-  initializeGeoFireListener() {
-    Geofire.initialize("onlineDrivers");
+  
+
+initializeGeoFireListener() {
+  Geofire.initialize("onlineDrivers");
     Geofire.queryAtLocation(currentPositionOfUser!.latitude,
             currentPositionOfUser!.longitude, 50)!
-        .listen((driverEvent) {
-      if (driverEvent != null) {
-        var onlineDriverChild = driverEvent["callBack"];
+      .listen((driverEvent) {
+    if (driverEvent != null) {
+      var onlineDriverChild = driverEvent["callBack"];
 
-        switch (onlineDriverChild) {
-          case Geofire.onKeyEntered:
-            OnlineNearbyDrivers onlineNearbyDrivers = OnlineNearbyDrivers();
-            onlineNearbyDrivers.uidDriver = driverEvent["key"];
-            onlineNearbyDrivers.latDriver = driverEvent["latitude"];
-            onlineNearbyDrivers.lngDriver = driverEvent["longitude"];
+      switch (onlineDriverChild) {
+        case Geofire.onKeyEntered:
+          OnlineNearbyDrivers onlineNearbyDrivers = OnlineNearbyDrivers();
+          onlineNearbyDrivers.uidDriver = driverEvent["key"];
+          onlineNearbyDrivers.latDriver = driverEvent["latitude"];
+          onlineNearbyDrivers.lngDriver = driverEvent["longitude"];
             ManageDriversMethods.nearbyOnlineDriversList
                 .add(onlineNearbyDrivers);
-
-            if (nearbyOnlineDriversKeysLoaded == true) {
+         updateAvailableNearbyOnlineDriversOnMap();
+          if (nearbyOnlineDriversKeysLoaded == true) {
               //update drivers on google map
-              updateAvailableNearbyOnlineDriversOnMap();
-            }
-
-            break;
-
-          case Geofire.onKeyExited:
-            ManageDriversMethods.removeDriverFromList(driverEvent["key"]);
-
-            //update drivers on google map
             updateAvailableNearbyOnlineDriversOnMap();
+          }
 
-            break;
+          break;
 
-          case Geofire.onKeyMoved:
-            OnlineNearbyDrivers onlineNearbyDrivers = OnlineNearbyDrivers();
-            onlineNearbyDrivers.uidDriver = driverEvent["key"];
-            onlineNearbyDrivers.latDriver = driverEvent["latitude"];
-            onlineNearbyDrivers.lngDriver = driverEvent["longitude"];
+        case Geofire.onKeyExited:
+          // When a driver exits the area, remove them from the list
+          ManageDriversMethods.removeDriverFromList(driverEvent["key"]);
+          
+            //update drivers on google map
+          updateAvailableNearbyOnlineDriversOnMap();
+
+          break;
+
+        case Geofire.onKeyMoved:
+          OnlineNearbyDrivers onlineNearbyDrivers = OnlineNearbyDrivers();
+          onlineNearbyDrivers.uidDriver = driverEvent["key"];
+          onlineNearbyDrivers.latDriver = driverEvent["latitude"];
+          onlineNearbyDrivers.lngDriver = driverEvent["longitude"];
             ManageDriversMethods.updateOnlineNearbyDriversLocation(
                 onlineNearbyDrivers);
 
             //update drivers on google map
-            updateAvailableNearbyOnlineDriversOnMap();
+          updateAvailableNearbyOnlineDriversOnMap();
 
-            break;
+          break;
 
-          case Geofire.onGeoQueryReady:
-            nearbyOnlineDriversKeysLoaded = true;
+        case Geofire.onGeoQueryReady:
+          nearbyOnlineDriversKeysLoaded = true;
 
             //update drivers on google map
-            updateAvailableNearbyOnlineDriversOnMap();
+          updateAvailableNearbyOnlineDriversOnMap();
 
-            break;
-        }
+          break;
       }
-    });
-  }
+    }
+  });
+
+  // Start periodic update to refresh the list of online drivers
+  ManageDriversMethods.startPeriodicUpdate();
+}
 
 // Fetch fare amount from Firestore
 Future<double> getFareAmount() async {
@@ -1111,7 +1120,7 @@ tripStreamSubscription =
                       onPressed: () {
                          cancelRideRequest(); // Call the cancelRideRequest 
               Navigator.pop(context,
-                  false); // Close the dialog 
+                  true); // Close the dialog 
                       },
                       child: const Text(
                         'OK',
@@ -1167,7 +1176,6 @@ Future<void> searchDriver() async {
             print('Context is null or widget is not mounted.');
           }
           cancelRideRequest();
-         // resetAppNow(context);
           print('Cancellation AND RESET handled.');
 
           // Exit as no further actions are needed
@@ -1181,6 +1189,7 @@ Future<void> searchDriver() async {
     print('Error retrieving trip status: $error');
   }
 
+  
   if (availableNearbyOnlineDriversList!.isEmpty) {
     print('No available drivers found.');
     bool shouldCancel = noDriverAvailable(); // Await the dialog result
@@ -1189,11 +1198,57 @@ Future<void> searchDriver() async {
     }
     return; // Exit the function after handling no drivers
   }
+///SELECTING DRIVER FRM LIST
+ // var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
+ // print('Driver selected: $currentDriver');
 
-  var currentDriver = availableNearbyOnlineDriversList!.removeAt(0);
-  print('Driver selected: $currentDriver');
-  await sendNotificationToDriver(currentDriver);
+  // Fetch drivers from the onlineDrivers node
+  DatabaseReference onlineDriversRef = FirebaseDatabase.instance.ref().child("onlineDrivers");
+
+  try {
+    DataSnapshot snapshot = await onlineDriversRef.get();
+
+    if (snapshot.exists) {
+      // Iterate through the online drivers and find a suitable one
+      Map<dynamic, dynamic> driversMap = snapshot.value as Map<dynamic, dynamic>;
+
+      // Search for a suitable driver that is both online and has "waiting" status
+      for (var driverUid in driversMap.keys) {
+        // Check if the driver has "waiting" status
+        DatabaseReference driverRef = FirebaseDatabase.instance
+            .ref()
+            .child("driversAccount")
+            .child(driverUid);
+
+        DataSnapshot driverStatusSnapshot = await driverRef.child("newTripStatus").get();
+        String driverStatus = driverStatusSnapshot.value.toString();
+
+         if (driverStatus == "waiting" || driverStatus == "cancelled" ) {
+          print("Driver $driverUid is online and available. Proceeding to send notification.");
+
+          // Now send notification to this driver
+
+          // Now send notification to this driver
+          OnlineNearbyDrivers currentDriver = OnlineNearbyDrivers(
+            uidDriver: driverUid,
+            latDriver: driversMap[driverUid]['lat'],  // assuming lat is in the map
+            lngDriver: driversMap[driverUid]['lng'],  // assuming lng is in the map
+          );
+          
+          await sendNotificationToDriver(currentDriver);
+          break;  // We found a suitable driver, no need to continue the search
+        } else {
+          print("Driver $driverUid is not available (status: $driverStatus). Skipping.");
+        }
+      }
+    } else {
+      print('No online drivers found.');
+    }
+  } catch (error) {
+    print('Error fetching online drivers: $error');
+  }
 }
+
 
  Future<void> _showDeclineDialog() async {
   print('Preparing to show decline dialog.');
@@ -1323,124 +1378,141 @@ print('showDialog() function call completed.');
   }
 }
 
-///ReseT is NOT working Finding another driver is working if didntaccept on first request 
-  Future<void> sendNotificationToDriver(
-      OnlineNearbyDrivers currentDriver) async {
-    print(
-        'sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
+Future<void> sendNotificationToDriver(OnlineNearbyDrivers currentDriver) async {
+  print('sendNotificationToDriver called for driver UID: ${currentDriver.uidDriver}');
 
-    if (tripRequestRef == null) {
-      print('Trip request reference is null');
-      return;
-    }
-
-    // Reference to the driver's data in Firebase
-    DatabaseReference driverRef = FirebaseDatabase.instance
-        .ref()
-        .child("driversAccount")
-        .child(currentDriver.uidDriver.toString());
-
-    // Check if the driver exists before proceeding
-    try {
-      final driverSnapshot = await driverRef.get();
-      if (!driverSnapshot.exists) {
-        print('Driver UID: ${currentDriver.uidDriver} does not exist.');
-        return;
-      }
-    } catch (error) {
-      print('Error fetching driver data: $error');
-      return;
-    }
-
-    // Update newTripStatus and currentTripID
-    driverRef.child("newTripStatus").set(tripRequestRef!.key).then((_) {
-      print(
-          'newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
-    }).catchError((error) {
-      print(
-          'Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
-    });
-
-    driverRef.child("currentTripID").set(tripRequestRef!.key).then((_) {
-      print(
-          'currentTripID updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
-    }).catchError((error) {
-      print(
-          'Error updating currentTripID for driver UID: ${currentDriver.uidDriver}: $error');
-    });
-
-    // Get the current driver's device token
-    DatabaseReference tokenOfCurrentDriverRef = driverRef.child("deviceToken");
-
-    try {
-      final dataSnapshot = await tokenOfCurrentDriverRef.get();
-
-      if (dataSnapshot.exists && dataSnapshot.value != null) {
-        String deviceToken = dataSnapshot.value.toString();
-        print(
-            'Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
-
-        // Send notification to the driver
-        await PushNotificationService.sendNotificationToSelectedDriver(
-          deviceToken,
-          context,
-          tripRequestRef!.key.toString(),
-        );
-      } else {
-        print(
-            'Device token not found for driver UID: ${currentDriver.uidDriver}');
-      }
-    } catch (error) {
-      print(
-          'Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
-    }
-
-    // Timer logic
-    const oneTickPerSec = Duration(seconds: 1);
-
-    var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
-      requestTimeoutDriver = requestTimeoutDriver - 1;
-
-      // Stop timer if trip request is cancelled
-      if (stateOfApp != "requesting") {
-        timer.cancel();
-        driverRef.child("newTripStatus").set("cancelled");
-        driverRef.onDisconnect();
-        requestTimeoutDriver = 20;
-        return;
-      }
-
-      // If 20 seconds passed - send notification to the next nearest online available driver
-      if (requestTimeoutDriver == 0) {
-        timer.cancel();
-        driverRef.child("newTripStatus").set("timeout");
-        driverRef.onDisconnect();
-        requestTimeoutDriver = 15;
-
-        // Log and notify the next nearest driver
-        print(
-            'Request timed out for driver UID: ${currentDriver.uidDriver}, searching for next available driver.');
-        searchDriver();
-              // Start a new timer for waiting state
-      Timer(Duration(seconds: 15), () {
-        driverRef.child("newTripStatus").set("waiting");
-        print('Driver UID: ${currentDriver.uidDriver} is now waiting for a new request.');
-      });
-      
-      return;
-      }
-    });
-
-    // Listen for changes in newTripStatus
-    driverRef.child("newTripStatus").onValue.listen((dataSnapshot) {
-      var value = dataSnapshot.snapshot.value;
-      if (value != null && value.toString() == "accepted") {
-        timerCountDown.cancel(); // Cancel the timer when trip is accepted
-        driverRef.onDisconnect(); // Disconnect the reference
-        requestTimeoutDriver = 20; // Reset request timeout
-      }
-    });
+  if (tripRequestRef == null) {
+    print('Trip request reference is null');
+    return;
   }
+
+  DatabaseReference driverRef = FirebaseDatabase.instance
+      .ref()
+      .child("driversAccount")
+      .child(currentDriver.uidDriver.toString());
+
+  // Check if the driver exists before proceeding
+  try {
+    final driverSnapshot = await driverRef.get();
+    if (!driverSnapshot.exists) {
+      print('Driver UID: ${currentDriver.uidDriver} does not exist.');
+      return;
+    }
+  } catch (error) {
+    print('Error fetching driver data: $error');
+    return;
+  }
+
+  // Check if the driver's newTripStatus is 'waiting', 'cancelled', or 'timeout' before sending notification
+  try {
+    final newTripStatusSnapshot = await driverRef.child("newTripStatus").get();
+    if (newTripStatusSnapshot.exists) {
+      String currentStatus = newTripStatusSnapshot.value.toString();
+      if (currentStatus == "cancelled" || currentStatus == "timeout" || currentStatus == "waiting") {
+        print('Driver UID: ${currentDriver.uidDriver} can receive a new trip request.');
+      } else {
+        print('Driver UID: ${currentDriver.uidDriver} is not available (status: $currentStatus). Skipping notification.');
+        return;
+      }
+    }
+  } catch (error) {
+    print('Error checking newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
+    return;
+  }
+
+  // Update newTripStatus to the trip request ID (this ensures the driver is assigned to this trip)
+  await driverRef.child("newTripStatus").set(tripRequestRef!.key).then((_) {
+    print('newTripStatus updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
+  }).catchError((error) {
+    print('Error updating newTripStatus for driver UID: ${currentDriver.uidDriver}: $error');
+  });
+
+  await driverRef.child("currentTripID").set(tripRequestRef!.key).then((_) {
+    print('currentTripID updated for driver UID: ${currentDriver.uidDriver} with tripID: ${tripRequestRef!.key}');
+  }).catchError((error) {
+    print('Error updating currentTripID for driver UID: ${currentDriver.uidDriver}: $error');
+  });
+
+  // Get device token for the driver to send the notification
+  DatabaseReference tokenOfCurrentDriverRef = driverRef.child("deviceToken");
+
+  try {
+    final dataSnapshot = await tokenOfCurrentDriverRef.get();
+
+    if (dataSnapshot.exists && dataSnapshot.value != null) {
+      String deviceToken = dataSnapshot.value.toString();
+      print('Device token retrieved for driver UID: ${currentDriver.uidDriver}: $deviceToken');
+
+      // Send notification to the driver
+      await PushNotificationService.sendNotificationToSelectedDriver(
+        deviceToken,
+        context,
+        tripRequestRef!.key.toString(),
+      );
+    } else {
+      print('Device token not found for driver UID: ${currentDriver.uidDriver}');
+    }
+  } catch (error) {
+    print('Error retrieving device token for driver UID: ${currentDriver.uidDriver}: $error');
+  }
+
+  // Start a timer for timeout and concurrently search for the next available driver
+const oneTickPerSec = Duration(seconds: 1);
+
+// Initialize the timeout duration for the "timeout" state to 15 seconds
+const timeoutDuration = Duration(seconds: 15);
+
+// Timer for countdown
+var timerCountDown = Timer.periodic(oneTickPerSec, (timer) {
+  requestTimeoutDriver = requestTimeoutDriver - 1;
+
+  // If the trip is cancelled, stop the timer
+  if (stateOfApp != "requesting") {
+    timer.cancel();
+    driverRef.child("newTripStatus").set("cancelled"); // Set status to cancelled
+    driverRef.onDisconnect(); // Clean up the reference
+    requestTimeoutDriver = 15;  // Reset timeout duration for future use
+    return;
+  }
+
+  // If timeout is triggered (status is set to "timeout"), wait for 15 seconds
+  if (requestTimeoutDriver == 0) {
+    // Set the status to "timeout"
+    driverRef.child("newTripStatus").set("timeout");
+    driverRef.onDisconnect(); // Clean up the reference
+
+searchDriver();
+    // Wait for 15 seconds before continuing further logic
+    Future.delayed(timeoutDuration, () {
+      // After 15 seconds, proceed to search for the next driver
+      print('Request timed out for driver UID: ${currentDriver.uidDriver}, searching for next available driver.');
+       // Start searching for the next driver.
+
+      // Reset the driver's status to "waiting" (driver becomes available for new requests)
+      driverRef.child("newTripStatus").set("waiting");
+      print('Driver UID: ${currentDriver.uidDriver} is now waiting for a new request.');
+
+      // Reset timeout value for future use
+      requestTimeoutDriver = 15;
+    });
+    return; // exit the timer to prevent any further actions
+  }
+});
+
+
+  // Listen for changes in newTripStatus and handle "accepted" status
+  driverRef.child("newTripStatus").onValue.listen((dataSnapshot) {
+    var value = dataSnapshot.snapshot.value;
+    if (value != null && value.toString() == "accepted") {
+      timerCountDown.cancel(); // Cancel the timeout timer when trip is accepted
+      driverRef.onDisconnect(); // Disconnect the reference
+      requestTimeoutDriver = 20; // Reset the timeout for next usage
+      print('Driver UID: ${currentDriver.uidDriver} has accepted the trip request.');
+    }
+  });
+}
+
+
 
   @override
   void initState() {
@@ -1450,6 +1522,15 @@ print('showDialog() function call completed.');
       fareAmountFuture =
           CommonMethods().calculateFareAmount(tripDirectionDetailsInfo!);
     }
+
+  // Pass the setState method to ManageDriversMethods
+  ManageDriversMethods.setMapUpdateCallback(() {
+    setState(() {
+      updateAvailableNearbyOnlineDriversOnMap();
+    });
+  });
+
+  ManageDriversMethods.startPeriodicUpdate();  // Start periodic updates
   }
 
 // Build the UI of the home page
