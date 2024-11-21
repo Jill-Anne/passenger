@@ -1590,66 +1590,70 @@ searchDriver();
                       decoration: const BoxDecoration(
                           //        color: const Color.fromARGB(137, 237, 234, 234),
                           ),
-                      child: Row(
-                        children: [
-                          Container(
+                     child: Row(
+  children: [
+    Container(
                             width:
                                 60, // Slightly larger to accommodate the border
                             height:
                                 60, // Slightly larger to accommodate the border
-                            decoration: BoxDecoration(
+      decoration: BoxDecoration(
                               shape: BoxShape
                                   .circle, // Ensures the border is circular
-                              border: Border.all(
+        border: Border.all(
                                 color: Color.fromARGB(
                                     255, 32, 2, 87), // Border color
-                                width: 4, // Border width
-                              ),
-                            ),
-                            child: ClipOval(
+          width: 4, // Border width
+        ),
+      ),
+      child: ClipOval(
                               child: _profileImageUrl == null ||
                                       _profileImageUrl!.isEmpty
-                                  ? Image.asset(
-                                      "assets/images/avatarman.png",
-                                      width: 50,
-                                      height: 50,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Image.network(
-                                      _profileImageUrl!,
-                                      width: 50,
-                                      height: 50,
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(
-                            width: 16,
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                userName,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Color.fromARGB(255, 12, 12, 12),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+            ? Image.asset(
+                "assets/images/avatarman.png",
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              )
+            : Image.network(
+                _profileImageUrl!,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
+      ),
+    ),
+    const SizedBox(width: 16),
+    Expanded( // Added Expanded to ensure the text can take up available space
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start, // Align text to the left
+        children: [
+          Text(
+            userName,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color.fromARGB(255, 12, 12, 12),
+              fontWeight: FontWeight.bold,
+            ),
+            //overflow: TextOverflow.ellipsis, // Adds ellipsis if the name is too long
+            maxLines: 2, // Limit name to one line
+          ),
                               const SizedBox(
                                 height: 4,
                               ),
-                              const Text(
-                                "Profile",
-                                style: TextStyle(
-                                  color: Color.fromARGB(95, 15, 15, 15),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+          const Text(
+            "Profile",
+            style: TextStyle(
+              color: Color.fromARGB(95, 15, 15, 15),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ],
+),
+
                     ),
                   ),
                 ),
