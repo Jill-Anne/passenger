@@ -59,17 +59,27 @@ class PrivacyPolicyPage extends StatelessWidget {
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 12),
+              // Adding the Data Retention Section
               Text(
-                '6. Your Rights and Choices',
+                '6. Data Retention',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
-                'You have the right to:\n- Access and update: You can view and update your personal information at any time through the app.\n- Delete your account: If you wish to delete your account, you can do so by contacting us or using the account settings in the app.',
+                'We retain your personal information for as long as necessary to provide you with our services, comply with legal obligations, resolve disputes, and enforce our agreements. In accordance with industry standards, we retain ride data and personal information for a period of **6 months to 3 years**, after which the data will be securely deleted or anonymized. This period may vary depending on local regulations and specific business requirements.',
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 12),
               Text(
-                '7. Children\'s Privacy',
+                '7. Your Rights and Choices',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              Text(
+                'You have the right to:\n- Access and update: You can view and update your personal information at any time through the app.\n- Delete your account: If you wish to delete your account, you can do so by contacting us.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '8. Children\'s Privacy',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
@@ -78,7 +88,7 @@ class PrivacyPolicyPage extends StatelessWidget {
               ),
               SizedBox(height: 12),
               Text(
-                '8. Changes to the Privacy Policy',
+                '9. Changes to the Privacy Policy',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
@@ -87,11 +97,11 @@ class PrivacyPolicyPage extends StatelessWidget {
               ),
               SizedBox(height: 12),
               Text(
-                '9. Contact Us',
+                '10. Contact Us',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
-                'If you have any questions or concerns about this Privacy Policy, please contact us at:\n\nEmail: support@tricorides.com\nPhone: +1 (800) 123-4567',
+                'If you have any questions or concerns about this Privacy Policy, please contact us at:\n\nEmail: support@tricorides.com\nPhone: +(63) 9123-4567',
                 style: TextStyle(fontSize: 16),
               ),
             ],

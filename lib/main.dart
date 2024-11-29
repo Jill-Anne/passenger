@@ -11,6 +11,7 @@ import 'package:passenger/authentication/login_screen.dart';
 import 'package:passenger/firebase_options.dart';
 import 'package:passenger/global/trip_var.dart';
 import 'package:passenger/methods/firebaseToken.dart';
+import 'package:passenger/pages/data_retention.dart';
 import 'package:passenger/pages/home_page.dart';
 import 'package:passenger/widgets/driverCancel_dialog.dart'; // Not used here but might be used elsewhere
 import 'package:passenger/widgets/state_management.dart';
@@ -20,11 +21,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await FirestoredeleteExpiredData();
+  await deleteExpiredData();
 
   // Activate Firebase App Check
   await FirebaseAppCheck.instance.activate(
@@ -32,7 +36,7 @@ void main() async {
   );
 
   await dotenv.load(fileName: ".env");
-  print(dotenv.env);  // Just for debugging purposes, remove it in production.
+  print(dotenv.env); // Just for debugging purposes, remove it in production.
 
   // Set up Firebase Messaging
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -65,49 +69,58 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     // Set the status bar color to transparent
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Color.fromARGB(255, 1, 42, 123), // Set a color or transparent
+      statusBarColor:
+          Color.fromARGB(255, 1, 42, 123), // Set a color or transparent
       statusBarIconBrightness: Brightness.light,
     ));
 
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AppInfo()),
-        ChangeNotifierProvider(create: (context) => TripData()),  // Add this line for trip data management
+        ChangeNotifierProvider(
+            create: (context) =>
+                TripData()), // Add this line for trip data management
       ],
       child: MaterialApp(
         title: 'Passenger App',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          scaffoldBackgroundColor: Colors.white, // Set Scaffold background color
+          scaffoldBackgroundColor:
+              Colors.white, // Set Scaffold background color
           appBarTheme: const AppBarTheme(
-            backgroundColor: Color.fromARGB(255, 1, 42, 123), // AppBar background color
+            backgroundColor:
+                Color.fromARGB(255, 1, 42, 123), // AppBar background color
             foregroundColor: Colors.white, // AppBar text color
             systemOverlayStyle: SystemUiOverlayStyle(
-              statusBarColor: Color.fromARGB(255, 1, 42, 123), // Status bar color
-              statusBarIconBrightness: Brightness.light, // Status bar icon brightness
+              statusBarColor:
+                  Color.fromARGB(255, 1, 42, 123), // Status bar color
+              statusBarIconBrightness:
+                  Brightness.light, // Status bar icon brightness
             ),
           ),
           useMaterial3: true,
-          fontFamily: 'Poppins',  // Set the default font to Poppins
+          fontFamily: 'Poppins', // Set the default font to Poppins
           textTheme: const TextTheme(
             displayLarge: TextStyle(fontFamily: 'Poppins'),
             displayMedium: TextStyle(fontFamily: 'Poppins'),
             displaySmall: TextStyle(fontFamily: 'Poppins'),
-            headlineMedium: TextStyle(fontFamily: 'Poppins'),  // Replaces headline4
+            headlineMedium:
+                TextStyle(fontFamily: 'Poppins'), // Replaces headline4
             headlineSmall: TextStyle(fontFamily: 'Poppins'),
             titleLarge: TextStyle(fontFamily: 'Poppins'),
             titleMedium: TextStyle(fontFamily: 'Poppins'),
             titleSmall: TextStyle(fontFamily: 'Poppins'),
-            bodyLarge: TextStyle(fontFamily: 'Poppins'),  // Replaces bodyText1
+            bodyLarge: TextStyle(fontFamily: 'Poppins'), // Replaces bodyText1
             bodyMedium: TextStyle(fontFamily: 'Poppins'), // Replaces bodyText2
-            labelLarge: TextStyle(fontFamily: 'Poppins'), // For buttons and labels
+            labelLarge:
+                TextStyle(fontFamily: 'Poppins'), // For buttons and labels
             bodySmall: TextStyle(fontFamily: 'Poppins'),
             labelSmall: TextStyle(fontFamily: 'Poppins'),
           ),
         ),
         home: FirebaseAuth.instance.currentUser == null
             ? LoginScreen()
-            : HomePage(),  // Load HomePage if user is authenticated
+            : HomePage(), // Load HomePage if user is authenticated
       ),
     );
   }
